@@ -2,6 +2,7 @@ import { Box, Text, useApp, useStdout } from "ink";
 import { useState, useCallback, useEffect } from "react";
 import AutocompleteInput, {
 	type AutocompleteProvider,
+	type SlashCommand,
 } from "./components/AutocompleteInput.js";
 import type { CliFlags } from "./cli.js";
 
@@ -26,6 +27,16 @@ const COMMANDS = [
 	"restart",
 	"logs",
 	"version",
+];
+
+// 斜杠命令列表
+const SLASH_COMMANDS: SlashCommand[] = [
+	{ name: "help", description: "Show available commands" },
+	{ name: "clear", description: "Clear the screen" },
+	{ name: "exit", description: "Exit the application" },
+	{ name: "version", description: "Show version information" },
+	{ name: "config", description: "Show configuration" },
+	{ name: "status", description: "Show current status" },
 ];
 
 // 分隔线组件
@@ -100,7 +111,31 @@ export default function App({ flags }: Props) {
 			if (value.trim()) {
 				setMessages((prev) => [...prev, `> ${value}`]);
 
-				// 处理一些基本命令
+				// 处理斜杠命令
+				if (value.startsWith("\\")) {
+					const slashCmd = value.slice(1).toLowerCase();
+					if (slashCmd === "help") {
+						setMessages((prev) => [
+							...prev,
+							"Available commands: " + COMMANDS.join(", "),
+						]);
+					} else if (slashCmd === "exit") {
+						clearAndExit();
+					} else if (slashCmd === "clear") {
+						setMessages([]);
+					} else if (slashCmd === "version") {
+						setMessages((prev) => [...prev, "axiomate-cli v1.0.0"]);
+					} else if (slashCmd === "config") {
+						setMessages((prev) => [...prev, "Config: (empty)"]);
+					} else if (slashCmd === "status") {
+						setMessages((prev) => [...prev, "Status: running"]);
+					} else {
+						setMessages((prev) => [...prev, `Unknown slash command: ${value}`]);
+					}
+					return;
+				}
+
+				// 处理普通命令
 				const cmd = value.trim().toLowerCase();
 				if (cmd === "help") {
 					setMessages((prev) => [
@@ -167,6 +202,7 @@ export default function App({ flags }: Props) {
 					onSubmit={handleSubmit}
 					onExit={clearAndExit}
 					autocompleteProvider={autocompleteProvider}
+					slashCommands={SLASH_COMMANDS}
 				/>
 			</Box>
 		</Box>

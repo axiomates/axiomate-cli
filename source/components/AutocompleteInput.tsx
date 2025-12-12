@@ -1,5 +1,5 @@
 import { Box, Text, useInput, useApp, useStdout } from "ink";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // 自定义 hook 获取终端宽度
 function useTerminalWidth(): number {
@@ -25,11 +25,17 @@ export type AutocompleteProvider = (
 	signal: AbortSignal,
 ) => Promise<string | null>;
 
+export type SlashCommand = {
+	name: string;
+	description: string;
+};
+
 type Props = {
 	prompt?: string;
 	onSubmit?: (value: string) => void;
 	onExit?: () => void;
 	autocompleteProvider: AutocompleteProvider;
+	slashCommands?: SlashCommand[];
 };
 
 export default function AutocompleteInput({
@@ -37,17 +43,44 @@ export default function AutocompleteInput({
 	onSubmit,
 	onExit,
 	autocompleteProvider,
+	slashCommands = [],
 }: Props) {
 	const { exit } = useApp();
 	const [input, setInput] = useState("");
 	const [cursorPosition, setCursorPosition] = useState(0);
 	const [suggestion, setSuggestion] = useState<string | null>(null);
+	const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
 	const columns = useTerminalWidth();
 	const abortControllerRef = useRef<AbortController | null>(null);
+
+	// 检测是否在斜杠命令模式
+	const isSlashMode = input.startsWith("\\");
+
+	// 过滤匹配的斜杠命令
+	const filteredCommands = useMemo(() => {
+		if (!isSlashMode) return [];
+		const query = input.slice(1).toLowerCase();
+		return slashCommands.filter(
+			(cmd) =>
+				cmd.name.toLowerCase().includes(query) ||
+				cmd.description.toLowerCase().includes(query),
+		);
+	}, [input, isSlashMode, slashCommands]);
+
+	// 重置选中索引当命令列表变化时
+	useEffect(() => {
+		setSelectedCommandIndex(0);
+	}, [filteredCommands.length]);
 
 	// 触发自动补全
 	const triggerAutocomplete = useCallback(
 		async (text: string) => {
+			// 斜杠模式下不触发自动补全
+			if (text.startsWith("\\")) {
+				setSuggestion(null);
+				return;
+			}
+
 			// 取消之前的请求
 			if (abortControllerRef.current) {
 				abortControllerRef.current.abort();
@@ -91,6 +124,37 @@ export default function AutocompleteInput({
 	}, []);
 
 	useInput((inputChar, key) => {
+		// 斜杠命令模式下的特殊处理
+		if (isSlashMode && filteredCommands.length > 0) {
+			if (key.upArrow) {
+				setSelectedCommandIndex((prev) =>
+					prev > 0 ? prev - 1 : filteredCommands.length - 1,
+				);
+				return;
+			}
+
+			if (key.downArrow) {
+				setSelectedCommandIndex((prev) =>
+					prev < filteredCommands.length - 1 ? prev + 1 : 0,
+				);
+				return;
+			}
+
+			if (key.return) {
+				// 选中命令并提交
+				const selectedCmd = filteredCommands[selectedCommandIndex];
+				if (selectedCmd) {
+					const cmdText = "\\" + selectedCmd.name;
+					onSubmit?.(cmdText);
+					setInput("");
+					setCursorPosition(0);
+					setSuggestion(null);
+					setSelectedCommandIndex(0);
+				}
+				return;
+			}
+		}
+
 		if (key.return) {
 			// 回车提交
 			onSubmit?.(input);
@@ -139,7 +203,7 @@ export default function AutocompleteInput({
 			return;
 		}
 
-		if (key.upArrow || key.downArrow) {
+		if (!isSlashMode && (key.upArrow || key.downArrow)) {
 			// 预留历史记录功能
 			return;
 		}
@@ -179,7 +243,11 @@ export default function AutocompleteInput({
 		}
 
 		if (key.escape) {
-			// Escape 清除建议
+			// Escape 清除建议或退出斜杠模式
+			if (isSlashMode) {
+				setInput("");
+				setCursorPosition(0);
+			}
 			setSuggestion(null);
 			return;
 		}
@@ -222,6 +290,7 @@ export default function AutocompleteInput({
 
 	return (
 		<Box flexDirection="column">
+			{/* 输入行 */}
 			{lines.map((line, lineIndex) => {
 				const inputEndInLine =
 					lineIndex === Math.floor((prompt.length + input.length) / effectiveWidth);
@@ -267,6 +336,25 @@ export default function AutocompleteInput({
 					</Box>
 				);
 			})}
+
+			{/* 斜杠命令列表 */}
+			{isSlashMode && filteredCommands.length > 0 && (
+				<Box flexDirection="column">
+					<Text color="gray">{"─".repeat(columns)}</Text>
+					{filteredCommands.map((cmd, index) => (
+						<Box key={cmd.name}>
+							<Text
+								backgroundColor={index === selectedCommandIndex ? "blue" : undefined}
+								color={index === selectedCommandIndex ? "white" : undefined}
+							>
+								{" \\"}
+								{cmd.name}
+							</Text>
+							<Text color="gray"> - {cmd.description}</Text>
+						</Box>
+					))}
+				</Box>
+			)}
 		</Box>
 	);
 }
