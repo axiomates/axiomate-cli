@@ -54,7 +54,7 @@ export default function AutocompleteInput({
 	const abortControllerRef = useRef<AbortController | null>(null);
 
 	// 检测是否在斜杠命令模式
-	const isSlashMode = input.startsWith("\\");
+	const isSlashMode = input.startsWith("/");
 
 	// 过滤匹配的斜杠命令
 	const filteredCommands = useMemo(() => {
@@ -76,7 +76,7 @@ export default function AutocompleteInput({
 	const triggerAutocomplete = useCallback(
 		async (text: string) => {
 			// 斜杠模式下不触发自动补全
-			if (text.startsWith("\\")) {
+			if (text.startsWith("/")) {
 				setSuggestion(null);
 				return;
 			}
@@ -144,7 +144,7 @@ export default function AutocompleteInput({
 				// 选中命令并提交
 				const selectedCmd = filteredCommands[selectedCommandIndex];
 				if (selectedCmd) {
-					const cmdText = "\\" + selectedCmd.name;
+					const cmdText = "/" + selectedCmd.name;
 					onSubmit?.(cmdText);
 					setInput("");
 					setCursorPosition(0);
@@ -347,7 +347,7 @@ export default function AutocompleteInput({
 								backgroundColor={index === selectedCommandIndex ? "blue" : undefined}
 								color={index === selectedCommandIndex ? "white" : undefined}
 							>
-								{" \\"}
+								{" /"}
 								{cmd.name}
 							</Text>
 							<Text color="gray"> - {cmd.description}</Text>

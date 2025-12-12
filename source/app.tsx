@@ -112,7 +112,7 @@ export default function App({ flags }: Props) {
 				setMessages((prev) => [...prev, `> ${value}`]);
 
 				// 处理斜杠命令
-				if (value.startsWith("\\")) {
+				if (value.startsWith("/")) {
 					const slashCmd = value.slice(1).toLowerCase();
 					if (slashCmd === "help") {
 						setMessages((prev) => [
