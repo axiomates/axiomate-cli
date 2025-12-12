@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-import React from 'react';
-import {render} from 'ink';
-import meow from 'meow';
-import App from './app.js';
+import { render } from "ink";
+import meow from "meow";
+import App from "./app.js";
 
 const cli = meow(
 	`
@@ -10,7 +9,7 @@ const cli = meow(
 	  $ axiomate-cli
 
 	Options
-		--name  Your name
+	  --name  Your name
 
 	Examples
 	  $ axiomate-cli --name=Jane
@@ -20,7 +19,7 @@ const cli = meow(
 		importMeta: import.meta,
 		flags: {
 			name: {
-				type: 'string',
+				type: "string",
 			},
 		},
 	},

@@ -1,3 +1,25 @@
-node_modules
-dist
+# Node.js
+dist/
+node_modules/
 package-lock.json
+
+# IDEs
+.vscode/
+.cursor/
+.claude/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# Test coverage
+coverage/
