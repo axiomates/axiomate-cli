@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug CLI",
+            "program": "${workspaceFolder}/dist/source/cli.js",
+            "preLaunchTask": "npm: build",
+            "console": "integratedTerminal",  // 重要：ink 需要真实终端
+            "sourceMaps": true
+        }
+    ]
+}
