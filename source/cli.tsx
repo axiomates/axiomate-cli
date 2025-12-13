@@ -7,27 +7,16 @@ export type CliFlags = {
 	name: string | undefined;
 };
 
-const cli = meow(
-	`
-	Usage
-	  $ axiomate-cli
-
-	Options
-	  --name  Your name
-
-	Examples
-	  $ axiomate-cli --name=Jane
-	  Hello, Jane
-`,
-	{
-		importMeta: import.meta,
-		flags: {
-			name: {
-				type: "string",
-			},
+const cli = meow({
+	importMeta: import.meta,
+	autoHelp: false,
+	autoVersion: false,
+	flags: {
+		name: {
+			type: "string",
 		},
 	},
-);
+});
 
 // 保留参数结构供后续使用
 const flags: CliFlags = cli.flags;
