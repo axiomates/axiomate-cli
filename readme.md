@@ -63,19 +63,25 @@ Type `/` to see available slash commands. Use arrow keys to select and Enter to 
 | Shortcut | Action |
 |----------|--------|
 | `Tab` | Accept autocomplete suggestion |
-| `Ctrl+C` | Exit application |
+| `→` | Accept one character from suggestion |
+| `←` / `→` | Move cursor left/right |
+| `↑` / `↓` | Navigate slash command list |
+| `Ctrl+A` | Move cursor to line start |
+| `Ctrl+E` | Move cursor to line end |
 | `Ctrl+U` | Clear text before cursor |
 | `Ctrl+K` | Clear text after cursor |
-| `Ctrl+A` | Move cursor to start |
-| `Ctrl+E` | Move cursor to end |
-| `Escape` | Clear suggestion / exit slash mode |
-| `↑` / `↓` | Navigate slash command list |
+| `Ctrl+C` | Exit application |
+| `Escape` | Clear suggestion / exit slash mode / close help |
+| `?` | Show keyboard shortcuts help (when input is empty) |
 
 ## Development
 
 ```bash
 # Watch mode for development
 npm run dev
+
+# Build project
+npm run build
 
 # Run tests
 npm test
@@ -90,6 +96,23 @@ npm run lint
 npm run lint:fix
 ```
 
+## Project Structure
+
+```
+source/
+├── app.tsx                    # Main application component
+├── cli.tsx                    # CLI entry point
+├── constants/
+│   └── commands.ts            # Command configurations
+├── components/
+│   ├── AutocompleteInput.tsx  # Input with autocomplete
+│   ├── Divider.tsx            # Separator line
+│   ├── Header.tsx             # Title bar
+│   └── MessageOutput.tsx      # Message display area
+└── hooks/
+    └── useTerminalHeight.ts   # Terminal height hook
+```
+
 ## Tech Stack
 
 - [Ink](https://github.com/vadimdemedes/ink) - React for CLI
@@ -97,7 +120,3 @@ npm run lint:fix
 - [meow](https://github.com/sindresorhus/meow) - CLI argument parsing
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Vitest](https://vitest.dev/) - Testing framework
-
-## License
-
-MIT
