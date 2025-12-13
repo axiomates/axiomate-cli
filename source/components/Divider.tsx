@@ -1,7 +1,7 @@
-import { Text, useStdout } from "ink";
+import { Text } from "ink";
+import useTerminalWidth from "../hooks/useTerminalWidth.js";
 
 export default function Divider() {
-	const { stdout } = useStdout();
-	const width = stdout.columns || 80;
-	return <Text color="gray">{"─".repeat(width)}</Text>;
+	const columns = useTerminalWidth();
+	return <Text color="gray">{"─".repeat(columns)}</Text>;
 }
