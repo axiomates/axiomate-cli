@@ -420,6 +420,9 @@ export default function AutocompleteInput({
 		};
 	})();
 
+	// 计算 prompt 缩进（用于后续行对齐）
+	const promptIndent = " ".repeat(prompt.length);
+
 	return (
 		<Box flexDirection="column">
 			{/* 输入行 */}
@@ -442,8 +445,12 @@ export default function AutocompleteInput({
 
 				return (
 					<Box key={lineIndex}>
-						{/* 第一行显示粉色 prompt */}
-						{isFirstLine && <Text color="#FF69B4">{prompt}</Text>}
+						{/* 第一行显示粉色 prompt，后续行显示等宽空格缩进 */}
+						{isFirstLine ? (
+							<Text color="#FF69B4">{prompt}</Text>
+						) : (
+							<Text>{promptIndent}</Text>
+						)}
 						<Text>
 							{isCursorLine ? (
 								<>
@@ -481,7 +488,7 @@ export default function AutocompleteInput({
 								backgroundColor={index === selectedCommandIndex ? "blue" : undefined}
 								color={index === selectedCommandIndex ? "white" : undefined}
 							>
-								{" /"}
+								{`${promptIndent}/`}
 								{cmd.name}
 							</Text>
 							<Text color="gray"> - {cmd.description}</Text>
