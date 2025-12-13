@@ -50,6 +50,7 @@ export default function AutocompleteInput({
 	const [cursorPosition, setCursorPosition] = useState(0);
 	const [suggestion, setSuggestion] = useState<string | null>(null);
 	const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
+	const [showShortcutHelp, setShowShortcutHelp] = useState(false);
 	const columns = useTerminalWidth();
 	const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -261,7 +262,11 @@ export default function AutocompleteInput({
 		}
 
 		if (key.escape) {
-			// Escape 清除建议或退出斜杠模式
+			// Escape 清除建议或退出斜杠模式或关闭快捷键帮助
+			if (showShortcutHelp) {
+				setShowShortcutHelp(false);
+				return;
+			}
 			if (isSlashMode) {
 				setInput("");
 				setCursorPosition(0);
@@ -272,6 +277,15 @@ export default function AutocompleteInput({
 
 		// 普通字符输入
 		if (inputChar && !key.ctrl && !key.meta) {
+			// 输入 ? 时显示快捷键帮助（仅当输入框为空时）
+			if (inputChar === "?" && input === "") {
+				setShowShortcutHelp(true);
+				return;
+			}
+			// 关闭快捷键帮助
+			if (showShortcutHelp) {
+				setShowShortcutHelp(false);
+			}
 			const newInput =
 				input.slice(0, cursorPosition) + inputChar + input.slice(cursorPosition);
 			setInput(newInput);
@@ -371,6 +385,53 @@ export default function AutocompleteInput({
 							<Text color="gray"> - {cmd.description}</Text>
 						</Box>
 					))}
+				</Box>
+			)}
+
+			{/* 快捷键帮助 */}
+			{showShortcutHelp && (
+				<Box flexDirection="column">
+					<Text color="gray">{"─".repeat(columns)}</Text>
+					<Box flexDirection="row" flexWrap="wrap">
+						<Box width="50%">
+							<Text color="cyan">/ </Text>
+							<Text color="gray">for commands</Text>
+						</Box>
+						<Box width="50%">
+							<Text color="cyan">Tab </Text>
+							<Text color="gray">to autocomplete</Text>
+						</Box>
+					</Box>
+					<Box flexDirection="row" flexWrap="wrap">
+						<Box width="50%">
+							<Text color="cyan">Ctrl+A </Text>
+							<Text color="gray">move to start</Text>
+						</Box>
+						<Box width="50%">
+							<Text color="cyan">Ctrl+E </Text>
+							<Text color="gray">move to end</Text>
+						</Box>
+					</Box>
+					<Box flexDirection="row" flexWrap="wrap">
+						<Box width="50%">
+							<Text color="cyan">Ctrl+U </Text>
+							<Text color="gray">clear before cursor</Text>
+						</Box>
+						<Box width="50%">
+							<Text color="cyan">Ctrl+K </Text>
+							<Text color="gray">clear after cursor</Text>
+						</Box>
+					</Box>
+					<Box flexDirection="row" flexWrap="wrap">
+						<Box width="50%">
+							<Text color="cyan">Escape </Text>
+							<Text color="gray">clear input</Text>
+						</Box>
+						<Box width="50%">
+							<Text color="cyan">Ctrl+C </Text>
+							<Text color="gray">exit</Text>
+						</Box>
+					</Box>
 				</Box>
 			)}
 		</Box>

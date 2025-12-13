@@ -170,7 +170,9 @@ export default function App({ flags }: Props) {
 				<Text color="yellow">help</Text>
 				<Text color="gray"> for commands, </Text>
 				<Text color="yellow">Tab</Text>
-				<Text color="gray"> to autocomplete</Text>
+				<Text color="gray"> to autocomplete, </Text>
+				<Text color="yellow">?</Text>
+				<Text color="gray"> for shortcuts</Text>
 			</Box>
 
 			{/* 上分隔线 */}
