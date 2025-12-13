@@ -7,7 +7,6 @@ export default function useTerminalWidth(): number {
 	const [, forceUpdate] = useState(0);
 
 	useEffect(() => {
-		setTerminalWidth(stdout.columns || 80);
 		forceUpdate((n) => n + 1);
 	}, [stdout.columns]);
 

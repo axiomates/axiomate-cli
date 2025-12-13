@@ -7,7 +7,6 @@ export default function useTerminalHeight(): number {
 	const [, forceUpdate] = useState(0);
 
 	useEffect(() => {
-		setTerminalHeight(stdout.rows || 24);
 		forceUpdate((n) => n + 1);
 	}, [stdout.rows]);
 
