@@ -50,10 +50,27 @@ export default function AutocompleteInput({
 	const columns = useTerminalWidth();
 	const abortControllerRef = useRef<AbortController | null>(null);
 
+	// 输入历史记录
+	const [history, setHistory] = useState<string[]>([]);
+	const [historyIndex, setHistoryIndex] = useState(-1);
+	const [savedInput, setSavedInput] = useState(""); // 保存浏览历史前的输入
+	const [isBrowsingHistory, setIsBrowsingHistory] = useState(false); // 是否正在浏览历史
+
 	// 处理提交
 	const handleSubmit = useCallback(
 		(value: string) => {
 			if (!value.trim()) return;
+
+			// 添加到历史记录（避免重复）
+			setHistory((prev) => {
+				const trimmed = value.trim();
+				const filtered = prev.filter((item) => item !== trimmed);
+				return [...filtered, trimmed];
+			});
+			// 重置历史浏览状态
+			setHistoryIndex(-1);
+			setSavedInput("");
+			setIsBrowsingHistory(false);
 
 			// 可用命令列表（用于 help 显示）
 			const AVAILABLE_COMMANDS = ["help", "exit", "quit", "clear", "version"];
@@ -171,6 +188,11 @@ export default function AutocompleteInput({
 	// 触发自动补全
 	const triggerAutocomplete = useCallback(
 		async (text: string) => {
+			// 历史浏览模式下不触发自动补全
+			if (isBrowsingHistory) {
+				return;
+			}
+
 			// 斜杠模式下使用 slashSuggestion，不触发异步补全
 			if (text.startsWith("/")) {
 				setSuggestion(null);
@@ -202,7 +224,7 @@ export default function AutocompleteInput({
 				}
 			}
 		},
-		[getCommandSuggestion],
+		[getCommandSuggestion, isBrowsingHistory],
 	);
 
 	// 当输入变化时触发自动补全
@@ -211,7 +233,12 @@ export default function AutocompleteInput({
 	}, [input, triggerAutocomplete]);
 
 	// 合并建议：斜杠模式使用 slashSuggestion，普通模式使用 suggestion
-	const effectiveSuggestion = isSlashMode ? slashSuggestion : suggestion;
+	// 历史浏览模式下不显示建议
+	const effectiveSuggestion = isBrowsingHistory
+		? null
+		: isSlashMode
+			? slashSuggestion
+			: suggestion;
 
 	// 清理
 	useEffect(() => {
@@ -283,6 +310,12 @@ export default function AutocompleteInput({
 
 		if (key.backspace || key.delete) {
 			if (cursorPosition > 0) {
+				// 退出历史浏览模式（有编辑操作）
+				if (isBrowsingHistory) {
+					setIsBrowsingHistory(false);
+					setHistoryIndex(-1);
+					setSavedInput("");
+				}
 				const newInput =
 					input.slice(0, cursorPosition - 1) + input.slice(cursorPosition);
 				setInput(newInput);
@@ -315,7 +348,47 @@ export default function AutocompleteInput({
 		}
 
 		if (!isSlashMode && (key.upArrow || key.downArrow)) {
-			// 预留历史记录功能
+			// 历史记录导航
+			if (history.length === 0) return;
+
+			if (key.upArrow) {
+				if (historyIndex === -1) {
+					// 第一次按上箭头，保存当前输入
+					setSavedInput(input);
+					setHistoryIndex(history.length - 1);
+					const historyItem = history[history.length - 1]!;
+					setInput(historyItem);
+					setCursorPosition(historyItem.length);
+				} else if (historyIndex > 0) {
+					// 继续向上浏览
+					const newIndex = historyIndex - 1;
+					setHistoryIndex(newIndex);
+					const historyItem = history[newIndex]!;
+					setInput(historyItem);
+					setCursorPosition(historyItem.length);
+				}
+			} else if (key.downArrow) {
+				if (historyIndex === -1) {
+					// 不在历史浏览模式，忽略
+					return;
+				} else if (historyIndex < history.length - 1) {
+					// 继续向下浏览
+					const newIndex = historyIndex + 1;
+					setHistoryIndex(newIndex);
+					const historyItem = history[newIndex]!;
+					setInput(historyItem);
+					setCursorPosition(historyItem.length);
+				} else {
+					// 回到原始输入
+					setHistoryIndex(-1);
+					setInput(savedInput);
+					setCursorPosition(savedInput.length);
+				}
+			}
+
+			// 进入历史浏览模式，关闭自动补全
+			setIsBrowsingHistory(true);
+			setSuggestion(null);
 			return;
 		}
 
@@ -377,6 +450,12 @@ export default function AutocompleteInput({
 			// 关闭快捷键帮助
 			if (showShortcutHelp) {
 				setShowShortcutHelp(false);
+			}
+			// 退出历史浏览模式（有新输入）
+			if (isBrowsingHistory) {
+				setIsBrowsingHistory(false);
+				setHistoryIndex(-1);
+				setSavedInput("");
 			}
 			const newInput =
 				input.slice(0, cursorPosition) + inputChar + input.slice(cursorPosition);
