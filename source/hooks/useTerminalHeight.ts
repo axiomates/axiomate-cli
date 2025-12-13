@@ -6,7 +6,6 @@ export default function useTerminalHeight(): number {
 	const [terminalHeight, setTerminalHeight] = useState(stdout.rows || 24);
 	const [, forceUpdate] = useState(0);
 
-	// 直接追踪 stdout.rows 值变化，强制更新确保布局正确
 	useEffect(() => {
 		setTerminalHeight(stdout.rows || 24);
 		forceUpdate((n) => n + 1);
