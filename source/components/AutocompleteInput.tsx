@@ -507,7 +507,6 @@ export default function AutocompleteInput({
 	});
 
 	// 计算显示内容，支持手动换行和自动换行
-	// 直接使用 state（而非 ref），因为 state 变化才会触发重渲染
 	const displayText = state.input;
 	const suggestionText = state.isBrowsingHistory
 		? ""
@@ -582,8 +581,6 @@ export default function AutocompleteInput({
 	};
 
 	const { lines, cursorLine, cursorCol, lineWidth } = processLines();
-
-	// DEBUG 信息（现在在 JSX 中显示）
 
 	// 计算输入文本在哪一行结束（用于显示建议）
 	const inputEndInfo = (() => {
