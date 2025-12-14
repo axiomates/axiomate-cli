@@ -2,10 +2,15 @@
 import { render } from "ink";
 import meow from "meow";
 import App from "./app.js";
+import { loadConfig } from "./utils/config.js";
 
 export type CliFlags = {
 	name: string | undefined;
 };
+
+// 启动时加载配置文件（如果不存在或格式不正确则创建空配置文件）
+const config = loadConfig();
+void config; // 保留供后续使用
 
 const cli = meow({
 	importMeta: import.meta,
