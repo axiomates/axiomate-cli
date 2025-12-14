@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"bin": {
-		"axiomate-cli": "dist/cli.js"
+		"axiomate-cli": "dist/source/cli.js"
 	},
 	"type": "module",
 	"engines": {
