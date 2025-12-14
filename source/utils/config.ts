@@ -5,20 +5,17 @@ import * as os from "node:os";
 const CONFIG_FILENAME = ".axiomate.json";
 
 /**
- * 配置文件的结构
- */
-export type ConfigFile = {
-	AXIOMATE_BASE_URL?: string;
-	AXIOMATE_API_KEY?: string;
-};
-
-/**
  * 运行时配置（已合并默认值）
  */
 export type Config = {
 	AXIOMATE_BASE_URL: string;
 	AXIOMATE_API_KEY: string;
 };
+
+/**
+ * 配置文件的结构（所有字段可选）
+ */
+export type ConfigFile = Partial<Config>;
 
 // 默认配置
 const DEFAULT_CONFIG: Config = {

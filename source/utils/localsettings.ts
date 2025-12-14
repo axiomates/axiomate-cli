@@ -38,9 +38,6 @@ let workingDirectory: string = process.cwd();
 // 运行时本地设置（单例）
 let runtimeLocalSettings: LocalSettings = { ...DEFAULT_LOCAL_SETTINGS };
 
-// 标记本地设置目录是否存在
-let localDirExists: boolean = false;
-
 /**
  * 获取用户启动目录
  */
@@ -60,13 +57,6 @@ export function getLocalDirPath(): string {
  */
 export function getLocalSettingsPath(): string {
 	return path.join(getLocalDirPath(), LOCAL_SETTINGS_FILENAME);
-}
-
-/**
- * 检查本地设置目录是否存在
- */
-function checkLocalDirExists(): boolean {
-	return fs.existsSync(getLocalDirPath());
 }
 
 /**
@@ -102,12 +92,9 @@ function loadLocalSettingsFile(): LocalSettingsFile | null {
  * 确保本地设置目录存在（懒创建）
  */
 function ensureLocalDir(): void {
-	if (!localDirExists) {
-		const localDirPath = getLocalDirPath();
-		if (!fs.existsSync(localDirPath)) {
-			fs.mkdirSync(localDirPath, { recursive: true });
-		}
-		localDirExists = true;
+	const localDirPath = getLocalDirPath();
+	if (!fs.existsSync(localDirPath)) {
+		fs.mkdirSync(localDirPath, { recursive: true });
 	}
 }
 
@@ -126,9 +113,6 @@ function saveLocalSettingsFile(settings: LocalSettingsFile): void {
 export function initLocalSettings(): LocalSettings {
 	// 记录启动目录
 	workingDirectory = process.cwd();
-
-	// 检查本地目录是否已存在
-	localDirExists = checkLocalDirExists();
 
 	// 尝试读取已有的设置文件
 	const fileSettings = loadLocalSettingsFile();
@@ -172,11 +156,4 @@ export function updateLocalSettings(
 	runtimeLocalSettings = newSettings;
 	saveLocalSettingsFile(newSettings);
 	return newSettings;
-}
-
-/**
- * 检查本地设置是否已持久化（.axiomate 目录是否存在）
- */
-export function isLocalSettingsPersisted(): boolean {
-	return checkLocalDirExists();
 }
