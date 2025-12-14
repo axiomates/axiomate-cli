@@ -6,13 +6,8 @@ import Header from "./components/Header.js";
 import MessageOutput from "./components/MessageOutput.js";
 import useTerminalHeight from "./hooks/useTerminalHeight.js";
 import { SLASH_COMMANDS } from "./constants/commands.js";
-import type { CliFlags } from "./cli.js";
 
-type Props = {
-	flags: CliFlags;
-};
-
-export default function App({ flags }: Props) {
+export default function App() {
 	const { exit } = useApp();
 	const [messages, setMessages] = useState<string[]>([]);
 	const terminalHeight = useTerminalHeight();
@@ -28,9 +23,6 @@ export default function App({ flags }: Props) {
 	const handleClear = useCallback(() => {
 		setMessages([]);
 	}, []);
-
-	// flags 保留但暂不处理，可以在这里访问 flags.name 等
-	void flags;
 
 	return (
 		<Box flexDirection="column" height={terminalHeight}>

@@ -1,0 +1,28 @@
+/**
+ * CLI 命令行参数
+ */
+export type CliFlags = {
+	name: string | undefined;
+};
+
+// 默认命令行参数
+const DEFAULT_FLAGS: CliFlags = {
+	name: undefined,
+};
+
+// 运行时命令行参数（单例）
+let runtimeFlags: CliFlags = DEFAULT_FLAGS;
+
+/**
+ * 设置命令行参数
+ */
+export function setFlags(flags: CliFlags): void {
+	runtimeFlags = flags;
+}
+
+/**
+ * 获取命令行参数
+ */
+export function getFlags(): CliFlags {
+	return runtimeFlags;
+}
