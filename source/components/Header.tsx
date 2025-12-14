@@ -4,7 +4,9 @@ export default function Header() {
 	return (
 		<Box flexShrink={0}>
 			<Text>
-				<Text color="#FF69B4" bold>axiomate-cli</Text>
+				<Text color="#FF69B4" bold>
+					axiomate-cli
+				</Text>
 				<Text color="gray"> - Type </Text>
 				<Text color="#FFFF00">help</Text>
 				<Text color="gray"> for commands, </Text>

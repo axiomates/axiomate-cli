@@ -81,7 +81,11 @@ function loadLocalSettingsFile(): LocalSettingsFile | null {
 			const settings = JSON.parse(content) as LocalSettingsFile;
 
 			// 验证是否为对象类型
-			if (settings === null || typeof settings !== "object" || Array.isArray(settings)) {
+			if (
+				settings === null ||
+				typeof settings !== "object" ||
+				Array.isArray(settings)
+			) {
 				return null;
 			}
 
@@ -156,7 +160,9 @@ export function getLocalSettings(): LocalSettings {
 /**
  * 更新本地设置并保存到文件（懒创建）
  */
-export function updateLocalSettings(updates: Partial<LocalSettings>): LocalSettings {
+export function updateLocalSettings(
+	updates: Partial<LocalSettings>,
+): LocalSettings {
 	const newSettings: LocalSettings = {
 		permissions: {
 			...runtimeLocalSettings.permissions,

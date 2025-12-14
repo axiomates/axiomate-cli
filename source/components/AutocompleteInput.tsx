@@ -527,7 +527,8 @@ export default function AutocompleteInput({
 	// 处理手动换行 + 自动换行
 	// 返回: { lines: 显示行数组, cursorLine: 光标所在行, cursorCol: 光标所在列 }
 	const processLines = () => {
-		const lineWidth = columns - prompt.length > 0 ? columns - prompt.length : columns;
+		const lineWidth =
+			columns - prompt.length > 0 ? columns - prompt.length : columns;
 		// 直接用 state，确保渲染时数据一致
 		const fullText = displayText + suggestionText;
 
@@ -589,7 +590,10 @@ export default function AutocompleteInput({
 		let lastLineLength = 0;
 
 		for (const manualLine of manualLines) {
-			const wrappedCount = Math.max(1, Math.ceil(manualLine.length / lineWidth) || 1);
+			const wrappedCount = Math.max(
+				1,
+				Math.ceil(manualLine.length / lineWidth) || 1,
+			);
 			totalLines += wrappedCount;
 			lastLineLength = manualLine.length % lineWidth;
 			if (manualLine.length > 0 && lastLineLength === 0) {
@@ -664,7 +668,7 @@ export default function AutocompleteInput({
 									return (
 										<>
 											{userPart}
-											<Text inverse>{" "}</Text>
+											<Text inverse> </Text>
 										</>
 									);
 								})()
@@ -686,7 +690,9 @@ export default function AutocompleteInput({
 					{filteredCommands.map((cmd, index) => (
 						<Box key={cmd.name}>
 							<Text
-								backgroundColor={index === selectedCommandIndex ? "blue" : undefined}
+								backgroundColor={
+									index === selectedCommandIndex ? "blue" : undefined
+								}
 								color={index === selectedCommandIndex ? "white" : undefined}
 							>
 								{`${promptIndent}/`}

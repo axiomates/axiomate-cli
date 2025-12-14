@@ -38,42 +38,42 @@ node dist/cli.js
 
 Type commands directly or use slash commands:
 
-| Command | Description |
-|---------|-------------|
-| `help` | Show available commands |
-| `clear` | Clear the screen |
-| `exit` / `quit` | Exit the application |
-| `version` | Show version information |
+| Command         | Description              |
+| --------------- | ------------------------ |
+| `help`          | Show available commands  |
+| `clear`         | Clear the screen         |
+| `exit` / `quit` | Exit the application     |
+| `version`       | Show version information |
 
 ### Slash Commands
 
 Type `/` to see available slash commands. Use arrow keys to select and Enter to execute.
 
-| Slash Command | Description |
-|---------------|-------------|
-| `/help` | Show available commands |
-| `/clear` | Clear the screen |
-| `/exit` | Exit the application |
-| `/version` | Show version information |
-| `/config` | Show configuration |
-| `/status` | Show current status |
+| Slash Command | Description              |
+| ------------- | ------------------------ |
+| `/help`       | Show available commands  |
+| `/clear`      | Clear the screen         |
+| `/exit`       | Exit the application     |
+| `/version`    | Show version information |
+| `/config`     | Show configuration       |
+| `/status`     | Show current status      |
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Tab` | Accept autocomplete suggestion |
-| `→` | Accept one character from suggestion |
-| `←` / `→` | Move cursor left/right |
-| `↑` / `↓` | Navigate slash command list |
-| `Ctrl+Enter` | Insert new line |
-| `Ctrl+A` | Move cursor to line start |
-| `Ctrl+E` | Move cursor to line end |
-| `Ctrl+U` | Clear text before cursor |
-| `Ctrl+K` | Clear text after cursor |
-| `Ctrl+C` | Exit application |
-| `Escape` | Clear suggestion / exit slash mode / close help |
-| `?` | Show keyboard shortcuts help (when input is empty) |
+| Shortcut     | Action                                             |
+| ------------ | -------------------------------------------------- |
+| `Tab`        | Accept autocomplete suggestion                     |
+| `→`          | Accept one character from suggestion               |
+| `←` / `→`    | Move cursor left/right                             |
+| `↑` / `↓`    | Navigate slash command list                        |
+| `Ctrl+Enter` | Insert new line                                    |
+| `Ctrl+A`     | Move cursor to line start                          |
+| `Ctrl+E`     | Move cursor to line end                            |
+| `Ctrl+U`     | Clear text before cursor                           |
+| `Ctrl+K`     | Clear text after cursor                            |
+| `Ctrl+C`     | Exit application                                   |
+| `Escape`     | Clear suggestion / exit slash mode / close help    |
+| `?`          | Show keyboard shortcuts help (when input is empty) |
 
 ## Development
 
