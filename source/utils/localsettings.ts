@@ -12,18 +12,16 @@ export type Permissions = {
 };
 
 /**
- * 本地设置文件的结构
- */
-export type LocalSettingsFile = {
-	permissions?: Partial<Permissions>;
-};
-
-/**
  * 运行时本地设置（已合并默认值）
  */
 export type LocalSettings = {
 	permissions: Permissions;
 };
+
+/**
+ * 本地设置文件的结构（所有字段可选）
+ */
+export type LocalSettingsFile = Partial<LocalSettings>;
 
 // 默认本地设置
 const DEFAULT_LOCAL_SETTINGS: LocalSettings = {

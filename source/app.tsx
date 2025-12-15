@@ -12,10 +12,6 @@ export default function App() {
 	const [messages, setMessages] = useState<string[]>([]);
 	const terminalHeight = useTerminalHeight();
 
-	const clearAndExit = useCallback(() => {
-		exit();
-	}, [exit]);
-
 	const handleMessage = useCallback((message: string) => {
 		setMessages((prev) => [...prev, message]);
 	}, []);
@@ -24,12 +20,16 @@ export default function App() {
 		setMessages([]);
 	}, []);
 
+    const clearAndExit = useCallback(() => {
+		exit();
+	}, [exit]);
+
 	return (
 		<Box flexDirection="column" height={terminalHeight}>
 			{/* 标题区域 */}
 			<Header />
 
-			{/* 上分隔线 */}
+			{/* 标题与输出区域分隔线 */}
 			<Box flexShrink={0}>
 				<Divider />
 			</Box>
@@ -37,12 +37,12 @@ export default function App() {
 			{/* 输出区域 */}
 			<MessageOutput messages={messages} />
 
-			{/* 下分隔线 */}
+			{/* 输出区域与输入框分隔线 */}
 			<Box flexShrink={0}>
 				<Divider />
 			</Box>
 
-			{/* 输入区域 */}
+			{/* 输入框区域 */}
 			<Box flexShrink={0}>
 				<AutocompleteInput
 					prompt="> "
