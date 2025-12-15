@@ -28,13 +28,13 @@ let runtimeConfig: Config | null = null;
 
 /**
  * 获取当前配置（如果未初始化则自动初始化）
- * 返回浅拷贝，防止外部直接修改内部状态
+ * 返回深拷贝，防止外部直接修改内部状态
  */
 export function getConfig(): Config {
 	if (runtimeConfig === null) {
 		initConfig();
 	}
-	return { ...runtimeConfig! };
+	return structuredClone(runtimeConfig!);
 }
 
 /**
@@ -87,18 +87,14 @@ function loadConfigFile(): ConfigFile {
 	// 文件存在，尝试解析
 	try {
 		const content = fs.readFileSync(configPath, "utf-8");
-		const config = JSON.parse(content) as ConfigFile;
+		const config = JSON.parse(content);
 
-		// 验证是否为对象类型
-		if (
-			config === null ||
-			typeof config !== "object" ||
-			Array.isArray(config)
-		) {
+		// 验证是否为普通对象
+		if (typeof config !== "object" || config === null || Array.isArray(config)) {
 			throw new Error("Config must be an object");
 		}
 
-		return config;
+		return config as ConfigFile;
 	} catch {
 		// JSON 解析失败，重置为空配置文件
 		return saveConfigFile({});

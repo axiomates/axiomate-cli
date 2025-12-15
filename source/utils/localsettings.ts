@@ -30,24 +30,89 @@ const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
 	},
 };
 
-// 用户启动目录
-let workingDirectory: string = process.cwd();
-
 // 运行时本地设置（单例）
 let runtimeLocalSettings: LocalSettings = { ...DEFAULT_LOCAL_SETTINGS };
 
+// 用户启动目录（在 initLocalSettings 中初始化）
+let workingDirectory: string;
+
 /**
- * 获取用户启动目录
+ * 获取当前本地设置
  */
-export function getWorkingDirectory(): string {
-	return workingDirectory;
+export function getLocalSettings(): LocalSettings {
+	return structuredClone(runtimeLocalSettings);
 }
 
 /**
- * 获取本地 .axiomate 目录路径
+ * 更新本地设置并保存到文件（懒创建）
  */
-export function getLocalDirPath(): string {
-	return path.join(workingDirectory, LOCAL_DIR_NAME);
+export function updateLocalSettings(updates: Partial<LocalSettings>): LocalSettings {
+	const newSettings: LocalSettings = {
+		permissions: {
+			...runtimeLocalSettings.permissions,
+			...updates.permissions,
+		},
+	};
+	runtimeLocalSettings = newSettings;
+	saveLocalSettingsFile(newSettings);
+	return newSettings;
+}
+
+/**
+ * 初始化本地设置
+ */
+export function initLocalSettings(): LocalSettings {
+	// 记录启动目录
+	workingDirectory = process.cwd();
+
+	// 读取设置文件（不存在时返回默认配置）
+	const fileSettings = loadLocalSettingsFile();
+
+	runtimeLocalSettings = {
+		permissions: {
+			...DEFAULT_LOCAL_SETTINGS.permissions,
+			...fileSettings.permissions,
+		},
+	};
+
+	return runtimeLocalSettings;
+}
+
+/**
+ * 保存本地设置到文件
+ */
+function saveLocalSettingsFile(settings: LocalSettingsFile): void {
+	ensureLocalDir();
+	const settingsPath = getLocalSettingsPath();
+	fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 4), "utf-8");
+}
+
+/**
+ * 读取本地设置文件
+ */
+function loadLocalSettingsFile(): LocalSettingsFile {
+	try {
+		const content = fs.readFileSync(getLocalSettingsPath(), "utf-8");
+		const settings = JSON.parse(content);
+
+		// 验证是否为普通对象
+		if (typeof settings !== "object" || settings === null || Array.isArray(settings)) {
+			return DEFAULT_LOCAL_SETTINGS;
+		}
+
+		return settings as LocalSettingsFile;
+	} catch {
+		// 文件不存在或解析失败，返回默认配置
+		return DEFAULT_LOCAL_SETTINGS;
+	}
+}
+
+/**
+ * 确保本地设置目录存在（懒创建）
+ */
+function ensureLocalDir(): void {
+	const localDirPath = getLocalDirPath();
+	fs.mkdirSync(localDirPath, { recursive: true });
 }
 
 /**
@@ -58,100 +123,8 @@ export function getLocalSettingsPath(): string {
 }
 
 /**
- * 读取本地设置文件
+ * 获取本地 .axiomate 目录路径
  */
-function loadLocalSettingsFile(): LocalSettingsFile | null {
-	const settingsPath = getLocalSettingsPath();
-
-	try {
-		if (fs.existsSync(settingsPath)) {
-			const content = fs.readFileSync(settingsPath, "utf-8");
-			const settings = JSON.parse(content) as LocalSettingsFile;
-
-			// 验证是否为对象类型
-			if (
-				settings === null ||
-				typeof settings !== "object" ||
-				Array.isArray(settings)
-			) {
-				return null;
-			}
-
-			return settings;
-		}
-	} catch {
-		// 文件读取失败或 JSON 格式不正确
-	}
-
-	return null;
-}
-
-/**
- * 确保本地设置目录存在（懒创建）
- */
-function ensureLocalDir(): void {
-	const localDirPath = getLocalDirPath();
-	if (!fs.existsSync(localDirPath)) {
-		fs.mkdirSync(localDirPath, { recursive: true });
-	}
-}
-
-/**
- * 保存本地设置到文件（懒创建）
- */
-function saveLocalSettingsFile(settings: LocalSettingsFile): void {
-	ensureLocalDir();
-	const settingsPath = getLocalSettingsPath();
-	fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 4), "utf-8");
-}
-
-/**
- * 初始化本地设置
- */
-export function initLocalSettings(): LocalSettings {
-	// 记录启动目录
-	workingDirectory = process.cwd();
-
-	// 尝试读取已有的设置文件
-	const fileSettings = loadLocalSettingsFile();
-
-	if (fileSettings) {
-		runtimeLocalSettings = {
-			permissions: {
-				...DEFAULT_LOCAL_SETTINGS.permissions,
-				...fileSettings.permissions,
-			},
-		};
-	} else {
-		// 只在内存中初始化，不创建文件
-		runtimeLocalSettings = {
-			permissions: { ...DEFAULT_LOCAL_SETTINGS.permissions },
-		};
-	}
-
-	return runtimeLocalSettings;
-}
-
-/**
- * 获取当前本地设置
- */
-export function getLocalSettings(): LocalSettings {
-	return runtimeLocalSettings;
-}
-
-/**
- * 更新本地设置并保存到文件（懒创建）
- */
-export function updateLocalSettings(
-	updates: Partial<LocalSettings>,
-): LocalSettings {
-	const newSettings: LocalSettings = {
-		permissions: {
-			...runtimeLocalSettings.permissions,
-			...updates.permissions,
-		},
-	};
-	runtimeLocalSettings = newSettings;
-	saveLocalSettingsFile(newSettings);
-	return newSettings;
+function getLocalDirPath(): string {
+	return path.join(workingDirectory, LOCAL_DIR_NAME);
 }
