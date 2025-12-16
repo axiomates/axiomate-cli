@@ -2,12 +2,14 @@
 import { render } from "ink";
 import meow from "meow";
 import App from "./app.js";
+import { initAppData } from "./utils/appdata.js";
 import { initConfig } from "./utils/config.js";
 import { setFlags } from "./utils/flags.js";
 import { initLocalSettings } from "./utils/localsettings.js";
 
 // 启动时初始化配置
 initConfig();
+initAppData();
 initLocalSettings();
 
 const cli = meow({
@@ -35,10 +37,6 @@ Usage:
 
 Options:
   -h, --help    Show this help message and exit
-
-Commands:
-  Type commands directly or use slash commands (prefix with /).
-  Type /help in the application for more information.
 `);
 	process.exit(0);
 }
