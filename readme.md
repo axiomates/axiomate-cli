@@ -1,13 +1,14 @@
 # axiomate-cli
 
-A terminal-based CLI application built with [Ink](https://github.com/vadimdemedes/ink) and React.
+A terminal-based CLI application built with [Ink](https://github.com/vadimdemedes/ink) and React, featuring a data-driven input system with colored slash commands and history support.
 
 ## Features
 
 - Interactive terminal UI with fixed layout
+- **Data-driven input system** with `InputInstance` model
 - Auto-completion support with async provider
-- Slash commands (`/help`, `/clear`, `/exit`, etc.)
-- Command selection with arrow keys
+- Hierarchical slash commands with colored rendering (`/model → openai → gpt-4`)
+- Command history with full state restoration (including colors)
 - Keyboard shortcuts (Ctrl+C, Ctrl+U, Ctrl+K, etc.)
 - Responsive layout that adapts to terminal size
 
@@ -77,6 +78,8 @@ Type `/` to see available slash commands. Use arrow keys to select and Enter to 
 | `/config`     | Show configuration       |
 | `/status`     | Show current status      |
 
+Slash commands support nested hierarchy (e.g., `/model → openai → gpt-4`) with colored path display.
+
 ## Keyboard Shortcuts
 
 | Shortcut     | Action                                             |
@@ -84,7 +87,7 @@ Type `/` to see available slash commands. Use arrow keys to select and Enter to 
 | `Tab`        | Accept autocomplete suggestion                     |
 | `→`          | Accept one character from suggestion               |
 | `←` / `→`    | Move cursor left/right                             |
-| `↑` / `↓`    | Navigate slash command list                        |
+| `↑` / `↓`    | Navigate command history / slash command list      |
 | `Ctrl+Enter` | Insert new line                                    |
 | `Ctrl+A`     | Move cursor to line start                          |
 | `Ctrl+E`     | Move cursor to line end                            |
@@ -116,34 +119,57 @@ npm run lint
 npm run lint:fix
 ```
 
-## Input Modes
+## Architecture
 
-The input component supports multiple modes with structured input handling:
+### Input System
+
+The input system uses a **data-driven architecture** with a unified `InputInstance` model:
+
+```typescript
+type InputInstance = {
+  text: string;              // Raw text content
+  cursor: number;            // Cursor position
+  type: InputType;           // "message" | "command"
+  segments: ColoredSegment[]; // Colored segments for rendering
+  commandPath: string[];     // Command path array
+};
+```
+
+All user operations first update the `InputInstance`, then rendering reads from it directly.
 
 ### Input Types
 
-| Type      | Description                        | Example               |
-| --------- | ---------------------------------- | --------------------- |
-| `message` | Regular text input, sent to AI     | `hello world`         |
-| `command` | Slash commands, handled by the app | `/model openai gpt-4` |
+| Type      | Description                        | Example                      |
+| --------- | ---------------------------------- | ---------------------------- |
+| `message` | Regular text input, sent to AI     | `hello world`                |
+| `command` | Slash commands, handled by the app | `/model → openai → gpt-4`    |
 
-### Input Modes (Internal State)
+### UI Modes
 
-| Mode      | Trigger   | Description                          |
-| --------- | --------- | ------------------------------------ |
-| `normal`  | Default   | Regular input with autocomplete      |
-| `history` | `↑` / `↓` | Browse command history               |
-| `slash`   | `/`       | Navigate hierarchical slash commands |
-| `help`    | `?`       | Display keyboard shortcuts (overlay) |
+| Mode      | Trigger   | Description                                    |
+| --------- | --------- | ---------------------------------------------- |
+| `normal`  | Default   | Regular input with autocomplete                |
+| `history` | `↑` / `↓` | Browse history (restores full InputInstance)   |
+| `slash`   | `/`       | Navigate hierarchical slash commands           |
+| `help`    | `?`       | Display keyboard shortcuts (overlay)           |
 
-When user submits input, it's converted to a structured `UserInput` object:
+### History System
+
+- Stores complete `InputInstance` objects
+- Up/down navigation restores all properties including colored segments
+- Deduplication based on text content
+- `?` input not stored in history
+
+### Submit Callback
+
+When user submits input, it's converted to a `UserInput` object:
 
 ```typescript
 // Message input (for AI)
 { type: "message", content: "hello world" }
 
 // Command input (internal handling)
-{ type: "command", command: ["model", "openai", "gpt-4"], raw: "/model openai gpt-4" }
+{ type: "command", command: ["model", "openai", "gpt-4"], raw: "/model → openai → gpt-4" }
 ```
 
 ## Project Structure
@@ -155,12 +181,20 @@ source/
 ├── constants/
 │   └── commands.ts            # Slash command definitions
 ├── components/
-│   ├── AutocompleteInput.tsx  # Input with autocomplete & mode management
+│   ├── AutocompleteInput/     # Core input component
+│   │   ├── index.tsx          # Main component
+│   │   ├── types.ts           # EditorState, UIMode, EditorAction
+│   │   ├── reducer.ts         # State machine (editorReducer)
+│   │   ├── hooks/             # useAutocomplete, useInputHandler
+│   │   ├── utils/             # lineProcessor
+│   │   └── components/        # InputLine, SlashMenu, HelpPanel
 │   ├── Divider.tsx            # Separator line
 │   ├── Header.tsx             # Title bar
 │   └── MessageOutput.tsx      # Message display area
 ├── models/
-│   └── input.ts               # UserInput type definitions
+│   ├── input.ts               # UserInput type (submit callback)
+│   ├── inputInstance.ts       # InputInstance (core data model)
+│   └── richInput.ts           # ColoredSegment, ColorRange
 └── hooks/
     ├── useTerminalHeight.ts   # Terminal height hook
     └── useTerminalWidth.ts    # Terminal width hook

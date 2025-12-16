@@ -4,7 +4,7 @@ This file provides guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-axiomate-cli is a terminal-based AI agent application built with React + Ink. It provides an interactive CLI interface with autocomplete, slash commands, and structured input handling.
+axiomate-cli is a terminal-based AI agent application built with React + Ink. It provides an interactive CLI interface with autocomplete, slash commands, and structured input handling using a data-driven architecture.
 
 ## Tech Stack
 
@@ -34,22 +34,24 @@ source/
 ├── components/
 │   ├── AutocompleteInput/     # Core input component (modular structure)
 │   │   ├── index.tsx          # Main component (composition layer)
-│   │   ├── types.ts           # Type definitions + mode helpers
-│   │   ├── reducer.ts         # State machine reducer
+│   │   ├── types.ts           # EditorState, UIMode, EditorAction, helpers
+│   │   ├── reducer.ts         # State machine reducer (editorReducer)
 │   │   ├── hooks/
 │   │   │   ├── useAutocomplete.ts  # Autocomplete logic
 │   │   │   └── useInputHandler.ts  # Keyboard input handling
 │   │   ├── utils/
 │   │   │   └── lineProcessor.ts    # Line wrapping calculations
 │   │   └── components/
-│   │       ├── InputLine.tsx       # Input line rendering
+│   │       ├── InputLine.tsx       # Input line rendering with colors
 │   │       ├── SlashMenu.tsx       # Slash command menu
 │   │       └── HelpPanel.tsx       # Keyboard shortcuts help
 │   ├── Divider.tsx            # Horizontal divider
 │   ├── Header.tsx             # App header
 │   └── MessageOutput.tsx      # Message display area
 ├── models/
-│   └── input.ts               # UserInput type definitions
+│   ├── input.ts               # UserInput type (for submit callback)
+│   ├── inputInstance.ts       # InputInstance - core input data model
+│   └── richInput.ts           # ColoredSegment, ColorRange, color utils
 ├── constants/
 │   └── commands.ts            # Slash command definitions (SLASH_COMMANDS)
 ├── hooks/                     # React hooks (useTerminalWidth/Height)
@@ -59,9 +61,78 @@ source/
 
 ## Key Architecture
 
-### Input System
+### Data-Driven Input System
 
-The input system uses a **structured UserInput** type instead of raw strings:
+The input system uses a **data-driven architecture** where all user operations first update a unified `InputInstance` before rendering.
+
+#### InputInstance (Core Data Model)
+
+Defined in `models/inputInstance.ts`:
+
+```typescript
+type InputInstance = {
+  text: string;              // Raw text content
+  cursor: number;            // Cursor position (0-based)
+  type: InputType;           // "message" | "command"
+  segments: ColoredSegment[]; // Colored segments for rendering
+  commandPath: string[];     // Command path (e.g., ["model", "openai"])
+};
+```
+
+Key functions:
+- `createEmptyInstance()` - Create empty instance
+- `createMessageInstance(text)` - Create message type
+- `createCommandInstance(path, trailing)` - Create command type with colors
+- `updateInstanceFromText(text, cursor, path)` - Update from text input
+- `buildCommandText(path, trailing)` - Build command text from path
+
+#### Data Flow
+
+```
+User Action → dispatch(EditorAction) → Reducer updates EditorState
+                                              ↓
+                                    Updates InputInstance (includes segments)
+                                              ↓
+                                    Render uses instance.segments directly
+```
+
+### Editor State
+
+Defined in `AutocompleteInput/types.ts`:
+
+```typescript
+type EditorState = {
+  instance: InputInstance;    // Current input data
+  uiMode: UIMode;            // UI mode state
+  suggestion: string | null; // Autocomplete suggestion
+};
+
+type UIMode =
+  | { type: "normal" }
+  | { type: "history"; index: number; savedInstance: InputInstance }
+  | { type: "slash"; selectedIndex: number }
+  | { type: "help" };
+```
+
+### UI Modes
+
+| Mode      | Trigger | Description                          |
+| --------- | ------- | ------------------------------------ |
+| `normal`  | default | Regular input with autocomplete      |
+| `history` | ↑/↓     | Browse command history (restores full InputInstance) |
+| `slash`   | `/`     | Navigate hierarchical commands       |
+| `help`    | `?`     | Display shortcuts overlay            |
+
+### History System
+
+- Stores `InputInstance[]` (complete data including colors)
+- Deduplication based on `text` field
+- `?` input not stored in history
+- Up/down navigation restores all properties including colored segments
+
+### UserInput (Submit Callback)
+
+For the `onSubmit` callback, a simpler `UserInput` type is used:
 
 ```typescript
 type UserInput = MessageInput | CommandInput;
@@ -72,28 +143,6 @@ type MessageInput = { type: "message"; content: string };
 // Slash commands -> handled internally
 type CommandInput = { type: "command"; command: string[]; raw: string };
 ```
-
-### AutocompleteInput State Machine
-
-The input component uses a reducer-based state machine with 4 modes:
-
-| Mode      | Trigger | Description                        |
-| --------- | ------- | ---------------------------------- |
-| `normal`  | default | Regular input with autocomplete    |
-| `history` | ↑/↓     | Browse command history             |
-| `slash`   | `/`     | Navigate hierarchical commands     |
-| `help`    | `?`     | Display shortcuts overlay          |
-
-Key types (defined in `AutocompleteInput/types.ts`):
-- `InputMode` - Union type for mode states
-- `InputState` - Contains input, cursor, suggestion, mode
-- `InputAction` - Reducer actions
-
-Module responsibilities:
-- `reducer.ts` - Pure state machine logic, easily testable
-- `useAutocomplete.ts` - Async autocomplete + slash command filtering
-- `useInputHandler.ts` - All keyboard event handling
-- `lineProcessor.ts` - Text wrapping and cursor position calculation
 
 ### Slash Commands
 
@@ -107,7 +156,20 @@ type SlashCommand = {
 };
 ```
 
-Example: `/model openai gpt-4` parses to `command: ["model", "openai", "gpt-4"]`
+Example: `/model → openai → gpt-4` with path `["model", "openai", "gpt-4"]`
+
+### Color Rendering
+
+Colors are stored in `InputInstance.segments` and converted to `ColorRange[]` for rendering:
+
+```typescript
+type ColoredSegment = { text: string; color?: string };
+type ColorRange = { start: number; end: number; color?: string };
+```
+
+Color constants (in `richInput.ts`):
+- `PATH_COLOR = "#e5c07b"` - Command path color (gold)
+- `ARROW_COLOR = "gray"` - Arrow separator color
 
 ### Component Communication
 
@@ -134,11 +196,11 @@ AutocompleteInput
 1. Add to `SLASH_COMMANDS` in `constants/commands.ts`
 2. Handle in `App.tsx` `handleSubmit` switch statement
 
-### Adding a new input mode
+### Adding a new UI mode
 
-1. Extend `InputMode` type in `AutocompleteInput/types.ts`
-2. Add corresponding `InputAction` types in `types.ts`
-3. Update `inputReducer` in `reducer.ts` to handle transitions
+1. Extend `UIMode` type in `AutocompleteInput/types.ts`
+2. Add corresponding `EditorAction` types in `types.ts`
+3. Update `editorReducer` in `reducer.ts` to handle transitions
 4. Add mode detection helper in `types.ts` (e.g., `isNewMode()`)
 5. Handle keyboard events in `hooks/useInputHandler.ts`
 
@@ -148,3 +210,19 @@ AutocompleteInput
 - Autocomplete logic: `AutocompleteInput/hooks/useAutocomplete.ts`
 - State transitions: `AutocompleteInput/reducer.ts`
 - Submit handling: `App.tsx` `handleSubmit` callback
+- Input data model: `models/inputInstance.ts`
+
+### Key EditorAction Types
+
+| Action | Description |
+|--------|-------------|
+| `SET_TEXT` | Update text and cursor, auto-detect mode |
+| `SET_CURSOR` | Move cursor position |
+| `ENTER_HISTORY` | Enter history mode, save current instance |
+| `NAVIGATE_HISTORY` | Navigate history, restore instance |
+| `EXIT_HISTORY` | Exit history, restore saved instance |
+| `ENTER_SLASH_LEVEL` | Enter next command level (has children) |
+| `SELECT_FINAL_COMMAND` | Select leaf command (no children) |
+| `EXIT_SLASH_LEVEL` | Go back one level or exit slash mode |
+| `TOGGLE_HELP` | Toggle help panel |
+| `RESET` | Reset to initial state |
