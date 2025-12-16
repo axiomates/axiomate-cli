@@ -240,7 +240,9 @@ export default function AutocompleteInput({
 	const { input, cursor, suggestion, mode } = state;
 
 	// 模式判断（派生状态）
-	const inSlashMode = isSlashModeType(mode) || input.startsWith("/");
+	// 注意：inSlashMode 只在真正的 slash 模式下为 true
+	// 历史模式下即使输入以 / 开头也不算 slash 模式
+	const inSlashMode = isSlashModeType(mode);
 	const inHistoryMode = isHistoryMode(mode);
 	const inHelpMode = isHelpMode(mode);
 
