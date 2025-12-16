@@ -263,8 +263,7 @@ export function useInputHandler({
 				return;
 			}
 			// 插入字符
-			const newInput =
-				input.slice(0, cursor) + inputChar + input.slice(cursor);
+			const newInput = input.slice(0, cursor) + inputChar + input.slice(cursor);
 			dispatch({
 				type: "SET_TEXT",
 				text: newInput,

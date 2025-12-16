@@ -185,10 +185,7 @@ export default function AutocompleteInput({
 	);
 
 	// 直接使用 instance.segments 构建颜色信息
-	const colorRanges = useMemo(
-		() => segmentsToRanges(segments),
-		[segments],
-	);
+	const colorRanges = useMemo(() => segmentsToRanges(segments), [segments]);
 
 	// 计算输入文本结束位置
 	const inputEndInfo = getInputEndInfo(displayText, lineWidth);

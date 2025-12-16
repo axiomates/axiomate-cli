@@ -211,7 +211,11 @@ function CursorLineContent({
 				<Text inverse>
 					{cursorColor ? <Text color={cursorColor}>{atCursor}</Text> : atCursor}
 				</Text>
-				{renderWithColorRanges(afterCursor, colorRanges, lineOffset + cursorCol + 1)}
+				{renderWithColorRanges(
+					afterCursor,
+					colorRanges,
+					lineOffset + cursorCol + 1,
+				)}
 				<Text color="gray">{suggestPart}</Text>
 			</>
 		);

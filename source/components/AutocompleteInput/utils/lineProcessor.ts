@@ -101,7 +101,7 @@ export function processLines(
 		cursorCol = allLines[cursorLine]?.length || 0;
 	}
 
-	return { lines: allLines, lineOffsets, cursorLine, cursorCol, lineWidth }
+	return { lines: allLines, lineOffsets, cursorLine, cursorCol, lineWidth };
 }
 
 /**
