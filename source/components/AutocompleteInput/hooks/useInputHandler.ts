@@ -50,10 +50,13 @@ export function useInputHandler({
 	useInput((inputChar, key) => {
 		// Help 模式优先处理
 		if (inHelpMode) {
-			if (key.escape || inputChar) {
-				dispatch({ type: "TOGGLE_HELP" });
+			// 先退出 help 模式
+			dispatch({ type: "TOGGLE_HELP" });
+			// Escape 只退出，不继续处理
+			if (key.escape) {
+				return;
 			}
-			return;
+			// 其他按键继续处理（不 return，让后续逻辑处理该输入）
 		}
 
 		// Ctrl+Enter 插入换行
