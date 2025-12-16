@@ -1,0 +1,257 @@
+/**
+ * 键盘输入处理 Hook
+ */
+
+import { useCallback } from "react";
+import { useInput, useApp } from "ink";
+import type { InputState, InputAction, SlashCommand } from "../types.js";
+import { isSlashMode, isHistoryMode, isHelpMode } from "../types.js";
+
+type UseInputHandlerOptions = {
+	state: InputState;
+	dispatch: React.Dispatch<InputAction>;
+	history: string[];
+	filteredCommands: SlashCommand[];
+	effectiveSuggestion: string | null;
+	onSubmit: (value: string) => void;
+	onExit?: () => void;
+};
+
+/**
+ * 键盘输入处理 Hook
+ */
+export function useInputHandler({
+	state,
+	dispatch,
+	history,
+	filteredCommands,
+	effectiveSuggestion,
+	onSubmit,
+	onExit,
+}: UseInputHandlerOptions): void {
+	const { exit } = useApp();
+
+	const { input, cursor, mode } = state;
+	const inSlashMode = isSlashMode(mode);
+	const inHistoryMode = isHistoryMode(mode);
+	const inHelpMode = isHelpMode(mode);
+	const selectedIndex = inSlashMode ? mode.selectedIndex : 0;
+	const slashPath = inSlashMode ? mode.path : [];
+	const historyIndex = inHistoryMode ? mode.index : -1;
+
+	const handleExit = useCallback(() => {
+		if (onExit) {
+			onExit();
+		} else {
+			exit();
+		}
+	}, [onExit, exit]);
+
+	useInput((inputChar, key) => {
+		// Help 模式优先处理
+		if (inHelpMode) {
+			if (key.escape || inputChar) {
+				dispatch({ type: "TOGGLE_HELP" });
+			}
+			return;
+		}
+
+		// Ctrl+Enter 插入换行
+		if (key.ctrl && key.return) {
+			const newInput = input.slice(0, cursor) + "\n" + input.slice(cursor);
+			dispatch({ type: "SET_INPUT", input: newInput, cursor: cursor + 1 });
+			return;
+		}
+
+		// 斜杠命令模式下的特殊处理（统一处理所有层级）
+		if (inSlashMode && filteredCommands.length > 0) {
+			if (key.upArrow) {
+				const newIndex =
+					selectedIndex > 0 ? selectedIndex - 1 : filteredCommands.length - 1;
+				dispatch({ type: "SELECT_SLASH", index: newIndex });
+				return;
+			}
+
+			if (key.downArrow) {
+				const newIndex =
+					selectedIndex < filteredCommands.length - 1 ? selectedIndex + 1 : 0;
+				dispatch({ type: "SELECT_SLASH", index: newIndex });
+				return;
+			}
+
+			if (key.return) {
+				// 选中命令
+				const selectedCmd = filteredCommands[selectedIndex];
+				if (selectedCmd) {
+					// 如果命令有子选项，进入下一层级
+					if (selectedCmd.children && selectedCmd.children.length > 0) {
+						dispatch({ type: "ENTER_SLASH_LEVEL", name: selectedCmd.name });
+					} else {
+						// 否则直接提交（包含完整路径）
+						const fullPath = [...slashPath, selectedCmd.name];
+						const cmdText = "/" + fullPath.join(" ");
+						onSubmit(cmdText);
+					}
+				}
+				return;
+			}
+
+			if (key.escape) {
+				// Escape 返回上一层或退出
+				dispatch({ type: "EXIT_SLASH_LEVEL" });
+				return;
+			}
+		}
+
+		if (key.return) {
+			// 回车提交
+			onSubmit(input);
+			return;
+		}
+
+		if (key.tab && effectiveSuggestion) {
+			// Tab 确认补全
+			const newInput = input + effectiveSuggestion;
+			dispatch({ type: "SET_INPUT", input: newInput, cursor: newInput.length });
+			dispatch({ type: "SET_SUGGESTION", suggestion: null });
+			return;
+		}
+
+		if (key.backspace || key.delete) {
+			if (cursor > 0) {
+				const newInput = input.slice(0, cursor - 1) + input.slice(cursor);
+				dispatch({ type: "SET_INPUT", input: newInput, cursor: cursor - 1 });
+			}
+			return;
+		}
+
+		if (key.leftArrow) {
+			if (cursor > 0) {
+				dispatch({ type: "SET_CURSOR", cursor: cursor - 1 });
+			}
+			return;
+		}
+
+		if (key.rightArrow) {
+			if (effectiveSuggestion && cursor === input.length) {
+				// 如果光标在末尾且有建议，向右移动接受一个字符
+				const newInput = input + effectiveSuggestion[0];
+				const remaining = effectiveSuggestion.slice(1) || null;
+				dispatch({
+					type: "SET_INPUT",
+					input: newInput,
+					cursor: newInput.length,
+				});
+				if (!inSlashMode) {
+					dispatch({ type: "SET_SUGGESTION", suggestion: remaining });
+				}
+			} else if (cursor < input.length) {
+				dispatch({ type: "SET_CURSOR", cursor: cursor + 1 });
+			}
+			return;
+		}
+
+		// 非斜杠模式下的历史导航
+		if (!inSlashMode && (key.upArrow || key.downArrow)) {
+			if (history.length === 0) return;
+
+			if (key.upArrow) {
+				if (!inHistoryMode) {
+					// 第一次按上箭头，保存当前输入并切换到最新历史
+					const historyItem = history[history.length - 1]!;
+					dispatch({
+						type: "ENTER_HISTORY",
+						index: history.length - 1,
+						savedInput: input,
+						historyInput: historyItem,
+					});
+				} else if (historyIndex > 0) {
+					// 继续向上浏览
+					const newIndex = historyIndex - 1;
+					const historyItem = history[newIndex]!;
+					dispatch({
+						type: "NAVIGATE_HISTORY",
+						index: newIndex,
+						historyInput: historyItem,
+					});
+				}
+			} else if (key.downArrow) {
+				if (!inHistoryMode) {
+					// 不在历史浏览模式，忽略
+					return;
+				}
+				if (historyIndex < history.length - 1) {
+					// 继续向下浏览
+					const newIndex = historyIndex + 1;
+					const historyItem = history[newIndex]!;
+					dispatch({
+						type: "NAVIGATE_HISTORY",
+						index: newIndex,
+						historyInput: historyItem,
+					});
+				} else {
+					// 回到原始输入
+					dispatch({ type: "EXIT_HISTORY" });
+				}
+			}
+			return;
+		}
+
+		if (key.ctrl && inputChar === "c") {
+			handleExit();
+			return;
+		}
+
+		if (key.ctrl && inputChar === "u") {
+			// Ctrl+U 清除光标前的内容
+			const newInput = input.slice(cursor);
+			dispatch({ type: "SET_INPUT", input: newInput, cursor: 0 });
+			return;
+		}
+
+		if (key.ctrl && inputChar === "k") {
+			// Ctrl+K 清除光标后的内容
+			const newInput = input.slice(0, cursor);
+			dispatch({ type: "SET_INPUT", input: newInput, cursor: cursor });
+			return;
+		}
+
+		if (key.ctrl && inputChar === "a") {
+			// Ctrl+A 移动到行首
+			dispatch({ type: "SET_CURSOR", cursor: 0 });
+			return;
+		}
+
+		if (key.ctrl && inputChar === "e") {
+			// Ctrl+E 移动到行尾
+			dispatch({ type: "SET_CURSOR", cursor: input.length });
+			return;
+		}
+
+		if (key.escape) {
+			// Escape 退出斜杠模式或清除建议
+			if (inSlashMode) {
+				dispatch({ type: "EXIT_SLASH" });
+			} else {
+				dispatch({ type: "SET_SUGGESTION", suggestion: null });
+			}
+			return;
+		}
+
+		// 普通字符输入
+		if (inputChar && !key.ctrl && !key.meta) {
+			// 输入 ? 时显示快捷键帮助（仅当输入框为空时）
+			if (inputChar === "?" && input === "") {
+				dispatch({ type: "TOGGLE_HELP" });
+				return;
+			}
+			// 插入字符
+			const newInput = input.slice(0, cursor) + inputChar + input.slice(cursor);
+			dispatch({
+				type: "SET_INPUT",
+				input: newInput,
+				cursor: cursor + inputChar.length,
+			});
+		}
+	});
+}

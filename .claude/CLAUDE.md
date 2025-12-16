@@ -32,7 +32,22 @@ source/
 ├── app.tsx                    # Main app component, handles UserInput routing
 ├── cli.tsx                    # Entry point, CLI argument parsing (meow)
 ├── components/
-│   └── AutocompleteInput.tsx  # Core input component with state machine
+│   ├── AutocompleteInput/     # Core input component (modular structure)
+│   │   ├── index.tsx          # Main component (composition layer)
+│   │   ├── types.ts           # Type definitions + mode helpers
+│   │   ├── reducer.ts         # State machine reducer
+│   │   ├── hooks/
+│   │   │   ├── useAutocomplete.ts  # Autocomplete logic
+│   │   │   └── useInputHandler.ts  # Keyboard input handling
+│   │   ├── utils/
+│   │   │   └── lineProcessor.ts    # Line wrapping calculations
+│   │   └── components/
+│   │       ├── InputLine.tsx       # Input line rendering
+│   │       ├── SlashMenu.tsx       # Slash command menu
+│   │       └── HelpPanel.tsx       # Keyboard shortcuts help
+│   ├── Divider.tsx            # Horizontal divider
+│   ├── Header.tsx             # App header
+│   └── MessageOutput.tsx      # Message display area
 ├── models/
 │   └── input.ts               # UserInput type definitions
 ├── constants/
@@ -60,7 +75,7 @@ type CommandInput = { type: "command"; command: string[]; raw: string };
 
 ### AutocompleteInput State Machine
 
-The input component (`AutocompleteInput.tsx`) uses a reducer-based state machine with 4 modes:
+The input component uses a reducer-based state machine with 4 modes:
 
 | Mode      | Trigger | Description                        |
 | --------- | ------- | ---------------------------------- |
@@ -69,10 +84,16 @@ The input component (`AutocompleteInput.tsx`) uses a reducer-based state machine
 | `slash`   | `/`     | Navigate hierarchical commands     |
 | `help`    | `?`     | Display shortcuts overlay          |
 
-Key types in AutocompleteInput:
+Key types (defined in `AutocompleteInput/types.ts`):
 - `InputMode` - Union type for mode states
 - `InputState` - Contains input, cursor, suggestion, mode
 - `InputAction` - Reducer actions
+
+Module responsibilities:
+- `reducer.ts` - Pure state machine logic, easily testable
+- `useAutocomplete.ts` - Async autocomplete + slash command filtering
+- `useInputHandler.ts` - All keyboard event handling
+- `lineProcessor.ts` - Text wrapping and cursor position calculation
 
 ### Slash Commands
 
@@ -115,11 +136,15 @@ AutocompleteInput
 
 ### Adding a new input mode
 
-1. Extend `InputMode` type in `AutocompleteInput.tsx`
-2. Add corresponding `InputAction` types
-3. Update `inputReducer` to handle transitions
-4. Add mode detection helper (e.g., `isNewMode()`)
+1. Extend `InputMode` type in `AutocompleteInput/types.ts`
+2. Add corresponding `InputAction` types in `types.ts`
+3. Update `inputReducer` in `reducer.ts` to handle transitions
+4. Add mode detection helper in `types.ts` (e.g., `isNewMode()`)
+5. Handle keyboard events in `hooks/useInputHandler.ts`
 
 ### Modifying input handling
 
-The `handleSubmit` callback in `AutocompleteInput.tsx` creates `UserInput` objects. Business logic for commands should be in `App.tsx`, not in the input component.
+- Keyboard logic: `AutocompleteInput/hooks/useInputHandler.ts`
+- Autocomplete logic: `AutocompleteInput/hooks/useAutocomplete.ts`
+- State transitions: `AutocompleteInput/reducer.ts`
+- Submit handling: `App.tsx` `handleSubmit` callback

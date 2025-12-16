@@ -1,6 +1,6 @@
 import { Box, useApp } from "ink";
 import { useState, useCallback } from "react";
-import AutocompleteInput from "./components/AutocompleteInput.js";
+import AutocompleteInput from "./components/AutocompleteInput/index.js";
 import Divider from "./components/Divider.js";
 import Header from "./components/Header.js";
 import MessageOutput from "./components/MessageOutput.js";

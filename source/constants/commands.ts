@@ -1,4 +1,4 @@
-import type { SlashCommand } from "../components/AutocompleteInput.js";
+import type { SlashCommand } from "../components/AutocompleteInput/index.js";
 
 // 斜杠命令列表
 export const SLASH_COMMANDS: SlashCommand[] = [
