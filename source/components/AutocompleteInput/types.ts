@@ -3,14 +3,22 @@
  */
 
 import type { UserInput } from "../../models/input.js";
-import type { InputInstance, HistoryEntry, SelectedFile } from "../../models/inputInstance.js";
+import type {
+	InputInstance,
+	HistoryEntry,
+	SelectedFile,
+} from "../../models/inputInstance.js";
 
 // 重新导出 UserInput 相关类型
 export type { UserInput };
 export { isMessageInput, isCommandInput } from "../../models/input.js";
 
 // 重新导出 InputInstance 相关类型
-export type { InputInstance, HistoryEntry, SelectedFile } from "../../models/inputInstance.js";
+export type {
+	InputInstance,
+	HistoryEntry,
+	SelectedFile,
+} from "../../models/inputInstance.js";
 export {
 	createEmptyInstance,
 	createMessageInstance,
@@ -68,7 +76,13 @@ export type UIMode =
 	| { type: "normal" }
 	| { type: "history"; index: number; savedEntry: HistoryEntry }
 	| { type: "slash"; selectedIndex: number }
-	| { type: "file"; selectedIndex: number; atPosition: number; prefix: string; suffix: string }
+	| {
+			type: "file";
+			selectedIndex: number;
+			atPosition: number;
+			prefix: string;
+			suffix: string;
+	  }
 	| { type: "help" };
 
 /**
@@ -146,8 +160,13 @@ export const isSlashMode = (
 
 export const isFileMode = (
 	mode: UIMode,
-): mode is { type: "file"; selectedIndex: number; atPosition: number; prefix: string; suffix: string } =>
-	mode.type === "file";
+): mode is {
+	type: "file";
+	selectedIndex: number;
+	atPosition: number;
+	prefix: string;
+	suffix: string;
+} => mode.type === "file";
 
 export const isHelpMode = (mode: UIMode): mode is { type: "help" } =>
 	mode.type === "help";

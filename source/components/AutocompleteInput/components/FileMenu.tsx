@@ -104,11 +104,14 @@ export function FileMenu({
 										</Text>
 										{isDotEntry && (
 											<Text color={isSelected ? "white" : "gray"}>
-												{" "}(Select this folder)
+												{" "}
+												(Select this folder)
 											</Text>
 										)}
 									</Text>
-									{file.isDirectory && !isDotEntry && <Text color="gray"> →</Text>}
+									{file.isDirectory && !isDotEntry && (
+										<Text color="gray"> →</Text>
+									)}
 								</Box>
 							);
 						})}

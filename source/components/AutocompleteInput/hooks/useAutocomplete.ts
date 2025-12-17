@@ -7,10 +7,7 @@ import type { EditorState, EditorAction, SlashCommand } from "../types.js";
 import { isSlashMode, isHistoryMode, buildCommandText } from "../types.js";
 
 // 命令列表用于自动补全
-const COMMANDS = [
-	"git add",
-	"git commit -m",
-];
+const COMMANDS = ["git add", "git commit -m"];
 
 type UseAutocompleteOptions = {
 	state: EditorState;

@@ -68,7 +68,10 @@ export function editorReducer(
 						text,
 						oldSelectedFiles,
 					);
-					const newSegments = rebuildSegmentsWithFiles(text, updatedSelectedFiles);
+					const newSegments = rebuildSegmentsWithFiles(
+						text,
+						updatedSelectedFiles,
+					);
 					const newInstance: InputInstance = {
 						text,
 						cursor,
@@ -127,9 +130,16 @@ export function editorReducer(
 					(f) => f.endPosition <= prefix.length,
 				);
 				// 重建 prefix 的 segments（保留已选择文件的颜色）
-				const prefixSegments = rebuildSegmentsWithFiles(prefix, relevantSelectedFiles);
+				const prefixSegments = rebuildSegmentsWithFiles(
+					prefix,
+					relevantSelectedFiles,
+				);
 				// 构建当前文件路径的彩色分段
-				const fileSegments = buildFileSegments(currentFilePath, true, filterText);
+				const fileSegments = buildFileSegments(
+					currentFilePath,
+					true,
+					filterText,
+				);
 				const newSegments = [...prefixSegments, ...fileSegments];
 				const newInstance: InputInstance = {
 					text,
@@ -154,7 +164,10 @@ export function editorReducer(
 					text,
 					oldSelectedFiles,
 				);
-				const newSegments = rebuildSegmentsWithFiles(text, updatedSelectedFiles);
+				const newSegments = rebuildSegmentsWithFiles(
+					text,
+					updatedSelectedFiles,
+				);
 				const newInstance: InputInstance = {
 					text,
 					cursor,
@@ -170,12 +183,7 @@ export function editorReducer(
 				};
 			}
 			// 没有已选择的文件，使用原有逻辑
-			const newInstance = updateInstanceFromText(
-				text,
-				cursor,
-				currentPath,
-				[],
-			);
+			const newInstance = updateInstanceFromText(text, cursor, currentPath, []);
 			return {
 				...state,
 				instance: newInstance,
@@ -311,7 +319,10 @@ export function editorReducer(
 				(f) => f.endPosition <= prefix.length,
 			);
 			// 重建 prefix 的 segments（保留已选择文件的颜色）
-			const prefixSegments = rebuildSegmentsWithFiles(prefix, relevantSelectedFiles);
+			const prefixSegments = rebuildSegmentsWithFiles(
+				prefix,
+				relevantSelectedFiles,
+			);
 			const fileSegments = buildFileSegments([], true);
 			const newSegments = [...prefixSegments, ...fileSegments];
 			const newInstance: InputInstance = {
@@ -356,7 +367,10 @@ export function editorReducer(
 				(f) => f.endPosition <= prefix.length,
 			);
 			// 重建 prefix 的 segments（保留已选择文件的颜色）
-			const prefixSegments = rebuildSegmentsWithFiles(prefix, relevantSelectedFiles);
+			const prefixSegments = rebuildSegmentsWithFiles(
+				prefix,
+				relevantSelectedFiles,
+			);
 			const fileSegments = buildFileSegments(newPath, true);
 			const newSegments = [...prefixSegments, ...fileSegments];
 			const newInstance: InputInstance = {
@@ -500,7 +514,10 @@ export function editorReducer(
 					(f) => f.endPosition <= prefix.length,
 				);
 				// 重建 prefix 的 segments（保留已选择文件的颜色）
-				const prefixSegments = rebuildSegmentsWithFiles(prefix, relevantSelectedFiles);
+				const prefixSegments = rebuildSegmentsWithFiles(
+					prefix,
+					relevantSelectedFiles,
+				);
 				const fileSegments = buildFileSegments(newPath, true);
 				const newSegments = [...prefixSegments, ...fileSegments];
 				const newInstance: InputInstance = {

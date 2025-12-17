@@ -2,7 +2,7 @@ import type { SlashCommand } from "../components/AutocompleteInput/index.js";
 
 // 斜杠命令列表
 export const SLASH_COMMANDS: SlashCommand[] = [
-    {
+	{
 		name: "model",
 		description: "Select AI model",
 		children: [
@@ -86,7 +86,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 			},
 		],
 	},
-    {
+	{
 		name: "compact",
 		description: "Summarize conversation context",
 		action: {
@@ -104,7 +104,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		description: "Clear the screen",
 		action: { type: "internal", handler: "clear" },
 	},
-    {
+	{
 		name: "version",
 		description: "Show version information",
 		action: { type: "internal", handler: "version" },

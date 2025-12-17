@@ -436,7 +436,8 @@ export function removeSelectedFile(
 } {
 	// 从文本中删除该文件路径（从 atPosition 到 endPosition）
 	const newText =
-		text.slice(0, fileToRemove.atPosition) + text.slice(fileToRemove.endPosition);
+		text.slice(0, fileToRemove.atPosition) +
+		text.slice(fileToRemove.endPosition);
 
 	// 计算新光标位置（删除后光标在原文件位置）
 	const newCursor = fileToRemove.atPosition;

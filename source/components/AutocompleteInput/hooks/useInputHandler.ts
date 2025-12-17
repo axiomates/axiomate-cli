@@ -148,7 +148,8 @@ export function useInputHandler({
 				// Windows 上 backspace 可能触发 key.delete，通过检查 inputChar 区分
 				const isBackspace =
 					key.backspace ||
-					(key.delete && (inputChar === "" || inputChar === "\b" || inputChar === "\x7f"));
+					(key.delete &&
+						(inputChar === "" || inputChar === "\b" || inputChar === "\x7f"));
 
 				// 只处理退格，不处理 delete 键
 				if (!isBackspace) {
@@ -163,8 +164,7 @@ export function useInputHandler({
 
 				if (hasFilterText) {
 					// 有过滤文本，删除一个字符，保持文件选择模式
-					const newInput =
-						input.slice(0, cursor - 1) + input.slice(cursor);
+					const newInput = input.slice(0, cursor - 1) + input.slice(cursor);
 					dispatch({
 						type: "SET_TEXT",
 						text: newInput,
@@ -190,9 +190,7 @@ export function useInputHandler({
 			if (key.upArrow) {
 				if (totalFiles > 0) {
 					const newIndex =
-						fileSelectedIndex > 0
-							? fileSelectedIndex - 1
-							: totalFiles - 1;
+						fileSelectedIndex > 0 ? fileSelectedIndex - 1 : totalFiles - 1;
 					dispatch({ type: "SELECT_FILE", index: newIndex });
 				}
 				return;
@@ -201,9 +199,7 @@ export function useInputHandler({
 			if (key.downArrow) {
 				if (totalFiles > 0) {
 					const newIndex =
-						fileSelectedIndex < totalFiles - 1
-							? fileSelectedIndex + 1
-							: 0;
+						fileSelectedIndex < totalFiles - 1 ? fileSelectedIndex + 1 : 0;
 					dispatch({ type: "SELECT_FILE", index: newIndex });
 				}
 				return;
@@ -254,19 +250,28 @@ export function useInputHandler({
 			// Delete: inputChar 通常是转义序列或特定字符
 			const isBackspace =
 				key.backspace ||
-				(key.delete && (inputChar === "" || inputChar === "\b" || inputChar === "\x7f"));
+				(key.delete &&
+					(inputChar === "" || inputChar === "\b" || inputChar === "\x7f"));
 			const isDelete = key.delete && !isBackspace;
 
 			if (isBackspace && cursor > 0) {
 				// 检查光标是否在某个已选择文件的末尾
-				const fileAtEnd = findSelectedFileEndingAt(cursor, selectedFiles, input);
+				const fileAtEnd = findSelectedFileEndingAt(
+					cursor,
+					selectedFiles,
+					input,
+				);
 				if (fileAtEnd) {
 					// 整体删除该文件
 					dispatch({ type: "REMOVE_SELECTED_FILE", file: fileAtEnd });
 					return;
 				}
 				// 检查光标是否在某个已选择文件的内部（不应该发生，但防御性处理）
-				const fileAtCursor = findSelectedFileAtCursor(cursor, selectedFiles, input);
+				const fileAtCursor = findSelectedFileAtCursor(
+					cursor,
+					selectedFiles,
+					input,
+				);
 				if (fileAtCursor) {
 					// 整体删除该文件
 					dispatch({ type: "REMOVE_SELECTED_FILE", file: fileAtCursor });
@@ -280,14 +285,22 @@ export function useInputHandler({
 
 			if (isDelete && cursor < input.length) {
 				// 检查光标是否在某个已选择文件的开头
-				const fileAtStart = findSelectedFileStartingAt(cursor, selectedFiles, input);
+				const fileAtStart = findSelectedFileStartingAt(
+					cursor,
+					selectedFiles,
+					input,
+				);
 				if (fileAtStart) {
 					// 整体删除该文件
 					dispatch({ type: "REMOVE_SELECTED_FILE", file: fileAtStart });
 					return;
 				}
 				// 检查光标后一位是否在文件内部
-				const fileAtNext = findSelectedFileAtCursor(cursor + 1, selectedFiles, input);
+				const fileAtNext = findSelectedFileAtCursor(
+					cursor + 1,
+					selectedFiles,
+					input,
+				);
 				if (fileAtNext) {
 					// 整体删除该文件
 					dispatch({ type: "REMOVE_SELECTED_FILE", file: fileAtNext });
@@ -306,7 +319,11 @@ export function useInputHandler({
 				const { selectedFiles } = instance;
 				let newCursor = cursor - 1;
 				// 检查新光标位置是否在某个文件区域内，如果是则跳到文件开头
-				const fileAtNewCursor = findSelectedFileAtCursor(newCursor, selectedFiles, input);
+				const fileAtNewCursor = findSelectedFileAtCursor(
+					newCursor,
+					selectedFiles,
+					input,
+				);
 				if (fileAtNewCursor) {
 					newCursor = fileAtNewCursor.atPosition;
 				}
@@ -332,7 +349,11 @@ export function useInputHandler({
 				const { selectedFiles } = instance;
 				let newCursor = cursor + 1;
 				// 检查新光标位置是否在某个文件区域内，如果是则跳到文件末尾
-				const fileAtNewCursor = findSelectedFileAtCursor(newCursor, selectedFiles, input);
+				const fileAtNewCursor = findSelectedFileAtCursor(
+					newCursor,
+					selectedFiles,
+					input,
+				);
 				if (fileAtNewCursor) {
 					newCursor = fileAtNewCursor.endPosition;
 				}

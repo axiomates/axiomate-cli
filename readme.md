@@ -102,6 +102,7 @@ Type `@` to open the file selection menu. Navigate directories and select files 
 - **Multi-file support**: Select multiple files in a single input (e.g., `请分析 @src/a.ts 和 @src/b.ts`)
 
 File paths are treated as atomic blocks:
+
 - Cursor skips over `@path` blocks when moving left/right
 - Backspace/Delete removes the entire `@path` block at once
 
@@ -174,13 +175,13 @@ The input system uses a **data-driven architecture** with a unified `InputInstan
 
 ```typescript
 type InputInstance = {
-  text: string;              // Raw text content
-  cursor: number;            // Cursor position
-  type: InputType;           // "message" | "command"
-  segments: ColoredSegment[]; // Colored segments for rendering
-  commandPath: string[];     // Command path array
-  filePath: string[];        // Current file navigation path
-  selectedFiles: SelectedFile[]; // Files selected via @ (with positions)
+	text: string; // Raw text content
+	cursor: number; // Cursor position
+	type: InputType; // "message" | "command"
+	segments: ColoredSegment[]; // Colored segments for rendering
+	commandPath: string[]; // Command path array
+	filePath: string[]; // Current file navigation path
+	selectedFiles: SelectedFile[]; // Files selected via @ (with positions)
 };
 ```
 
@@ -200,13 +201,13 @@ User Action → dispatch(EditorAction) → Reducer updates EditorState
 
 ### UI Modes
 
-| Mode      | Trigger   | Description                                  |
-| --------- | --------- | -------------------------------------------- |
-| `normal`  | Default   | Regular input with autocomplete              |
-| `history` | `↑` / `↓` | Browse history (restores full state)         |
-| `slash`   | `/`       | Navigate hierarchical slash commands         |
-| `file`    | `@`       | Navigate file system for selection           |
-| `help`    | `?`       | Display keyboard shortcuts (overlay)         |
+| Mode      | Trigger   | Description                          |
+| --------- | --------- | ------------------------------------ |
+| `normal`  | Default   | Regular input with autocomplete      |
+| `history` | `↑` / `↓` | Browse history (restores full state) |
+| `slash`   | `/`       | Navigate hierarchical slash commands |
+| `file`    | `@`       | Navigate file system for selection   |
+| `help`    | `?`       | Display keyboard shortcuts (overlay) |
 
 ### File Selection System
 

@@ -44,7 +44,7 @@ async function main() {
 	if (!checkBunInstalled()) {
 		console.error("❌ 错误: 未检测到 Bun");
 		console.error("   请先安装 Bun: https://bun.sh");
-		console.error("   Windows: powershell -c \"irm bun.sh/install.ps1 | iex\"");
+		console.error('   Windows: powershell -c "irm bun.sh/install.ps1 | iex"');
 		console.error("   macOS/Linux: curl -fsSL https://bun.sh/install | bash");
 		process.exit(1);
 	}
@@ -70,11 +70,11 @@ async function main() {
 	// 移除 createRequire polyfill (Bun 原生支持)
 	bundleContent = bundleContent.replace(
 		/import\s*\{\s*createRequire\s*\}\s*from\s*["']module["'];\s*\n?/,
-		""
+		"",
 	);
 	bundleContent = bundleContent.replace(
 		/const\s+require\s*=\s*createRequire\(import\.meta\.url\);\s*\n?/,
-		""
+		"",
 	);
 	writeFileSync(bunEntryPath, bundleContent);
 
