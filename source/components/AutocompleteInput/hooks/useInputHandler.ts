@@ -131,33 +131,47 @@ export function useInputHandler({
 		}
 
 		// 文件选择模式下的特殊处理
-		if (inFileMode && filteredFiles.length > 0) {
-			if (key.upArrow) {
-				const newIndex =
-					selectedIndex > 0 ? selectedIndex - 1 : filteredFiles.length - 1;
-				dispatch({ type: "SELECT_FILE", index: newIndex });
-				return;
-			}
-
-			if (key.downArrow) {
-				const newIndex =
-					selectedIndex < filteredFiles.length - 1 ? selectedIndex + 1 : 0;
-				dispatch({ type: "SELECT_FILE", index: newIndex });
-				return;
-			}
-
-			if (key.return) {
-				const selectedFile = filteredFiles[selectedIndex];
-				if (selectedFile) {
-					if (selectedFile.isDirectory) {
-						// 进入子目录
-						dispatch({ type: "ENTER_FILE_DIR", dirName: selectedFile.name });
-					} else {
-						// 确认选择文件
-						dispatch({ type: "CONFIRM_FILE", fileName: selectedFile.name });
-					}
+		if (inFileMode) {
+			// 在根级别按 backspace，退出文件模式但保留 @
+			if (key.backspace || key.delete) {
+				const basePath = uiMode.basePath;
+				if (!basePath || basePath === ".") {
+					dispatch({ type: "EXIT_FILE_KEEP_AT" });
+					return;
 				}
+				// 在子目录中按 backspace，返回上一级
+				dispatch({ type: "EXIT_FILE" });
 				return;
+			}
+
+			if (filteredFiles.length > 0) {
+				if (key.upArrow) {
+					const newIndex =
+						selectedIndex > 0 ? selectedIndex - 1 : filteredFiles.length - 1;
+					dispatch({ type: "SELECT_FILE", index: newIndex });
+					return;
+				}
+
+				if (key.downArrow) {
+					const newIndex =
+						selectedIndex < filteredFiles.length - 1 ? selectedIndex + 1 : 0;
+					dispatch({ type: "SELECT_FILE", index: newIndex });
+					return;
+				}
+
+				if (key.return) {
+					const selectedFile = filteredFiles[selectedIndex];
+					if (selectedFile) {
+						if (selectedFile.isDirectory) {
+							// 进入子目录
+							dispatch({ type: "ENTER_FILE_DIR", dirName: selectedFile.name });
+						} else {
+							// 确认选择文件
+							dispatch({ type: "CONFIRM_FILE", fileName: selectedFile.name });
+						}
+					}
+					return;
+				}
 			}
 
 			if (key.escape) {

@@ -294,6 +294,15 @@ export function editorReducer(
 			};
 		}
 
+		case "EXIT_FILE_KEEP_AT": {
+			// 退出文件模式但保留 @ 符号
+			if (!isFileMode(state.uiMode)) return state;
+			return {
+				...state,
+				uiMode: { type: "normal" },
+			};
+		}
+
 		case "RESET":
 			return initialState;
 

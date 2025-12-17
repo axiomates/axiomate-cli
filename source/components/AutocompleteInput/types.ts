@@ -98,6 +98,7 @@ export type EditorAction =
 	| { type: "ENTER_FILE_DIR"; dirName: string }
 	| { type: "CONFIRM_FILE"; fileName: string }
 	| { type: "EXIT_FILE" }
+	| { type: "EXIT_FILE_KEEP_AT" } // 退出文件模式但保留 @ 符号
 	// 其他
 	| { type: "TOGGLE_HELP" }
 	| { type: "RESET" };
