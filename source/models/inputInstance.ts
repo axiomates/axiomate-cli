@@ -4,7 +4,7 @@
  */
 
 import type { ColoredSegment } from "./richInput.js";
-import { PATH_COLOR, ARROW_COLOR, FILE_AT_COLOR } from "./richInput.js";
+import { PATH_COLOR, ARROW_COLOR, FILE_AT_COLOR } from "../constants/colors.js";
 
 /**
  * 输入类型

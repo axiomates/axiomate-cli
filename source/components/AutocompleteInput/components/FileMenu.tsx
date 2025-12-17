@@ -4,6 +4,7 @@
 
 import { Box, Text } from "ink";
 import type { FileItem } from "../hooks/useFileSelect.js";
+import { FILE_COLOR, DIR_COLOR } from "../../../constants/colors.js";
 
 type FileMenuProps = {
 	/** 文件列表 */
@@ -19,11 +20,6 @@ type FileMenuProps = {
 	/** 是否正在加载 */
 	loading?: boolean;
 };
-
-/** 文件路径颜色 */
-const FILE_COLOR = "#87ceeb"; // 浅蓝色
-/** 文件夹颜色 */
-const DIR_COLOR = "#ffd700"; // 金色
 
 export function FileMenu({
 	files,
