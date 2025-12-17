@@ -2,7 +2,7 @@
  * 键盘输入处理 Hook
  */
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useInput, useApp } from "ink";
 import type {
 	EditorState,
@@ -45,6 +45,12 @@ export function useInputHandler({
 	onExit,
 }: UseInputHandlerOptions): void {
 	const { exit } = useApp();
+
+	// 使用 ref 存储最新值，避免闭包过期问题
+	const stateRef = useRef(state);
+	const filteredFilesRef = useRef(filteredFiles);
+	stateRef.current = state;
+	filteredFilesRef.current = filteredFiles;
 
 	// 从 instance 获取输入数据
 	const { instance, uiMode } = state;
@@ -132,21 +138,36 @@ export function useInputHandler({
 		}
 
 		// 文件选择模式下的特殊处理
-		if (inFileMode) {
+		// 使用 ref 获取最新状态，避免闭包过期问题
+		const currentState = stateRef.current;
+		const currentFiles = filteredFilesRef.current;
+		const currentUiMode = currentState.uiMode;
+		const currentInFileMode = isFileMode(currentUiMode);
+
+		if (currentInFileMode) {
+			const currentInstance = currentState.instance;
+			const currentSelectedIndex = currentUiMode.selectedIndex;
+
 			// 处理 backspace
 			if (key.backspace || key.delete) {
-				const { filePath } = instance;
-				const { prefix } = uiMode;
+				const { filePath } = currentInstance;
+				const { prefix } = currentUiMode;
 				// 计算完整前缀长度（包括 @ 之前的文本 + 文件路径部分，如 "hello @assets\"）
 				const filePathText = buildFileText(filePath, true);
 				const fullPrefixLength = prefix.length + filePathText.length;
 				// 检查是否有过滤文本（光标位置 > 完整前缀长度）
-				const hasFilterText = cursor > fullPrefixLength;
+				const hasFilterText = currentInstance.cursor > fullPrefixLength;
 
 				if (hasFilterText) {
 					// 有过滤文本，删除一个字符，保持文件选择模式
-					const newInput = input.slice(0, cursor - 1) + input.slice(cursor);
-					dispatch({ type: "SET_TEXT", text: newInput, cursor: cursor - 1 });
+					const newInput =
+						currentInstance.text.slice(0, currentInstance.cursor - 1) +
+						currentInstance.text.slice(currentInstance.cursor);
+					dispatch({
+						type: "SET_TEXT",
+						text: newInput,
+						cursor: currentInstance.cursor - 1,
+					});
 					return;
 				}
 
@@ -161,29 +182,33 @@ export function useInputHandler({
 				return;
 			}
 
-			// 上下键导航 - 始终在文件模式内处理，保持一致性
+			// 上下键导航 - 在所有文件中循环（FileMenu 会滚动显示选中项）
+			const totalFiles = currentFiles.length;
+
 			if (key.upArrow) {
-				if (filteredFiles.length > 0) {
+				if (totalFiles > 0) {
 					const newIndex =
-						selectedIndex > 0 ? selectedIndex - 1 : filteredFiles.length - 1;
+						currentSelectedIndex > 0
+							? currentSelectedIndex - 1
+							: totalFiles - 1;
 					dispatch({ type: "SELECT_FILE", index: newIndex });
 				}
-				// 无论是否有文件，都不退出文件模式
 				return;
 			}
 
 			if (key.downArrow) {
-				if (filteredFiles.length > 0) {
+				if (totalFiles > 0) {
 					const newIndex =
-						selectedIndex < filteredFiles.length - 1 ? selectedIndex + 1 : 0;
+						currentSelectedIndex < totalFiles - 1
+							? currentSelectedIndex + 1
+							: 0;
 					dispatch({ type: "SELECT_FILE", index: newIndex });
 				}
-				// 无论是否有文件，都不退出文件模式
 				return;
 			}
 
-			if (key.return && filteredFiles.length > 0) {
-				const selectedFile = filteredFiles[selectedIndex];
+			if (key.return && currentFiles.length > 0) {
+				const selectedFile = currentFiles[currentSelectedIndex];
 				if (selectedFile) {
 					if (selectedFile.name === ".") {
 						// 选择当前文件夹（"." 条目）

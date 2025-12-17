@@ -61,44 +61,69 @@ export function FileMenu({
 					<Text color={DIR_COLOR}>{path.join("\\")}</Text>
 				</Box>
 			)}
-			{/* 文件列表（最多显示 10 个） */}
-			{files.slice(0, 10).map((file, index) => {
-				const isDotEntry = file.name === ".";
+			{/* 文件列表（最多显示 9 个，窗口跟随选中项） */}
+			{(() => {
+				const maxVisible = 9;
+				// 计算窗口：确保选中项始终可见
+				let startIndex = 0;
+				if (selectedIndex >= maxVisible) {
+					// 选中项超出初始窗口，滚动窗口使选中项在底部
+					startIndex = selectedIndex - maxVisible + 1;
+				}
+				const endIndex = Math.min(files.length, startIndex + maxVisible);
+				const visibleFiles = files.slice(startIndex, endIndex);
+				const hasMoreBefore = startIndex > 0;
+				const hasMoreAfter = endIndex < files.length;
+
 				return (
-					<Box key={file.path}>
-						<Text
-							backgroundColor={index === selectedIndex ? "blue" : undefined}
-							color={index === selectedIndex ? "white" : undefined}
-						>
-							{promptIndent}
-							{file.isDirectory ? "📁 " : "📄 "}
-							<Text
-								color={
-									index === selectedIndex
-										? "white"
-										: file.isDirectory
-											? DIR_COLOR
-											: FILE_COLOR
-								}
-							>
-								{file.name}
+					<>
+						{hasMoreBefore && (
+							<Text color="gray">
+								{promptIndent}... {startIndex} more above
 							</Text>
-							{isDotEntry && (
-								<Text color={index === selectedIndex ? "white" : "gray"}>
-									{" "}(Select this folder)
-								</Text>
-							)}
-						</Text>
-						{file.isDirectory && !isDotEntry && <Text color="gray"> →</Text>}
-					</Box>
+						)}
+						{visibleFiles.map((file, visibleIndex) => {
+							const actualIndex = startIndex + visibleIndex;
+							const isDotEntry = file.name === ".";
+							const isSelected = actualIndex === selectedIndex;
+							return (
+								<Box key={file.path}>
+									<Text
+										backgroundColor={isSelected ? "blue" : undefined}
+										color={isSelected ? "white" : undefined}
+									>
+										{promptIndent}
+										{isSelected ? "▸ " : "  "}
+										{file.isDirectory ? "📁 " : "📄 "}
+										<Text
+											color={
+												isSelected
+													? "white"
+													: file.isDirectory
+														? DIR_COLOR
+														: FILE_COLOR
+											}
+										>
+											{file.name}
+										</Text>
+										{isDotEntry && (
+											<Text color={isSelected ? "white" : "gray"}>
+												{" "}(Select this folder)
+											</Text>
+										)}
+									</Text>
+									{file.isDirectory && !isDotEntry && <Text color="gray"> →</Text>}
+								</Box>
+							);
+						})}
+						{hasMoreAfter && (
+							<Text color="gray">
+								{promptIndent}... and {files.length - endIndex} more
+							</Text>
+						)}
+					</>
 				);
-			})}
-			{/* 如果还有更多文件 */}
-			{files.length > 10 && (
-				<Text color="gray">
-					{promptIndent}... and {files.length - 10} more
-				</Text>
-			)}
+			})()}
 		</Box>
 	);
 }
