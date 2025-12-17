@@ -16,6 +16,7 @@
 		"dev": "tsc --watch",
 		"start": "node dist/cli.js",
 		"bundle": "jiti scripts/bundle.ts",
+		"package": "jiti scripts/package.ts",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"lint": "eslint . && prettier --check .",
