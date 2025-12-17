@@ -85,7 +85,7 @@ export function FileMenu({
 							</Text>
 							{isDotEntry && (
 								<Text color={index === selectedIndex ? "white" : "gray"}>
-									{" "}(选择此文件夹)
+									{" "}(Select this folder)
 								</Text>
 							)}
 						</Text>
