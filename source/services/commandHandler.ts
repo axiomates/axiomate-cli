@@ -71,11 +71,6 @@ const internalHandlers: Record<string, InternalHandler> = {
 		content: "Config: (empty)",
 	}),
 
-	status: () => ({
-		type: "message",
-		content: "Status: running",
-	}),
-
 	clear: () => ({
 		type: "action",
 		action: "clear",

@@ -36,10 +36,10 @@ export function SlashMenu({
 			{path.length > 0 && (
 				<Box>
 					<Text color="gray">{promptIndent}← </Text>
-					<Text color="#e5c07b">/</Text>
+					<Text color="#ffd700">/</Text>
 					{path.map((name, i) => (
 						<Text key={name}>
-							<Text color="#e5c07b">{name}</Text>
+							<Text color="#ffd700">{name}</Text>
 							{i < path.length - 1 && <Text color="gray"> → </Text>}
 						</Text>
 					))}

@@ -28,11 +28,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		action: { type: "internal", handler: "config" },
 	},
 	{
-		name: "status",
-		description: "Show current status",
-		action: { type: "internal", handler: "status" },
-	},
-	{
 		name: "compact",
 		description: "Summarize conversation context",
 		action: {

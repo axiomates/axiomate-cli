@@ -10,10 +10,12 @@ export default function MessageOutput({ messages }: Props) {
 			flexDirection="column"
 			flexGrow={1}
 			justifyContent="flex-end"
-			overflow="hidden"
+			overflowY="hidden"
 		>
 			{messages.map((msg, index) => (
-				<Text key={index}>{msg}</Text>
+				<Box key={index} flexShrink={0}>
+					<Text>{msg}</Text>
+				</Box>
 			))}
 		</Box>
 	);

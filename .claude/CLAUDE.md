@@ -206,7 +206,7 @@ type ColorRange = { start: number; end: number; color?: string };
 ```
 
 Color constants (in `richInput.ts`):
-- `PATH_COLOR = "#e5c07b"` - Command path color (gold)
+- `PATH_COLOR = "#ffd700"` - Command path color (gold)
 - `ARROW_COLOR = "gray"` - Arrow separator color
 
 ### Component Communication

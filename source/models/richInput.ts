@@ -15,7 +15,7 @@ export type ColoredSegment = {
 // ============================================================================
 
 /** 路径名颜色（金黄色） */
-export const PATH_COLOR = "#e5c07b";
+export const PATH_COLOR = "#ffd700";
 
 /** 箭头/分隔符颜色（灰色） */
 export const ARROW_COLOR = "gray";
