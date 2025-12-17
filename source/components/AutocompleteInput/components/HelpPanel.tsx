@@ -55,6 +55,10 @@ export function HelpPanel({ columns }: HelpPanelProps) {
 			</Box>
 			<Box flexDirection="row" flexWrap="wrap">
 				<Box width="50%">
+					<Text color="#ffff00">↑/↓ </Text>
+					<Text color="gray">browse history</Text>
+				</Box>
+				<Box width="50%">
 					<Text color="#ffff00">Escape </Text>
 					<Text color="gray">exit mode / clear suggestion</Text>
 				</Box>
