@@ -84,7 +84,14 @@ async function main() {
 
 	console.log(`✓ 正在编译为可执行文件: ${outputFilename}...`);
 
-	const args = ["build", bunEntryPath, "--compile", "--outfile", outputPath];
+	const args = [
+		"build",
+		bunEntryPath,
+		"--compile",
+		"--minify",
+		"--outfile",
+		outputPath,
+	];
 
 	// Windows 专用: 设置图标
 	if (platform() === "win32") {
