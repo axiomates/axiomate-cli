@@ -4,7 +4,7 @@
  */
 
 import type { ColoredSegment } from "./richInput.js";
-import { PATH_COLOR, ARROW_COLOR, FILE_AT_COLOR } from "../constants/colors.js";
+import { PATH_COLOR, ARROW_COLOR, FILE_AT_COLOR, FILE_COLOR } from "../constants/colors.js";
 import { PATH_SEPARATOR } from "../constants/platform.js";
 import type { UserInput, MessageInput, CommandInput } from "./input.js";
 
@@ -473,6 +473,7 @@ export function removeSelectedFile(
 /**
  * 根据 selectedFiles 重建带颜色的 segments
  * 文件路径显示颜色，其余部分为普通文本
+ * 目录使用金黄色（PATH_COLOR），文件使用浅蓝色（FILE_COLOR）
  */
 export function rebuildSegmentsWithFiles(
 	text: string,
@@ -499,10 +500,11 @@ export function rebuildSegmentsWithFiles(
 		// 添加 @ 符号（浅蓝色）
 		segments.push({ text: "@", color: FILE_AT_COLOR });
 
-		// 添加文件路径（金黄色）
+		// 添加文件路径（目录用金黄色，文件用浅蓝色）
 		const pathText = text.substring(file.atPosition + 1, file.endPosition);
 		if (pathText) {
-			segments.push({ text: pathText, color: PATH_COLOR });
+			const pathColor = file.isDirectory ? PATH_COLOR : FILE_COLOR;
+			segments.push({ text: pathText, color: pathColor });
 		}
 
 		pos = file.endPosition;
