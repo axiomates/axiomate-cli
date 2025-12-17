@@ -1,5 +1,5 @@
 import { Box, useApp } from "ink";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import AutocompleteInput from "./components/AutocompleteInput/index.js";
 import Divider from "./components/Divider.js";
 import Header from "./components/Header.js";
@@ -12,55 +12,64 @@ import {
 	isMessageInput,
 	isCommandInput,
 } from "./models/input.js";
+import {
+	handleCommand,
+	type CommandCallbacks,
+} from "./services/commandHandler.js";
 
 export default function App() {
 	const { exit } = useApp();
 	const [messages, setMessages] = useState<string[]>([]);
 	const terminalHeight = useTerminalHeight();
 
-	const handleSubmit = useCallback((input: UserInput) => {
-		if (isMessageInput(input)) {
-			// 普通消息输入，未来发送给 AI 处理
-			// TODO: 接入 AI 服务
-			setMessages((prev) => [...prev, `> ${input.content}`]);
-		} else if (isCommandInput(input)) {
-			// 命令输入，由应用内部处理
-			const [cmd, ...args] = input.command;
-			switch (cmd) {
-				case "help":
-					setMessages((prev) => [
-						...prev,
-						"Available commands: /help, /exit, /clear, /version, /model",
-					]);
-					break;
-				case "version":
-					setMessages((prev) => [...prev, `${APP_NAME} v${VERSION}`]);
-					break;
-				case "config":
-					setMessages((prev) => [...prev, "Config: (empty)"]);
-					break;
-				case "status":
-					setMessages((prev) => [...prev, "Status: running"]);
-					break;
-				case "model":
-					// 示例：处理 /model openai gpt-4
-					if (args.length > 0) {
-						setMessages((prev) => [
-							...prev,
-							`Model switched to: ${args.join(" ")}`,
-						]);
-					} else {
-						setMessages((prev) => [
-							...prev,
-							"Usage: /model <provider> <model-name>",
-						]);
-					}
-					break;
-				default:
-					setMessages((prev) => [...prev, `Unknown command: /${cmd}`]);
-			}
-		}
+	// 发送消息给 AI（目前只是显示）
+	const sendToAI = useCallback((content: string) => {
+		// TODO: 接入 AI 服务
+		setMessages((prev) => [...prev, `> ${content}`]);
 	}, []);
+
+	// 显示消息
+	const showMessage = useCallback((content: string) => {
+		setMessages((prev) => [...prev, content]);
+	}, []);
+
+	// 更新配置
+	const setConfig = useCallback((key: string, value: string) => {
+		// TODO: 实际更新配置
+		setMessages((prev) => [...prev, `${key} set to: ${value}`]);
+	}, []);
+
+	// 清屏
+	const clearMessages = useCallback(() => {
+		setMessages([]);
+	}, []);
+
+	// 命令回调集合
+	const commandCallbacks: CommandCallbacks = useMemo(
+		() => ({
+			showMessage,
+			sendToAI,
+			setConfig,
+			clear: clearMessages,
+			exit,
+		}),
+		[showMessage, sendToAI, setConfig, clearMessages, exit],
+	);
+
+	const handleSubmit = useCallback(
+		(input: UserInput) => {
+			if (isMessageInput(input)) {
+				sendToAI(input.content);
+			} else if (isCommandInput(input)) {
+				handleCommand(
+					input.command,
+					{ appName: APP_NAME, version: VERSION },
+					commandCallbacks,
+				);
+			}
+		},
+		[sendToAI, commandCallbacks],
+	);
 
 	const handleClear = useCallback(() => {
 		setMessages([]);

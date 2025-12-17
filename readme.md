@@ -127,11 +127,11 @@ The input system uses a **data-driven architecture** with a unified `InputInstan
 
 ```typescript
 type InputInstance = {
-  text: string;              // Raw text content
-  cursor: number;            // Cursor position
-  type: InputType;           // "message" | "command"
-  segments: ColoredSegment[]; // Colored segments for rendering
-  commandPath: string[];     // Command path array
+	text: string; // Raw text content
+	cursor: number; // Cursor position
+	type: InputType; // "message" | "command"
+	segments: ColoredSegment[]; // Colored segments for rendering
+	commandPath: string[]; // Command path array
 };
 ```
 
@@ -139,19 +139,19 @@ All user operations first update the `InputInstance`, then rendering reads from 
 
 ### Input Types
 
-| Type      | Description                        | Example                      |
-| --------- | ---------------------------------- | ---------------------------- |
-| `message` | Regular text input, sent to AI     | `hello world`                |
-| `command` | Slash commands, handled by the app | `/model → openai → gpt-4`    |
+| Type      | Description                        | Example                   |
+| --------- | ---------------------------------- | ------------------------- |
+| `message` | Regular text input, sent to AI     | `hello world`             |
+| `command` | Slash commands, handled by the app | `/model → openai → gpt-4` |
 
 ### UI Modes
 
-| Mode      | Trigger   | Description                                    |
-| --------- | --------- | ---------------------------------------------- |
-| `normal`  | Default   | Regular input with autocomplete                |
-| `history` | `↑` / `↓` | Browse history (restores full InputInstance)   |
-| `slash`   | `/`       | Navigate hierarchical slash commands           |
-| `help`    | `?`       | Display keyboard shortcuts (overlay)           |
+| Mode      | Trigger   | Description                                  |
+| --------- | --------- | -------------------------------------------- |
+| `normal`  | Default   | Regular input with autocomplete              |
+| `history` | `↑` / `↓` | Browse history (restores full InputInstance) |
+| `slash`   | `/`       | Navigate hierarchical slash commands         |
+| `help`    | `?`       | Display keyboard shortcuts (overlay)         |
 
 ### History System
 

@@ -23,6 +23,7 @@ import { isSlashMode, isHistoryMode, isHelpMode } from "./types.js";
 export type {
 	UserInput,
 	SlashCommand,
+	CommandAction,
 	AutocompleteInputProps,
 } from "./types.js";
 export { isMessageInput, isCommandInput } from "./types.js";

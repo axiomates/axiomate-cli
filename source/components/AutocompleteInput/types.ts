@@ -24,12 +24,25 @@ export {
 } from "../../models/inputInstance.js";
 
 /**
+ * 命令动作类型
+ * - internal: 内部命令，由应用处理（如 /version, /clear）
+ * - prompt: 转换成 prompt 发给 AI（如 /compact）
+ * - config: 配置类命令（如 /model）
+ */
+export type CommandAction =
+	| { type: "internal"; handler?: string }
+	| { type: "prompt"; template: string }
+	| { type: "config"; key: string };
+
+/**
  * 斜杠命令类型（支持递归嵌套）
  */
 export type SlashCommand = {
 	name: string;
 	description?: string;
 	children?: SlashCommand[];
+	/** 命令动作，叶子节点需要指定，分支节点可省略 */
+	action?: CommandAction;
 };
 
 /**

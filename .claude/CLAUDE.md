@@ -54,6 +54,8 @@ source/
 │   └── richInput.ts           # ColoredSegment, ColorRange, color utils
 ├── constants/
 │   └── commands.ts            # Slash command definitions (SLASH_COMMANDS)
+├── services/
+│   └── commandHandler.ts      # Command execution logic
 ├── hooks/                     # React hooks (useTerminalWidth/Height)
 ├── utils/                     # Utilities (config, logger, appdata)
 └── types/                     # .d.ts type declarations for untyped libs
@@ -153,10 +155,46 @@ type SlashCommand = {
   name: string;
   description?: string;
   children?: SlashCommand[];  // Nested subcommands
+  action?: CommandAction;     // Command behavior (leaf nodes)
 };
+
+// Command action types
+type CommandAction =
+  | { type: "internal"; handler?: string }  // Internal handler (e.g., /version, /clear)
+  | { type: "prompt"; template: string }    // Convert to prompt and send to AI (e.g., /compact)
+  | { type: "config"; key: string };        // Configuration change (e.g., /model)
 ```
 
 Example: `/model → openai → gpt-4` with path `["model", "openai", "gpt-4"]`
+
+### Command Handler
+
+Command execution is handled by `services/commandHandler.ts`:
+
+```typescript
+type CommandResult =
+  | { type: "message"; content: string }    // Display message (internal complete)
+  | { type: "prompt"; content: string }     // Send to AI
+  | { type: "config"; key: string; value: string }  // Config change
+  | { type: "action"; action: "clear" | "exit" }    // Special action
+  | { type: "error"; message: string };
+
+// Execute command and get result
+executeCommand(path: string[], context: CommandContext): CommandResult
+```
+
+**Command Flow:**
+```
+User selects /compact
+    ↓
+CommandInput { command: ["compact"] }
+    ↓
+executeCommand() finds action = { type: "prompt", template: "..." }
+    ↓
+Returns { type: "prompt", content: "请帮我总结..." }
+    ↓
+App calls sendToAI(content)
+```
 
 ### Color Rendering
 
@@ -193,8 +231,11 @@ AutocompleteInput
 
 ### Adding a new slash command
 
-1. Add to `SLASH_COMMANDS` in `constants/commands.ts`
-2. Handle in `App.tsx` `handleSubmit` switch statement
+1. Add to `SLASH_COMMANDS` in `constants/commands.ts` with appropriate `action`:
+   - `{ type: "internal", handler: "handlerName" }` - for internal commands
+   - `{ type: "prompt", template: "..." }` - for AI prompt commands
+   - `{ type: "config", key: "configKey" }` - for configuration commands
+2. For internal commands, add handler function in `services/commandHandler.ts` `internalHandlers` registry
 
 ### Adding a new UI mode
 
@@ -209,6 +250,7 @@ AutocompleteInput
 - Keyboard logic: `AutocompleteInput/hooks/useInputHandler.ts`
 - Autocomplete logic: `AutocompleteInput/hooks/useAutocomplete.ts`
 - State transitions: `AutocompleteInput/reducer.ts`
+- Command execution: `services/commandHandler.ts`
 - Submit handling: `App.tsx` `handleSubmit` callback
 - Input data model: `models/inputInstance.ts`
 
