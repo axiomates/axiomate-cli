@@ -55,13 +55,25 @@ On Windows, the packaged exe automatically:
 
 1. **Registers profile** in Windows Terminal's `settings.json`
 2. **Uses exe as icon** - no separate .ico file needed
-3. **Auto-restarts** via `wt.exe` when profile is updated (to apply icon)
+3. **Auto-restarts** when profile is updated (to apply icon)
 
 To see the custom icon in Windows Terminal:
 
 - Run `axiomate-cli.exe` once to register the profile
-- The app will automatically restart in a new Windows Terminal window with the icon
+- The app will automatically restart in a new terminal window with the icon
 - Or manually select "axiomate-cli" from Windows Terminal's dropdown menu
+
+#### Cross-Platform Restart
+
+When restart is needed, the app auto-detects the best available terminal:
+
+| Priority | Terminal         | Availability        |
+| -------- | ---------------- | ------------------- |
+| 1        | Windows Terminal | Win10 1903+, manual |
+| 2        | PowerShell       | Win7+, built-in     |
+| 3        | CMD              | All Windows         |
+
+On macOS/Linux, a new process is spawned directly.
 
 ### Command Line Options
 

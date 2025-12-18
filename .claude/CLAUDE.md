@@ -536,12 +536,28 @@ On Windows, the packaged exe automatically configures Windows Terminal:
 
 1. **Profile Registration**: Adds/updates `axiomate-cli` profile in Windows Terminal's `settings.json`
 2. **Icon Integration**: Uses the exe itself as icon source (no separate .ico needed)
-3. **Auto-Restart**: If profile is added/updated, restarts via `wt.exe` to apply changes
+3. **Auto-Restart**: If profile is added/updated, restarts to apply changes
 4. **Legacy Migration**: Detects and migrates profiles with old invalid GUIDs
 
 Supports multiple Windows Terminal installations:
 - Microsoft Store (stable)
 - Microsoft Store (preview)
 - Unpackaged (scoop, chocolatey, etc.)
+
+**Cross-Platform Restart** (`restartApp()`):
+
+The `restartApp()` function provides cross-platform restart with cwd and args preservation:
+
+- **Windows**: Auto-detects best terminal by priority:
+  1. `wt.exe` (Windows Terminal) - Best experience
+  2. `powershell.exe` - Available on Win7+
+  3. `cmd.exe` - Ultimate fallback
+- **macOS/Linux**: Spawns new process with `stdio: "inherit"`
+
+Helper functions:
+- `commandExists(cmd)` - Uses `where` (Windows) or `which` (Unix)
+- `detectWindowsTerminal()` - Returns `"wt"` | `"powershell"` | `"cmd"`
+- `escapePowerShellArg(arg)` - Single quote escaping
+- `escapeCmdArg(arg)` - Double quote escaping for special chars
 
 The `initPlatform()` function handles all platform-specific initialization and is called at startup in `cli.tsx`.
