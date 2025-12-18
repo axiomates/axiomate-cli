@@ -49,6 +49,20 @@ npm run package
 
 Creates `bundle/axiomate-cli.exe` (Windows) or `bundle/axiomate-cli` (macOS/Linux).
 
+#### Windows Terminal Integration
+
+On Windows, the packaged exe automatically:
+
+1. **Registers profile** in Windows Terminal's `settings.json`
+2. **Uses exe as icon** - no separate .ico file needed
+3. **Auto-restarts** via `wt.exe` when profile is updated (to apply icon)
+
+To see the custom icon in Windows Terminal:
+
+- Run `axiomate-cli.exe` once to register the profile
+- The app will automatically restart in a new Windows Terminal window with the icon
+- Or manually select "axiomate-cli" from Windows Terminal's dropdown menu
+
 ### Command Line Options
 
 | Option          | Description                          |
@@ -246,7 +260,8 @@ source/
     ├── appdata.ts             # App data (~/.axiomate/)
     ├── localsettings.ts       # Project settings (.axiomate/)
     ├── logger.ts              # Pino logger with rotation
-    └── flags.ts               # CLI flags
+    ├── flags.ts               # CLI flags
+    └── platform.ts            # Platform init (Windows Terminal config)
 ```
 
 ## Configuration

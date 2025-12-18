@@ -75,7 +75,8 @@ source/
 │   ├── appdata.ts             # App data directories (~/.axiomate/)
 │   ├── localsettings.ts       # Project-local settings (.axiomate/)
 │   ├── logger.ts              # Pino logger with rotation
-│   └── flags.ts               # CLI flags storage
+│   ├── flags.ts               # CLI flags storage
+│   └── platform.ts            # Platform-specific initialization (Windows Terminal)
 └── types/                     # .d.ts declarations for untyped libs
 ```
 
@@ -528,3 +529,19 @@ npm run test:watch # Watch mode
 **Windows Backspace Handling**: On Windows terminals, the backspace key may trigger `key.delete` instead of `key.backspace`. The input handler detects this by checking `inputChar` (backspace produces `""`, `"\b"`, or `"\x7f"`).
 
 **Path Separator**: Always use `PATH_SEPARATOR` from `constants/platform.ts` for file paths to ensure cross-platform compatibility (`/` on Unix, `\` on Windows).
+
+**Windows Terminal Auto-Configuration** (`utils/platform.ts`):
+
+On Windows, the packaged exe automatically configures Windows Terminal:
+
+1. **Profile Registration**: Adds/updates `axiomate-cli` profile in Windows Terminal's `settings.json`
+2. **Icon Integration**: Uses the exe itself as icon source (no separate .ico needed)
+3. **Auto-Restart**: If profile is added/updated, restarts via `wt.exe` to apply changes
+4. **Legacy Migration**: Detects and migrates profiles with old invalid GUIDs
+
+Supports multiple Windows Terminal installations:
+- Microsoft Store (stable)
+- Microsoft Store (preview)
+- Unpackaged (scoop, chocolatey, etc.)
+
+The `initPlatform()` function handles all platform-specific initialization and is called at startup in `cli.tsx`.
