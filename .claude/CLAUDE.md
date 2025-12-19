@@ -109,23 +109,67 @@ source/
 
 ## Application Layout
 
+The app supports two **focus modes**: Input mode and Browse mode (toggled with `Shift+↑/↓`).
+
+### Input Mode (Default)
 ```
-┌─────────────────────────────┐
-│ Header                      │
-├─────────────────────────────┤
-│ Divider                     │
-├─────────────────────────────┤
-│ MessageOutput (flex-grow)   │  ← Scrollable message history
-├─────────────────────────────┤
-│ Divider                     │
-├─────────────────────────────┤
-│ AutocompleteInput           │  ← Multi-line input with colors
-├─────────────────────────────┤
-│ Selection Panel             │  ← Mode-dependent content
-│   - SlashMenu (/ commands)  │
-│   - FileMenu  (@ files)     │
-│   - HelpPanel (? help)      │
-└─────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ Header                        [输入] Shift+↑↓ │
+├─────────────────────────────────────────────┤
+│ Divider                                     │
+├─────────────────────────────────────────────┤
+│ MessageOutput (flex-grow)   ← PageUp/PageDown│
+├─────────────────────────────────────────────┤
+│ Divider                                     │
+├─────────────────────────────────────────────┤
+│ AutocompleteInput           ← ↑/↓ for history│
+├─────────────────────────────────────────────┤
+│ Selection Panel             ← Mode-dependent │
+│   - SlashMenu (/ commands)                  │
+│   - FileMenu  (@ files)                     │
+│   - HelpPanel (? help)                      │
+└─────────────────────────────────────────────┘
+```
+
+### Browse Mode (Output Focus)
+```
+┌─────────────────────────────────────────────┐
+│ Header                       [浏览] Shift+↑↓ │
+├─────────────────────────────────────────────┤
+│ Divider                                     │
+├─────────────────────────────────────────────┤
+│ MessageOutput (expanded)    ← ↑/↓ to scroll │
+│   - Input hidden for more space             │
+│   - PageUp/PageDown also work               │
+└─────────────────────────────────────────────┘
+```
+
+### Focus Mode Details
+
+| Mode   | Toggle          | ↑/↓ Behavior     | Input Area        |
+|--------|-----------------|------------------|-------------------|
+| Input  | `Shift+↑/↓`     | History navigation | Visible + active |
+| Browse | `Shift+↑/↓`     | Scroll messages  | Hidden            |
+
+**Implementation** (`app.tsx`):
+```typescript
+type FocusMode = "input" | "output";
+
+const [focusMode, setFocusMode] = useState<FocusMode>("input");
+
+// Global key handler for mode switching
+useInput((_input, key) => {
+  if (key.shift && (key.upArrow || key.downArrow)) {
+    toggleFocusMode();
+  }
+}, { isActive: true });
+
+// Dynamic height calculation
+const fixedHeight = isOutputMode ? 2 : 4;  // 2 rows in browse, 4 in input
+const messageOutputHeight = Math.max(1, terminalHeight - fixedHeight);
+
+// Conditional rendering
+{isInputMode && <AutocompleteInput ... isActive={isInputMode} />}
 ```
 
 ## Key Architecture
@@ -781,3 +825,48 @@ Set `markdown: false` on a message to disable Markdown rendering:
 ```typescript
 setMessages(prev => [...prev, { content: "raw text", markdown: false }]);
 ```
+
+### Message Scrolling
+
+`MessageOutput.tsx` supports scrolling with focus mode awareness:
+
+```typescript
+type Props = {
+  messages: Message[];
+  height: number;
+  focusMode?: FocusMode;  // "input" | "output"
+};
+```
+
+**Scrolling Controls**:
+
+| Key           | Input Mode     | Browse Mode    |
+|---------------|----------------|----------------|
+| `↑`           | History nav    | Scroll up      |
+| `↓`           | History nav    | Scroll down    |
+| `PageUp`      | Scroll up      | Scroll up      |
+| `PageDown`    | Scroll down    | Scroll down    |
+| `Shift+↑/↓`   | Mode switch    | Mode switch    |
+
+**Implementation** (`MessageOutput.tsx`):
+```typescript
+// Ignore Shift+↑/↓ (used for mode switching at App level)
+useInput((_input, key) => {
+  if (key.shift && (key.upArrow || key.downArrow)) return;
+
+  // In browse mode: plain ↑/↓ scrolls
+  if (isOutputMode) {
+    if (key.upArrow) { /* scroll up */ }
+    if (key.downArrow) { /* scroll down */ }
+  }
+
+  // PageUp/PageDown work in both modes
+  if (key.pageUp) { /* scroll up page */ }
+  if (key.pageDown) { /* scroll down page */ }
+}, { isActive: true });
+```
+
+**Scroll State**:
+- `scrollOffset`: Lines to skip from the top
+- Auto-scrolls to bottom when new messages arrive (unless manually scrolled up)
+- Shows scroll hints when content extends beyond visible area

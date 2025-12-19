@@ -12,6 +12,8 @@ A terminal-based AI agent CLI application built with [React](https://react.dev/)
 - **Atomic file blocks**: `@path` treated as single units for cursor/deletion
 - Command history with full state restoration (including colors and selected files)
 - **Markdown rendering** in message output (via `marked` + `marked-terminal`)
+- **Focus mode switching** - toggle between Input and Browse mode (`Shift+↑/↓`)
+- **Scrollable message output** - scroll with `↑/↓` in Browse mode or `PageUp/PageDown`
 - **Local development tools discovery** - auto-detects installed CLI tools
 - **MCP Server** - exposes local tools via Model Context Protocol (in-process or standalone)
 - Comprehensive keyboard shortcuts
@@ -214,7 +216,33 @@ const tools = provider.listTools();
 const result = await provider.callTool("git_status", {});
 ```
 
+## Focus Modes
+
+The app supports two focus modes for navigating between input and message viewing:
+
+| Mode   | Description                   | How to Enter    |
+| ------ | ----------------------------- | --------------- |
+| Input  | Input active, ↑/↓ for history | Default / `Shift+↑/↓` |
+| Browse | Input hidden, ↑/↓ scrolls messages | `Shift+↑/↓`   |
+
+Press `Shift+↑` or `Shift+↓` to toggle between modes. The current mode is shown in the header bar:
+- **Input mode**: `[输入] Shift+↑↓ 切换` (gray)
+- **Browse mode**: `[浏览] Shift+↑↓ 切换` (cyan, highlighted)
+
+In Browse mode, the input area is hidden to maximize message viewing space.
+
 ## Keyboard Shortcuts
+
+### Global
+
+| Shortcut     | Action                                      |
+| ------------ | ------------------------------------------- |
+| `Shift+↑/↓`  | Toggle between Input and Browse mode        |
+| `PageUp`     | Scroll messages up (both modes)             |
+| `PageDown`   | Scroll messages down (both modes)           |
+| `Ctrl+C`     | Exit application                            |
+
+### Input Mode
 
 | Shortcut     | Action                                      |
 | ------------ | ------------------------------------------- |
@@ -231,8 +259,14 @@ const result = await provider.callTool("git_status", {});
 | `Ctrl+E`     | Move cursor to line end                     |
 | `Ctrl+U`     | Clear text before cursor                    |
 | `Ctrl+K`     | Clear text after cursor                     |
-| `Ctrl+C`     | Exit application                            |
 | `Escape`     | Clear suggestion / exit mode / close help   |
+
+### Browse Mode
+
+| Shortcut     | Action                                      |
+| ------------ | ------------------------------------------- |
+| `↑`          | Scroll messages up                          |
+| `↓`          | Scroll messages down                        |
 
 ## Development
 
@@ -251,19 +285,32 @@ npm run package    # Build standalone executable
 
 ### Application Layout
 
+The layout changes based on focus mode:
+
+**Input Mode** (default):
 ```
-┌─────────────────────────────┐
-│ Header                      │
-├─────────────────────────────┤
-│ MessageOutput               │  ← Scrollable message history
-├─────────────────────────────┤
-│ AutocompleteInput           │  ← Multi-line input with colors
-├─────────────────────────────┤
-│ Selection Panel             │  ← Mode-dependent content
-│   - SlashMenu (/ commands)  │
-│   - FileMenu  (@ files)     │
-│   - HelpPanel (? help)      │
-└─────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ Header                        [输入] Shift+↑↓│
+├─────────────────────────────────────────────┤
+│ MessageOutput               ← PageUp/PageDown│
+├─────────────────────────────────────────────┤
+│ AutocompleteInput           ← ↑/↓ for history│
+├─────────────────────────────────────────────┤
+│ Selection Panel             ← Mode-dependent │
+│   - SlashMenu (/ commands)                  │
+│   - FileMenu  (@ files)                     │
+│   - HelpPanel (? help)                      │
+└─────────────────────────────────────────────┘
+```
+
+**Browse Mode** (Shift+↑/↓ to toggle):
+```
+┌─────────────────────────────────────────────┐
+│ Header                       [浏览] Shift+↑↓│
+├─────────────────────────────────────────────┤
+│ MessageOutput (expanded)    ← ↑/↓ to scroll │
+│   - Input hidden for more space             │
+└─────────────────────────────────────────────┘
 ```
 
 ### Input System
