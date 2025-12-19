@@ -16,6 +16,9 @@ axiomate-cli is a terminal-based AI agent application built with React 19 + Ink 
 - **Pino** + **pino-roll** - Structured logging with daily rotation
 - **Meow 13** - CLI argument parsing
 - **esbuild** - Bundling for standalone executable
+- **marked** + **marked-terminal** - Markdown rendering in terminal
+- **@modelcontextprotocol/sdk** - MCP Server integration
+- **Zod** - Schema validation for MCP tools
 
 ## Build & Run Commands
 
@@ -23,6 +26,7 @@ axiomate-cli is a terminal-based AI agent application built with React 19 + Ink 
 npm run build      # Compile TypeScript to dist/
 npm run dev        # Watch mode development
 npm start          # Run the CLI (node dist/cli.js)
+npm run mcp        # Run standalone MCP server (STDIO)
 npm test           # Run tests (vitest run)
 npm run test:watch # Run tests in watch mode
 npm run lint       # Check code style (ESLint + Prettier)
@@ -55,7 +59,7 @@ source/
 │   │       └── HelpPanel.tsx       # Keyboard shortcuts overlay
 │   ├── Divider.tsx            # Horizontal divider
 │   ├── Header.tsx             # App header with title
-│   └── MessageOutput.tsx      # Message display area (scrollable)
+│   └── MessageOutput.tsx      # Message display area (Markdown rendering)
 ├── models/
 │   ├── input.ts               # UserInput types (for submit callback)
 │   ├── inputInstance.ts       # InputInstance - core input data model
@@ -66,7 +70,30 @@ source/
 │   ├── platform.ts            # Cross-platform path separator
 │   └── meta.ts                # Auto-generated version info
 ├── services/
-│   └── commandHandler.ts      # Command execution and routing
+│   ├── commandHandler.ts      # Command execution and routing (async support)
+│   └── tools/                 # Local development tools discovery
+│       ├── types.ts           # DiscoveredTool, ToolAction, ToolParameter
+│       ├── registry.ts        # ToolRegistry class (singleton)
+│       ├── executor.ts        # executeToolAction, renderCommandTemplate
+│       ├── discoverers/       # Per-tool discovery modules
+│       │   ├── base.ts        # commandExists, getVersion, queryRegistry
+│       │   ├── git.ts         # Git discoverer
+│       │   ├── node.ts        # Node.js + NVM discoverer
+│       │   ├── python.ts      # Python discoverer
+│       │   ├── java.ts        # Java discoverer
+│       │   ├── powershell.ts  # PowerShell discoverer
+│       │   ├── vscode.ts      # VS Code discoverer
+│       │   ├── visualstudio.ts # Visual Studio 2022 discoverer
+│       │   ├── beyondcompare.ts # Beyond Compare discoverer
+│       │   ├── docker.ts      # Docker discoverer
+│       │   ├── build.ts       # CMake, MSBuild, Gradle, Maven
+│       │   ├── database.ts    # MySQL, PostgreSQL, SQLite
+│       │   └── index.ts       # Export ALL_DISCOVERERS
+│       └── mcp/               # MCP Server integration
+│           ├── server.ts      # createToolsMcpServer()
+│           ├── inprocess.ts   # InProcessMcpProvider class
+│           └── stdio.ts       # STDIO transport setup
+├── mcp-server.ts              # Standalone MCP server entry point
 ├── hooks/
 │   ├── useTerminalWidth.ts    # Terminal width hook
 │   └── useTerminalHeight.ts   # Terminal height hook
@@ -387,6 +414,10 @@ Current command tree:
   /claude (claude-3-opus, claude-3-sonnet, claude-3-haiku)
   /deepseek-v3
   /llama-3.3-70b
+/tools
+  /list (internal: tools_list, async)
+  /refresh (internal: tools_refresh, async)
+  /stats (internal: tools_stats, async)
 /compact (prompt: summarize conversation)
 /help (internal: help)
 /clear (internal: clear)
@@ -404,6 +435,7 @@ type CommandResult =
   | { type: "prompt"; content: string }
   | { type: "config"; key: string; value: string }
   | { type: "action"; action: "clear" | "exit" }
+  | { type: "async"; handler: () => Promise<string> }  // Async commands
   | { type: "error"; message: string };
 
 type CommandCallbacks = {
@@ -414,6 +446,8 @@ type CommandCallbacks = {
   exit: () => void;
 };
 ```
+
+**Note**: The `handleCommand` function is now async to support commands like `/tools list` that require async operations.
 
 ### Component Communication
 
@@ -561,3 +595,189 @@ Helper functions:
 - `escapeCmdArg(arg)` - Double quote escaping for special chars
 
 The `initPlatform()` function handles all platform-specific initialization and is called at startup in `cli.tsx`.
+
+## Local Development Tools System
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────┐
+│  axiomate-cli (主进程)                               │
+│  ┌─────────────────────────────────────────────────┐│
+│  │  ToolRegistry (Singleton)                       ││
+│  │    ↓ discover()                                 ││
+│  │  ALL_DISCOVERERS → DiscoveredTool[]             ││
+│  │    ↓                                            ││
+│  │  McpToolProvider (抽象层)                        ││
+│  │    ├── InProcessMcpProvider (直接调用)           ││
+│  │    └── createToolsMcpServer() (STDIO 导出)      ││
+│  └─────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────┘
+```
+
+### Key Types
+
+```typescript
+// services/tools/types.ts
+type DiscoveredTool = {
+  id: string;              // Unique identifier (e.g., "git", "node")
+  name: string;            // Display name
+  description: string;     // Tool description
+  category: ToolCategory;  // "vcs" | "runtime" | "shell" | "ide" | "diff" | etc.
+  installed: boolean;      // Whether the tool is installed
+  installHint?: string;    // Installation instructions if not installed
+  executablePath: string;  // Full path to executable
+  version?: string;        // Detected version
+  actions: ToolAction[];   // Available actions
+  env?: Record<string, string>;  // Environment variables
+};
+
+type ToolAction = {
+  name: string;            // Action name (e.g., "status", "diff")
+  description: string;     // Action description
+  commandTemplate: string; // Command template with {{param}} placeholders
+  parameters: ToolParameter[];  // Required/optional parameters
+};
+
+type ToolParameter = {
+  name: string;
+  type: "string" | "number" | "boolean" | "file" | "directory";
+  description: string;
+  required: boolean;
+  default?: unknown;
+};
+```
+
+### ToolRegistry
+
+Singleton class managing tool discovery and lookup:
+
+```typescript
+// Get singleton instance
+const registry = getToolRegistry();
+
+// Discover all tools (async)
+await registry.discover();
+
+// Query tools
+registry.getAll();           // All discovered tools
+registry.getInstalled();     // Only installed tools
+registry.getNotInstalled();  // Only not-installed tools
+registry.getByCategory("vcs");  // Filter by category
+registry.getTool("git");     // Get specific tool
+registry.getStats();         // { total, installed, notInstalled, byCategory }
+registry.formatToolList(includeNotInstalled);  // Markdown formatted list
+```
+
+### Adding a New Tool Discoverer
+
+1. Create discoverer file in `services/tools/discoverers/`:
+
+```typescript
+// services/tools/discoverers/mytool.ts
+import { createInstalledTool, createNotInstalledTool, commandExists, getVersion } from "./base.js";
+import type { ToolDiscoverer } from "../types.js";
+
+export const myToolDiscoverer: ToolDiscoverer = {
+  id: "mytool",
+
+  async discover() {
+    const exists = await commandExists("mytool");
+    if (!exists) {
+      return createNotInstalledTool({
+        id: "mytool",
+        name: "My Tool",
+        description: "Description of my tool",
+        category: "build",
+        installHint: "Install via: npm install -g mytool",
+      });
+    }
+
+    const version = await getVersion("mytool", ["--version"]);
+
+    return createInstalledTool({
+      id: "mytool",
+      name: "My Tool",
+      description: "Description of my tool",
+      category: "build",
+      executablePath: await getExecutablePath("mytool"),
+      version,
+      actions: [
+        {
+          name: "run",
+          description: "Run mytool",
+          commandTemplate: "{{execPath}} run {{file}}",
+          parameters: [
+            { name: "file", type: "file", description: "File to process", required: true }
+          ],
+        },
+      ],
+    });
+  },
+};
+```
+
+2. Add to `services/tools/discoverers/index.ts`:
+
+```typescript
+import { myToolDiscoverer } from "./mytool.js";
+
+export const ALL_DISCOVERERS: ToolDiscoverer[] = [
+  // ... existing discoverers
+  myToolDiscoverer,
+];
+```
+
+### MCP Server Integration
+
+#### In-Process Usage
+
+```typescript
+import { getToolRegistry } from "./services/tools/registry.js";
+import { InProcessMcpProvider } from "./services/tools/mcp/inprocess.js";
+
+const registry = getToolRegistry();
+await registry.discover();
+
+const provider = new InProcessMcpProvider(registry);
+
+// List available tools (MCP format)
+const tools = provider.listTools();
+
+// Call a tool
+const result = await provider.callTool("git_status", {});
+// result: { content: [{ type: "text", text: "..." }], isError?: boolean }
+```
+
+#### Standalone MCP Server
+
+The `source/mcp-server.ts` entry point runs a standalone MCP server via STDIO transport:
+
+```bash
+npm run mcp
+```
+
+This can be configured in Claude Desktop or other MCP clients.
+
+### Markdown Rendering
+
+`MessageOutput.tsx` uses `marked` + `marked-terminal` for Markdown rendering:
+
+```typescript
+// Lazy-loaded to avoid test environment issues
+const { markedTerminal } = await import("marked-terminal");
+const m = new Marked();
+m.use(markedTerminal({ width, reflowText: true }));
+```
+
+Features:
+- Syntax highlighting for code blocks
+- Colored headings, bold, italic
+- Tables with proper formatting
+- Links and lists
+- Emoji support
+
+Set `markdown: false` on a message to disable Markdown rendering:
+```typescript
+setMessages(prev => [...prev, { content: "raw text", markdown: false }]);
+```

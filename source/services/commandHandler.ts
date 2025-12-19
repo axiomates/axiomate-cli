@@ -8,6 +8,7 @@ import type {
 	CommandAction,
 } from "../components/AutocompleteInput/index.js";
 import { SLASH_COMMANDS } from "../constants/commands.js";
+import { getToolRegistry } from "./tools/registry.js";
 
 /**
  * 命令执行结果（内部使用）
@@ -17,6 +18,7 @@ type CommandResult =
 	| { type: "prompt"; content: string } // 发送给 AI 的 prompt
 	| { type: "config"; key: string; value: string } // 配置变更
 	| { type: "action"; action: "clear" | "exit" } // 特殊动作
+	| { type: "async"; handler: () => Promise<string> } // 异步命令
 	| { type: "error"; message: string }; // 错误
 
 /**
@@ -58,7 +60,7 @@ const internalHandlers: Record<string, InternalHandler> = {
 	help: () => ({
 		type: "message",
 		content:
-			"Available commands: /help, /exit, /clear, /version, /model, /compact",
+			"Available commands: /help, /exit, /clear, /version, /model, /tools, /compact",
 	}),
 
 	version: (_path, ctx) => ({
@@ -74,6 +76,51 @@ const internalHandlers: Record<string, InternalHandler> = {
 	exit: () => ({
 		type: "action",
 		action: "exit",
+	}),
+
+	// 工具命令处理器
+	tools_list: () => ({
+		type: "async",
+		handler: async () => {
+			const registry = getToolRegistry();
+			if (!registry.isDiscovered) {
+				await registry.discover();
+			}
+			return registry.formatToolList(true);
+		},
+	}),
+
+	tools_refresh: () => ({
+		type: "async",
+		handler: async () => {
+			const registry = getToolRegistry();
+			await registry.discover();
+			const stats = registry.getStats();
+			return `已重新扫描工具。\n已安装: ${stats.installed} 个\n未安装: ${stats.notInstalled} 个`;
+		},
+	}),
+
+	tools_stats: () => ({
+		type: "async",
+		handler: async () => {
+			const registry = getToolRegistry();
+			if (!registry.isDiscovered) {
+				await registry.discover();
+			}
+			const stats = registry.getStats();
+			const lines = [
+				`## 工具统计`,
+				`- 总计: ${stats.total} 个`,
+				`- 已安装: ${stats.installed} 个`,
+				`- 未安装: ${stats.notInstalled} 个`,
+				``,
+				`### 按类别统计（已安装）`,
+			];
+			for (const [category, count] of Object.entries(stats.byCategory)) {
+				lines.push(`- ${category}: ${count} 个`);
+			}
+			return lines.join("\n");
+		},
 	}),
 };
 
@@ -166,12 +213,12 @@ function executeCommandInternal(
 /**
  * 执行命令并调用对应的回调
  */
-export function handleCommand(
+export async function handleCommand(
 	path: string[],
 	context: CommandContext,
 	callbacks: CommandCallbacks,
 	commands: SlashCommand[] = SLASH_COMMANDS,
-): void {
+): Promise<void> {
 	const result = executeCommandInternal(path, context, commands);
 
 	switch (result.type) {
@@ -192,6 +239,17 @@ export function handleCommand(
 				callbacks.clear();
 			} else if (result.action === "exit") {
 				callbacks.exit();
+			}
+			break;
+
+		case "async":
+			try {
+				const content = await result.handler();
+				callbacks.showMessage(content);
+			} catch (err) {
+				callbacks.showMessage(
+					`Error: ${err instanceof Error ? err.message : String(err)}`,
+				);
 			}
 			break;
 

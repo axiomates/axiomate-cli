@@ -3,7 +3,7 @@ import { useState, useCallback, useMemo } from "react";
 import AutocompleteInput from "./components/AutocompleteInput/index.js";
 import Divider from "./components/Divider.js";
 import Header from "./components/Header.js";
-import MessageOutput from "./components/MessageOutput.js";
+import MessageOutput, { type Message } from "./components/MessageOutput.js";
 import useTerminalHeight from "./hooks/useTerminalHeight.js";
 import { SLASH_COMMANDS } from "./constants/commands.js";
 import { VERSION, APP_NAME } from "./constants/meta.js";
@@ -19,24 +19,30 @@ import {
 
 export default function App() {
 	const { exit } = useApp();
-	const [messages, setMessages] = useState<string[]>([]);
+	const [messages, setMessages] = useState<Message[]>([]);
 	const terminalHeight = useTerminalHeight();
 
 	// 发送消息给 AI（目前只是显示）
 	const sendToAI = useCallback((content: string) => {
 		// TODO: 接入 AI 服务
-		setMessages((prev) => [...prev, `> ${content}`]);
+		setMessages((prev) => [
+			...prev,
+			{ content: `> ${content}`, markdown: false },
+		]);
 	}, []);
 
-	// 显示消息
-	const showMessage = useCallback((content: string) => {
-		setMessages((prev) => [...prev, content]);
+	// 显示消息（支持 Markdown）
+	const showMessage = useCallback((content: string, markdown = true) => {
+		setMessages((prev) => [...prev, { content, markdown }]);
 	}, []);
 
 	// 更新配置
 	const setConfig = useCallback((key: string, value: string) => {
 		// TODO: 实际更新配置
-		setMessages((prev) => [...prev, `${key} set to: ${value}`]);
+		setMessages((prev) => [
+			...prev,
+			{ content: `${key} set to: ${value}`, markdown: false },
+		]);
 	}, []);
 
 	// 清屏
@@ -57,11 +63,11 @@ export default function App() {
 	);
 
 	const handleSubmit = useCallback(
-		(input: UserInput) => {
+		async (input: UserInput) => {
 			if (isMessageInput(input)) {
 				sendToAI(input.text);
 			} else if (isCommandInput(input)) {
-				handleCommand(
+				await handleCommand(
 					input.commandPath,
 					{ appName: APP_NAME, version: VERSION },
 					commandCallbacks,

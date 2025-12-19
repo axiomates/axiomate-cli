@@ -11,6 +11,9 @@ A terminal-based AI agent CLI application built with [React](https://react.dev/)
 - **Multi-file selection** with `@` trigger for quick file path insertion
 - **Atomic file blocks**: `@path` treated as single units for cursor/deletion
 - Command history with full state restoration (including colors and selected files)
+- **Markdown rendering** in message output (via `marked` + `marked-terminal`)
+- **Local development tools discovery** - auto-detects installed CLI tools
+- **MCP Server** - exposes local tools via Model Context Protocol (in-process or standalone)
 - Comprehensive keyboard shortcuts
 - Cross-platform support (Windows, macOS, Linux)
 - Structured logging with daily rotation
@@ -86,14 +89,18 @@ On macOS/Linux, a new process is spawned directly.
 
 Type `/` to open the slash command menu. Use arrow keys to navigate and Enter to select.
 
-| Command    | Description              |
-| ---------- | ------------------------ |
-| `/model`   | Select AI model provider |
-| `/compact` | Summarize conversation   |
-| `/help`    | Show available commands  |
-| `/clear`   | Clear the screen         |
-| `/version` | Show version information |
-| `/exit`    | Exit the application     |
+| Command          | Description                    |
+| ---------------- | ------------------------------ |
+| `/model`         | Select AI model provider       |
+| `/tools`         | Manage local development tools |
+| `/tools list`    | List all available tools       |
+| `/tools refresh` | Rescan installed tools         |
+| `/tools stats`   | Show tools statistics          |
+| `/compact`       | Summarize conversation         |
+| `/help`          | Show available commands        |
+| `/clear`         | Clear the screen               |
+| `/version`       | Show version information       |
+| `/exit`          | Exit the application           |
 
 Slash commands support nested hierarchy with colored path display:
 
@@ -104,6 +111,10 @@ Slash commands support nested hierarchy with colored path display:
   ├── /claude (claude-3-opus, claude-3-sonnet, claude-3-haiku)
   ├── /deepseek-v3
   └── /llama-3.3-70b
+/tools
+  ├── /list (list all available tools)
+  ├── /refresh (rescan installed tools)
+  └── /stats (show statistics)
 ```
 
 ## File Selection
@@ -121,6 +132,87 @@ File paths are **atomic blocks**:
 
 - Cursor skips over `@path` blocks when moving left/right
 - Backspace/Delete removes the entire `@path` block at once
+
+## Local Development Tools
+
+axiomate-cli automatically discovers installed development tools on your system and exposes them for AI-assisted workflows.
+
+### Supported Tools
+
+| Category  | Tools                         |
+| --------- | ----------------------------- |
+| VCS       | Git                           |
+| Runtime   | Node.js, NVM, Python, Java    |
+| Shell     | PowerShell                    |
+| IDE       | VS Code, Visual Studio 2022   |
+| Diff      | Beyond Compare                |
+| Container | Docker                        |
+| Build     | CMake, MSBuild, Gradle, Maven |
+| Database  | MySQL, PostgreSQL, SQLite     |
+
+### Usage
+
+Use `/tools list` to see all discovered tools:
+
+```
+## 已安装工具 (11)
+
+### vcs
+- **git** v2.43.0 - Git 版本控制系统 (C:\Program Files\Git\cmd\git.exe)
+  - status: 查看仓库状态
+  - diff: 查看变更
+  - log: 查看提交历史
+  - commit: 提交变更
+
+### runtime
+- **node** v20.10.0 - Node.js JavaScript 运行时 (C:\Program Files\nodejs\node.exe)
+  - version: 查看版本
+  - eval: 执行 JavaScript 代码
+...
+```
+
+### MCP Server
+
+The tool discovery system can be exposed as an MCP (Model Context Protocol) server for integration with AI assistants like Claude Desktop.
+
+#### Standalone Mode
+
+Run as a standalone MCP server via STDIO:
+
+```bash
+npm run mcp
+# or
+node dist/mcp-server.js
+```
+
+Configure in Claude Desktop's `claude_desktop_config.json`:
+
+```json
+{
+	"mcpServers": {
+		"axiomate-tools": {
+			"command": "node",
+			"args": ["path/to/axiomate-cli/dist/mcp-server.js"]
+		}
+	}
+}
+```
+
+#### In-Process Mode
+
+For programmatic use, the `InProcessMcpProvider` class provides direct tool access without JSON-RPC overhead:
+
+```typescript
+import { getToolRegistry } from "./services/tools/registry.js";
+import { InProcessMcpProvider } from "./services/tools/mcp/inprocess.js";
+
+const registry = getToolRegistry();
+await registry.discover();
+
+const provider = new InProcessMcpProvider(registry);
+const tools = provider.listTools();
+const result = await provider.callTool("git_status", {});
+```
 
 ## Keyboard Shortcuts
 
@@ -263,7 +355,19 @@ source/
 │   ├── platform.ts            # Cross-platform path separator
 │   └── meta.ts                # Auto-generated version info
 ├── services/
-│   └── commandHandler.ts      # Command execution
+│   ├── commandHandler.ts      # Command execution
+│   └── tools/                 # Local tools discovery system
+│       ├── types.ts           # Tool type definitions
+│       ├── registry.ts        # ToolRegistry (discovery + lookup)
+│       ├── executor.ts        # Tool command execution
+│       ├── discoverers/       # Per-tool discovery modules
+│       │   ├── base.ts        # Shared utilities (commandExists, etc.)
+│       │   ├── git.ts, node.ts, python.ts, java.ts, ...
+│       │   └── index.ts       # Export all discoverers
+│       └── mcp/               # MCP Server integration
+│           ├── server.ts      # MCP Server creation
+│           ├── inprocess.ts   # In-process provider
+│           └── stdio.ts       # STDIO transport
 ├── hooks/
 │   ├── useTerminalWidth.ts    # Terminal width hook
 │   └── useTerminalHeight.ts   # Terminal height hook
@@ -290,6 +394,9 @@ source/
 - [Vitest](https://vitest.dev/) - Testing framework
 - [Meow 13](https://github.com/sindresorhus/meow) - CLI argument parsing
 - [Pino](https://getpino.io/) - Structured logging
+- [marked](https://marked.js.org/) + [marked-terminal](https://github.com/mikaelbr/marked-terminal) - Markdown rendering
+- [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/sdk) - MCP Server
+- [Zod](https://zod.dev/) - Schema validation
 - [esbuild](https://esbuild.github.io/) - Fast bundling
 - [Bun](https://bun.sh/) - Standalone executable packaging (optional)
 

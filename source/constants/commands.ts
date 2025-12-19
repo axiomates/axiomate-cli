@@ -87,6 +87,27 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		],
 	},
 	{
+		name: "tools",
+		description: "Manage local development tools",
+		children: [
+			{
+				name: "list",
+				description: "List all available tools",
+				action: { type: "internal", handler: "tools_list" },
+			},
+			{
+				name: "refresh",
+				description: "Rescan installed tools",
+				action: { type: "internal", handler: "tools_refresh" },
+			},
+			{
+				name: "stats",
+				description: "Show tools statistics",
+				action: { type: "internal", handler: "tools_stats" },
+			},
+		],
+	},
+	{
 		name: "compact",
 		description: "Summarize conversation context",
 		action: {
