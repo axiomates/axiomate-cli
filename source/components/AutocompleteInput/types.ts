@@ -144,6 +144,10 @@ export type AutocompleteInputProps = {
 	isActive?: boolean;
 	/** 输入区域高度变化回调（用于布局计算） */
 	onHeightChange?: (height: number) => void;
+	/** 外部注入的初始文本（改变时触发输入） */
+	injectText?: string;
+	/** injectText 处理完成后的回调 */
+	onInjectTextHandled?: () => void;
 };
 
 // ============================================================================

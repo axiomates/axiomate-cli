@@ -41,12 +41,25 @@ export default function App() {
 		setInputAreaHeight(height);
 	}, []);
 
-	// 全局键盘监听（仅处理模式切换）
+	// 用于从 View 模式注入文本到输入框
+	const [injectText, setInjectText] = useState<string>("");
+	const handleInjectTextHandled = useCallback(() => {
+		setInjectText("");
+	}, []);
+
+	// 全局键盘监听（模式切换 + View 模式快捷键）
 	useInput(
-		(_input, key) => {
+		(input, key) => {
 			// Shift+↑ 或 Shift+↓ 切换焦点模式
 			if (key.shift && (key.upArrow || key.downArrow)) {
 				toggleFocusMode();
+				return;
+			}
+
+			// View 模式下按 / 切换到 Input 模式并输入 /
+			if (focusMode === "output" && input === "/") {
+				setFocusMode("input");
+				setInjectText("/");
 			}
 		},
 		{ isActive: true },
@@ -161,6 +174,8 @@ export default function App() {
 						slashCommands={SLASH_COMMANDS}
 						isActive={isInputMode}
 						onHeightChange={handleInputHeightChange}
+						injectText={injectText}
+						onInjectTextHandled={handleInjectTextHandled}
 					/>
 				</Box>
 			)}

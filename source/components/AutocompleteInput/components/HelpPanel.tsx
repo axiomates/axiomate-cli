@@ -68,6 +68,10 @@ export function HelpPanel({ columns }: HelpPanelProps) {
 					<Text color="#ffff00">Escape </Text>
 					<Text color="gray">go back / cancel</Text>
 				</Box>
+				<Box width="50%">
+					<Text color="#ffff00">Shift+↑↓ </Text>
+					<Text color="gray">switch Input/View mode</Text>
+				</Box>
 			</Box>
 		</Box>
 	);

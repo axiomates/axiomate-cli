@@ -57,10 +57,20 @@ export default function AutocompleteInput({
 	slashCommands = [],
 	isActive = true,
 	onHeightChange,
+	injectText,
+	onInjectTextHandled,
 }: AutocompleteInputProps) {
 	const { exit } = useApp();
 	const [state, dispatch] = useReducer(editorReducer, initialState);
 	const columns = useTerminalWidth();
+
+	// 处理外部注入的文本
+	useEffect(() => {
+		if (injectText !== undefined && injectText !== "") {
+			dispatch({ type: "SET_TEXT", text: injectText, cursor: injectText.length });
+			onInjectTextHandled?.();
+		}
+	}, [injectText, onInjectTextHandled]);
 
 	// 输入历史记录（存储 HistoryEntry，不含 cursor）
 	const [history, setHistory] = useState<HistoryEntry[]>([]);
