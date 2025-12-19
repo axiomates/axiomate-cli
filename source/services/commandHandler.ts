@@ -9,6 +9,11 @@ import type {
 } from "../components/AutocompleteInput/index.js";
 import { SLASH_COMMANDS } from "../constants/commands.js";
 import { getToolRegistry } from "./tools/registry.js";
+import {
+	loadAIConfig,
+	listConfiguredModels,
+	MODEL_PRESETS,
+} from "./ai/config.js";
 
 /**
  * 命令执行结果（内部使用）
@@ -121,6 +126,61 @@ const internalHandlers: Record<string, InternalHandler> = {
 			}
 			return lines.join("\n");
 		},
+	}),
+
+	// AI 模型命令处理器
+	model_list: () => ({
+		type: "message",
+		content: (() => {
+			const models = listConfiguredModels();
+			if (models.length === 0) {
+				return "未配置任何模型。使用 `/model <provider> <model>` 设置模型。";
+			}
+
+			const lines = ["## 已配置模型", ""];
+			for (const { id, config, isCurrent } of models) {
+				const marker = isCurrent ? "→ " : "  ";
+				const provider = config.provider.toUpperCase();
+				lines.push(`${marker}**${id}** (${provider}: ${config.model})`);
+			}
+
+			const aiConfig = loadAIConfig();
+			lines.push("");
+			lines.push(`### 设置`);
+			lines.push(`- 两阶段调用: ${aiConfig.twoPhaseEnabled ? "启用" : "禁用"}`);
+			lines.push(
+				`- 上下文感知: ${aiConfig.contextAwareEnabled ? "启用" : "禁用"}`,
+			);
+			lines.push(`- 最大工具调用轮数: ${aiConfig.maxToolCallRounds}`);
+
+			return lines.join("\n");
+		})(),
+	}),
+
+	model_presets: () => ({
+		type: "message",
+		content: (() => {
+			const lines = ["## 可用模型预设", ""];
+			const grouped: Record<string, string[]> = {};
+
+			for (const [id, preset] of Object.entries(MODEL_PRESETS)) {
+				const provider = preset.provider || "custom";
+				if (!grouped[provider]) {
+					grouped[provider] = [];
+				}
+				grouped[provider].push(`  - ${id}`);
+			}
+
+			for (const [provider, models] of Object.entries(grouped)) {
+				lines.push(`### ${provider.toUpperCase()}`);
+				lines.push(...models);
+				lines.push("");
+			}
+
+			lines.push("使用 `/model <预设名> <API_KEY>` 添加模型配置");
+
+			return lines.join("\n");
+		})(),
 	}),
 };
 

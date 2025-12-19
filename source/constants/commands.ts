@@ -7,6 +7,16 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		description: "Select AI model",
 		children: [
 			{
+				name: "list",
+				description: "List configured models",
+				action: { type: "internal", handler: "model_list" },
+			},
+			{
+				name: "presets",
+				description: "Show available model presets",
+				action: { type: "internal", handler: "model_presets" },
+			},
+			{
 				name: "openai",
 				description: "OpenAI models",
 				children: [
@@ -70,6 +80,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 					{
 						name: "claude-3-haiku",
 						description: "Claude 3 Haiku",
+						action: { type: "config", key: "model" },
+					},
+					{
+						name: "claude-3.5-sonnet",
+						description: "Claude 3.5 Sonnet",
 						action: { type: "config", key: "model" },
 					},
 				],

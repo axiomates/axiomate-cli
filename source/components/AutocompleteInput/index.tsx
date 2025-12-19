@@ -67,7 +67,11 @@ export default function AutocompleteInput({
 	// 处理外部注入的文本
 	useEffect(() => {
 		if (injectText !== undefined && injectText !== "") {
-			dispatch({ type: "SET_TEXT", text: injectText, cursor: injectText.length });
+			dispatch({
+				type: "SET_TEXT",
+				text: injectText,
+				cursor: injectText.length,
+			});
 			onInjectTextHandled?.();
 		}
 	}, [injectText, onInjectTextHandled]);

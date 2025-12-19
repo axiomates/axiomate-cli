@@ -1,5 +1,5 @@
 import { Box, useApp, useInput } from "ink";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import AutocompleteInput from "./components/AutocompleteInput/index.js";
 import Divider from "./components/Divider.js";
 import Header from "./components/Header.js";
@@ -16,6 +16,13 @@ import {
 	handleCommand,
 	type CommandCallbacks,
 } from "./services/commandHandler.js";
+import { getToolRegistry } from "./services/tools/registry.js";
+import {
+	createAIServiceFromConfig,
+	setCurrentModel,
+	type IAIService,
+	type MatchContext,
+} from "./services/ai/index.js";
 
 /**
  * 应用焦点模式
@@ -30,6 +37,25 @@ export default function App() {
 	const [focusMode, setFocusMode] = useState<FocusMode>("input");
 	const terminalHeight = useTerminalHeight();
 	const [inputAreaHeight, setInputAreaHeight] = useState(1);
+
+	// AI 加载状态（将来用于显示加载指示器）
+	const [, setIsLoading] = useState(false);
+
+	// AI 服务实例
+	const aiServiceRef = useRef<IAIService | null>(null);
+
+	// 初始化工具注册表和 AI 服务
+	useEffect(() => {
+		const init = async () => {
+			// 初始化工具注册表
+			const registry = getToolRegistry();
+			await registry.discover();
+
+			// 尝试创建 AI 服务
+			aiServiceRef.current = createAIServiceFromConfig(registry);
+		};
+		init();
+	}, []);
 
 	// 焦点模式切换（Escape 键）
 	const toggleFocusMode = useCallback(() => {
@@ -65,11 +91,39 @@ export default function App() {
 		{ isActive: true },
 	);
 
-	// 发送消息给 AI（目前只是显示）
-	const sendToAI = useCallback((content: string) => {
-		// TODO: 接入 AI 服务
-		setMessages((prev) => [...prev, { content, type: "user" }]);
-	}, []);
+	// 发送消息给 AI
+	const sendToAI = useCallback(
+		async (content: string, isUserMessage = true) => {
+			// 显示用户消息
+			if (isUserMessage) {
+				setMessages((prev) => [...prev, { content, type: "user" }]);
+			}
+
+			// 如果有 AI 服务，发送请求
+			if (aiServiceRef.current) {
+				setIsLoading(true);
+				try {
+					// 构建上下文
+					const context: MatchContext = {
+						cwd: process.cwd(),
+					};
+
+					const response = await aiServiceRef.current.sendMessage(
+						content,
+						context,
+					);
+					setMessages((prev) => [...prev, { content: response }]);
+				} catch (error) {
+					const errorMsg =
+						error instanceof Error ? error.message : String(error);
+					setMessages((prev) => [...prev, { content: `Error: ${errorMsg}` }]);
+				} finally {
+					setIsLoading(false);
+				}
+			}
+		},
+		[],
+	);
 
 	// 显示消息（Markdown 渲染）
 	const showMessage = useCallback((content: string) => {
@@ -78,8 +132,32 @@ export default function App() {
 
 	// 更新配置
 	const setConfig = useCallback((key: string, value: string) => {
-		// TODO: 实际更新配置
-		setMessages((prev) => [...prev, { content: `${key} set to: ${value}` }]);
+		if (key === "model") {
+			// 解析模型路径，如 "openai gpt-4o" -> modelId = "gpt-4o"
+			const parts = value.split(" ");
+			const modelId = parts[parts.length - 1];
+
+			// 尝试设置当前模型
+			if (setCurrentModel(modelId)) {
+				// 重新创建 AI 服务
+				const registry = getToolRegistry();
+				aiServiceRef.current = createAIServiceFromConfig(registry);
+				setMessages((prev) => [
+					...prev,
+					{ content: `已切换到模型: ${modelId}` },
+				]);
+			} else {
+				// 模型未配置，提示用户需要先配置 API Key
+				setMessages((prev) => [
+					...prev,
+					{
+						content: `模型 ${modelId} 未配置。请先设置 API Key:\n\n使用 \`/model presets\` 查看可用预设`,
+					},
+				]);
+			}
+		} else {
+			setMessages((prev) => [...prev, { content: `${key} set to: ${value}` }]);
+		}
 	}, []);
 
 	// 清屏
@@ -102,12 +180,15 @@ export default function App() {
 	const handleSubmit = useCallback(
 		async (input: UserInput) => {
 			if (isMessageInput(input)) {
-				sendToAI(input.text);
+				await sendToAI(input.text);
 			} else if (isCommandInput(input)) {
-				// 除了 exit 命令，都先显示用户输入
+				// 除了 exit 命令，都先显示用户输入（但不发送给 AI）
 				const isExit = input.commandPath[0]?.toLowerCase() === "exit";
 				if (!isExit) {
-					sendToAI(input.text);
+					setMessages((prev) => [
+						...prev,
+						{ content: input.text, type: "user" },
+					]);
 				}
 				await handleCommand(
 					input.commandPath,

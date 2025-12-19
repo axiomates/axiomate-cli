@@ -251,7 +251,12 @@ export default function MessageOutput({
 
 	// 计算最终显示状态
 	const displayState = computeDisplayState(safeOffset);
-	const { contentHeight, startLine, hasAbove: hasMoreAbove, hasBelow: hasMoreBelow } = displayState;
+	const {
+		contentHeight,
+		startLine,
+		hasAbove: hasMoreAbove,
+		hasBelow: hasMoreBelow,
+	} = displayState;
 
 	// 计算可见行
 	const endLine = totalLines - safeOffset;
