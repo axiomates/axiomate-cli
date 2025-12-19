@@ -50,12 +50,36 @@ export function calculateInputAreaHeight(
 	let height = inputLines;
 
 	if (isSlashMode(uiMode) && filteredCommands.length > 0) {
-		// SlashMenu: divider(1) + breadcrumb?(0-1) + commands(N)
+		// SlashMenu: divider(1) + breadcrumb?(0-1) + moreAbove?(0-1) + commands(1-9) + moreBelow?(0-1)
 		height += 1; // divider
 		if (commandPath.length > 0) {
 			height += 1; // breadcrumb
 		}
-		height += filteredCommands.length; // 命令列表（无上限）
+
+		// 窗口计算逻辑（与 SlashMenu 组件保持一致）
+		const maxVisible = 9;
+		const selectedIndex = uiMode.selectedIndex;
+
+		// 计算窗口起始位置
+		let startIndex = 0;
+		if (selectedIndex >= maxVisible) {
+			startIndex = selectedIndex - maxVisible + 1;
+		}
+		const endIndex = Math.min(filteredCommands.length, startIndex + maxVisible);
+
+		const hasMoreBefore = startIndex > 0;
+		const hasMoreAfter = endIndex < filteredCommands.length;
+
+		// 可见命令数
+		height += endIndex - startIndex;
+
+		// "more" 指示器
+		if (hasMoreBefore) {
+			height += 1;
+		}
+		if (hasMoreAfter) {
+			height += 1;
+		}
 	} else if (isFileMode(uiMode)) {
 		// FileMenu: divider(1) + content
 		height += 1; // divider

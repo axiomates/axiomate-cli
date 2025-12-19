@@ -29,6 +29,23 @@ export function SlashMenu({
 		return null;
 	}
 
+	// 窗口化逻辑：最多显示 9 个命令（与 FileMenu 一致）
+	const maxVisible = 9;
+
+	// 计算窗口起始位置（保持选中项可见）
+	let startIndex = 0;
+	if (selectedIndex >= maxVisible) {
+		startIndex = selectedIndex - maxVisible + 1;
+	}
+	const endIndex = Math.min(commands.length, startIndex + maxVisible);
+
+	// 判断是否有更多内容
+	const hasMoreBefore = startIndex > 0;
+	const hasMoreAfter = endIndex < commands.length;
+
+	// 获取可见命令
+	const visibleCommands = commands.slice(startIndex, endIndex);
+
 	return (
 		<Box flexDirection="column">
 			<Text color="gray">{"─".repeat(columns)}</Text>
@@ -45,22 +62,43 @@ export function SlashMenu({
 					))}
 				</Box>
 			)}
-			{commands.map((cmd, index) => (
-				<Box key={cmd.name}>
-					<Text
-						backgroundColor={index === selectedIndex ? "blue" : undefined}
-						color={index === selectedIndex ? "white" : undefined}
-					>
-						{promptIndent}
-						{path.length === 0 ? "/" : "  "}
-						{cmd.name}
+			{/* 上方滚动指示器 */}
+			{hasMoreBefore && (
+				<Box>
+					<Text dimColor>
+						{promptIndent}↑ 还有 {startIndex} 项
 					</Text>
-					{cmd.description && <Text color="gray"> - {cmd.description}</Text>}
-					{cmd.children && cmd.children.length > 0 && (
-						<Text color="gray"> →</Text>
-					)}
 				</Box>
-			))}
+			)}
+			{visibleCommands.map((cmd, visibleIndex) => {
+				const actualIndex = startIndex + visibleIndex;
+				return (
+					<Box key={cmd.name}>
+						<Text
+							backgroundColor={
+								actualIndex === selectedIndex ? "blue" : undefined
+							}
+							color={actualIndex === selectedIndex ? "white" : undefined}
+						>
+							{promptIndent}
+							{path.length === 0 ? "/" : "  "}
+							{cmd.name}
+						</Text>
+						{cmd.description && <Text color="gray"> - {cmd.description}</Text>}
+						{cmd.children && cmd.children.length > 0 && (
+							<Text color="gray"> →</Text>
+						)}
+					</Box>
+				);
+			})}
+			{/* 下方滚动指示器 */}
+			{hasMoreAfter && (
+				<Box>
+					<Text dimColor>
+						{promptIndent}↓ 还有 {commands.length - endIndex} 项
+					</Text>
+				</Box>
+			)}
 		</Box>
 	);
 }
