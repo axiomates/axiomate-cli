@@ -67,8 +67,6 @@ export default function MessageOutput({
 	const width = useTerminalWidth();
 	// scrollOffset: 从底部向上的偏移量（0 = 显示最新消息）
 	const [scrollOffset, setScrollOffset] = useState(0);
-	// autoScroll: 是否在新消息到达时自动滚动到底部
-	const [autoScroll, setAutoScroll] = useState(true);
 
 	// 预加载 marked
 	useEffect(() => {
@@ -186,52 +184,68 @@ export default function MessageOutput({
 	// 计算可见范围
 	const totalLines = renderedLines.length;
 
-	// 当有新消息且 autoScroll 为 true 时，滚动到底部
+	// 当有新消息时，自动滚动到底部
 	useEffect(() => {
-		if (autoScroll) {
-			setScrollOffset(0);
-		}
-	}, [messages.length, autoScroll]);
+		setScrollOffset(0);
+	}, [messages.length]);
 
 	// 计算内容高度和可见行
 	// 注意：指示器是否显示取决于滚动位置，这会影响可用高度
-	// 为了避免循环依赖，我们先用保守估计计算，再调整
+	// 使用迭代方式计算，确保边界条件正确
 
-	// 先假设最多需要 2 行给指示器（顶部 + 底部）
-	const minContentHeight = Math.max(1, height - 2);
+	// 计算给定 offset 下的显示状态
+	const computeDisplayState = (offset: number) => {
+		// 先用无指示器的高度计算
+		const baseContentHeight = height;
+		const baseStartLine = Math.max(0, totalLines - baseContentHeight - offset);
+		const baseHasAbove = baseStartLine > 0;
+		const baseHasBelow = offset > 0;
 
-	// 用保守的高度计算最大偏移
-	const maxOffsetConservative = Math.max(0, totalLines - minContentHeight);
+		// 根据是否需要指示器，调整内容高度
+		const indicatorCount = (baseHasAbove ? 1 : 0) + (baseHasBelow ? 1 : 0);
+		const contentHeight = Math.max(1, height - indicatorCount);
+		const startLine = Math.max(0, totalLines - contentHeight - offset);
+		const hasAbove = startLine > 0;
+		const hasBelow = offset > 0;
+
+		return { contentHeight, startLine, hasAbove, hasBelow };
+	};
+
+	// 计算真正的最大偏移
+	// 目标：找到使 startLine = 0 的最小 offset，让用户能滚动到完全看到顶部
+	const computeMaxOffset = () => {
+		// 从 0 开始，找到第一个使 startLine = 0 的 offset
+		for (let testOffset = 0; testOffset <= totalLines; testOffset++) {
+			const state = computeDisplayState(testOffset);
+			if (state.startLine === 0) {
+				// 找到了能显示所有顶部内容的 offset
+				return testOffset;
+			}
+		}
+		// 如果循环结束都没找到（不应该发生），返回 totalLines
+		return totalLines;
+	};
+
+	const maxOffset = computeMaxOffset();
 
 	// 当高度或内容变化时，确保 scrollOffset 在有效范围内
 	useEffect(() => {
 		setScrollOffset((prev) => {
-			if (prev > maxOffsetConservative) {
-				return maxOffsetConservative;
+			if (prev > maxOffset) {
+				return maxOffset;
 			}
 			return prev;
 		});
-	}, [maxOffsetConservative]);
+	}, [maxOffset]);
 
 	// 确保 scrollOffset 在有效范围内
-	const safeOffset = Math.min(Math.max(0, scrollOffset), maxOffsetConservative);
+	const safeOffset = Math.min(Math.max(0, scrollOffset), maxOffset);
 
-	// 现在可以确定指示器状态
-	// 使用保守高度计算起始行
-	const startLineConservative = Math.max(
-		0,
-		totalLines - minContentHeight - safeOffset,
-	);
-	const hasMoreAbove = startLineConservative > 0;
-	const hasMoreBelow = safeOffset > 0;
+	// 计算最终显示状态
+	const displayState = computeDisplayState(safeOffset);
+	const { contentHeight, startLine, hasAbove: hasMoreAbove, hasBelow: hasMoreBelow } = displayState;
 
-	// 根据实际需要的指示器数量，计算真正的内容高度
-	const indicatorCount = (hasMoreAbove ? 1 : 0) + (hasMoreBelow ? 1 : 0);
-	const contentHeight = Math.max(1, height - indicatorCount);
-	const maxOffset = Math.max(0, totalLines - contentHeight);
-
-	// 重新计算可见行（用真正的内容高度）
-	const startLine = Math.max(0, totalLines - contentHeight - safeOffset);
+	// 计算可见行
 	const endLine = totalLines - safeOffset;
 	const visibleLines = renderedLines.slice(startLine, endLine);
 
@@ -254,16 +268,11 @@ export default function MessageOutput({
 			if (isOutputMode) {
 				if (key.upArrow) {
 					setScrollOffset((prev) => Math.min(prev + 1, maxOffset));
-					setAutoScroll(false);
 					return;
 				}
 
 				if (key.downArrow) {
-					const newOffset = Math.max(0, scrollOffset - 1);
-					setScrollOffset(newOffset);
-					if (newOffset === 0) {
-						setAutoScroll(true);
-					}
+					setScrollOffset((prev) => Math.max(0, prev - 1));
 					return;
 				}
 			}
@@ -271,16 +280,11 @@ export default function MessageOutput({
 			// Page Up/Down 两种模式都可用
 			if (key.pageUp) {
 				setScrollOffset((prev) => Math.min(prev + contentHeight, maxOffset));
-				setAutoScroll(false);
 				return;
 			}
 
 			if (key.pageDown) {
-				const newOffset = Math.max(0, scrollOffset - contentHeight);
-				setScrollOffset(newOffset);
-				if (newOffset === 0) {
-					setAutoScroll(true);
-				}
+				setScrollOffset((prev) => Math.max(0, prev - contentHeight));
 				return;
 			}
 		},
