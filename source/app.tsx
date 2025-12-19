@@ -12,6 +12,7 @@ import {
 	isMessageInput,
 	isCommandInput,
 } from "./models/input.js";
+import type { HistoryEntry } from "./models/inputInstance.js";
 import {
 	handleCommand,
 	type CommandCallbacks,
@@ -37,6 +38,12 @@ export default function App() {
 	const [focusMode, setFocusMode] = useState<FocusMode>("input");
 	const terminalHeight = useTerminalHeight();
 	const [inputAreaHeight, setInputAreaHeight] = useState(1);
+
+	// 输入历史记录（提升到 App 组件，避免模式切换时丢失）
+	const [inputHistory, setInputHistory] = useState<HistoryEntry[]>([]);
+	const handleHistoryChange = useCallback((history: HistoryEntry[]) => {
+		setInputHistory(history);
+	}, []);
 
 	// AI 加载状态（将来用于显示加载指示器）
 	const [, setIsLoading] = useState(false);
@@ -257,6 +264,8 @@ export default function App() {
 						onHeightChange={handleInputHeightChange}
 						injectText={injectText}
 						onInjectTextHandled={handleInjectTextHandled}
+						history={inputHistory}
+						onHistoryChange={handleHistoryChange}
 					/>
 				</Box>
 			)}

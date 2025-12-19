@@ -4,7 +4,14 @@
  */
 
 import { Box } from "ink";
-import { useReducer, useCallback, useState, useMemo, useEffect } from "react";
+import {
+	useReducer,
+	useCallback,
+	useState,
+	useMemo,
+	useEffect,
+	useRef,
+} from "react";
 import { useApp } from "ink";
 import useTerminalWidth from "../../hooks/useTerminalWidth.js";
 import { segmentsToRanges } from "../../models/richInput.js";
@@ -59,6 +66,8 @@ export default function AutocompleteInput({
 	onHeightChange,
 	injectText,
 	onInjectTextHandled,
+	history: externalHistory,
+	onHistoryChange,
 }: AutocompleteInputProps) {
 	const { exit } = useApp();
 	const [state, dispatch] = useReducer(editorReducer, initialState);
@@ -77,7 +86,32 @@ export default function AutocompleteInput({
 	}, [injectText, onInjectTextHandled]);
 
 	// 输入历史记录（存储 HistoryEntry，不含 cursor）
-	const [history, setHistory] = useState<HistoryEntry[]>([]);
+	// 如果外部提供了 history，则使用外部状态；否则使用本地状态（向后兼容）
+	const [localHistory, setLocalHistory] = useState<HistoryEntry[]>([]);
+	const history = externalHistory ?? localHistory;
+
+	// 使用 ref 追踪最新的 history 值，避免闭包中使用过时的值
+	const historyRef = useRef(history);
+	useEffect(() => {
+		historyRef.current = history;
+	}, [history]);
+
+	const setHistory = useCallback(
+		(updater: HistoryEntry[] | ((prev: HistoryEntry[]) => HistoryEntry[])) => {
+			if (onHistoryChange) {
+				// 使用外部状态，通过 ref 获取最新值
+				const newHistory =
+					typeof updater === "function"
+						? updater(historyRef.current)
+						: updater;
+				onHistoryChange(newHistory);
+			} else {
+				// 使用本地状态
+				setLocalHistory(updater);
+			}
+		},
+		[onHistoryChange],
+	);
 
 	// 解构状态便于使用
 	const { instance, uiMode } = state;
