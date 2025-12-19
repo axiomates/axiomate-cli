@@ -109,13 +109,15 @@ export default function App() {
 		exit();
 	}, [exit]);
 
-	// 计算 MessageOutput 的可用高度
-	// 布局: Header(1) + Divider(1) + MessageOutput + Divider(1) + Input(至少1)
-	// 固定占用: 1 + 1 + 1 + 1 = 4 行
-	const messageOutputHeight = Math.max(1, terminalHeight - 4);
-
 	// 派生状态
 	const isInputMode = focusMode === "input";
+	const isOutputMode = focusMode === "output";
+
+	// 计算 MessageOutput 的可用高度
+	// 输入模式: Header(1) + Divider(1) + MessageOutput + Divider(1) + Input(至少1) = 4 行固定
+	// 浏览模式: Header(1) + Divider(1) + MessageOutput = 2 行固定（隐藏输入区域）
+	const fixedHeight = isOutputMode ? 2 : 4;
+	const messageOutputHeight = Math.max(1, terminalHeight - fixedHeight);
 
 	return (
 		<Box flexDirection="column" height={terminalHeight}>
@@ -134,22 +136,26 @@ export default function App() {
 				focusMode={focusMode}
 			/>
 
-			{/* 输出区域与输入框分隔线 */}
-			<Box flexShrink={0}>
-				<Divider />
-			</Box>
+			{/* 输出区域与输入框分隔线（仅输入模式显示） */}
+			{isInputMode && (
+				<Box flexShrink={0}>
+					<Divider />
+				</Box>
+			)}
 
-			{/* 输入框区域 */}
-			<Box flexShrink={0}>
-				<AutocompleteInput
-					prompt="> "
-					onSubmit={handleSubmit}
-					onClear={handleClear}
-					onExit={clearAndExit}
-					slashCommands={SLASH_COMMANDS}
-					isActive={isInputMode}
-				/>
-			</Box>
+			{/* 输入框区域（仅输入模式显示） */}
+			{isInputMode && (
+				<Box flexShrink={0}>
+					<AutocompleteInput
+						prompt="> "
+						onSubmit={handleSubmit}
+						onClear={handleClear}
+						onExit={clearAndExit}
+						slashCommands={SLASH_COMMANDS}
+						isActive={isInputMode}
+					/>
+				</Box>
+			)}
 		</Box>
 	);
 }
