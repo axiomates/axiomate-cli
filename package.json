@@ -29,6 +29,7 @@
 		"dist"
 	],
 	"dependencies": {
+		"@inkjs/ui": "^2.0.0",
 		"@modelcontextprotocol/sdk": "^1.25.1",
 		"ink": "^6.0.0",
 		"marked": "^15.0.12",

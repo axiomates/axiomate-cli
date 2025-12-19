@@ -85,6 +85,11 @@ export default function App() {
 		exit();
 	}, [exit]);
 
+	// 计算 MessageOutput 的可用高度
+	// 布局: Header(1) + Divider(1) + MessageOutput + Divider(1) + Input(至少1)
+	// 固定占用: 1 + 1 + 1 + 1 = 4 行
+	const messageOutputHeight = Math.max(1, terminalHeight - 4);
+
 	return (
 		<Box flexDirection="column" height={terminalHeight}>
 			{/* 标题区域 */}
@@ -96,7 +101,7 @@ export default function App() {
 			</Box>
 
 			{/* 输出区域 */}
-			<MessageOutput messages={messages} />
+			<MessageOutput messages={messages} height={messageOutputHeight} />
 
 			{/* 输出区域与输入框分隔线 */}
 			<Box flexShrink={0}>
