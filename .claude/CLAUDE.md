@@ -1147,6 +1147,7 @@ source/services/ai/
 ├── service.ts            # AIService with context-aware tool calling
 ├── session.ts            # Session class (token tracking, compact)
 ├── tokenEstimator.ts     # Token estimation for messages
+├── fileReader.ts         # Read files, format as XML for AI
 ├── contentBuilder.ts     # Build message content with file attachments
 ├── messageQueue.ts       # Async message queue for AI requests
 ├── tool-call-handler.ts  # Tool execution and result formatting
