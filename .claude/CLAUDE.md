@@ -13,7 +13,7 @@ axiomate-cli is a terminal-based AI agent application built with React 19 + Ink 
 - **Node.js >= 20** - Runtime
 - **Vitest** + **ink-testing-library** - Testing
 - **ESLint + Prettier** - Code quality
-- **Pino** + **pino-roll** - Structured logging with daily rotation
+- **Custom LogWriter** - Async logging with date/size rotation (zero external deps)
 - **Meow 13** - CLI argument parsing
 - **esbuild** - Bundling for standalone executable
 - **marked** + **marked-terminal** - Markdown rendering in terminal
@@ -119,7 +119,8 @@ source/
 │   ├── config.ts              # User config (~/.axiomate.json)
 │   ├── appdata.ts             # App data directories (~/.axiomate/)
 │   ├── localsettings.ts       # Project-local settings (.axiomate/)
-│   ├── logger.ts              # Pino logger with rotation
+│   ├── logger.ts              # Logger facade (level filtering, convenience methods)
+│   ├── logWriter.ts           # Async log writer with rotation
 │   ├── flags.ts               # CLI flags storage
 │   ├── platform.ts            # Platform-specific initialization (Windows Terminal)
 │   └── init.ts                # Async app initialization (tools, AI service)

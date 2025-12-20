@@ -455,7 +455,8 @@ source/
     ├── config.ts              # User config (~/.axiomate.json)
     ├── appdata.ts             # App data (~/.axiomate/)
     ├── localsettings.ts       # Project settings (.axiomate/)
-    ├── logger.ts              # Pino logger with rotation
+    ├── logger.ts              # Logger facade
+    ├── logWriter.ts           # Async log writer with rotation
     ├── flags.ts               # CLI flags
     └── platform.ts            # Platform init (Windows Terminal config)
 ```
@@ -473,7 +474,7 @@ source/
 - [TypeScript 5.7](https://www.typescriptlang.org/) - Type safety
 - [Vitest](https://vitest.dev/) - Testing framework
 - [Meow 13](https://github.com/sindresorhus/meow) - CLI argument parsing
-- [Pino](https://getpino.io/) - Structured logging
+- **Custom LogWriter** - Async logging with date/size rotation
 - [marked](https://marked.js.org/) + [marked-terminal](https://github.com/mikaelbr/marked-terminal) - Markdown rendering
 - [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/sdk) - MCP Server
 - [Zod](https://zod.dev/) - Schema validation
