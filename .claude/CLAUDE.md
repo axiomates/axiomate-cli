@@ -60,7 +60,8 @@ source/
 │   │       └── HelpPanel.tsx       # Keyboard shortcuts overlay
 │   ├── Divider.tsx            # Horizontal divider
 │   ├── Header.tsx             # App header with title
-│   └── MessageOutput.tsx      # Message display area (Markdown rendering)
+│   ├── MessageOutput.tsx      # Message display area (Markdown rendering)
+│   └── Splash.tsx             # Startup splash screen (standalone)
 ├── models/
 │   ├── input.ts               # UserInput types (for submit callback)
 │   ├── inputInstance.ts       # InputInstance - core input data model
@@ -119,8 +120,60 @@ source/
 │   ├── localsettings.ts       # Project-local settings (.axiomate/)
 │   ├── logger.ts              # Pino logger with rotation
 │   ├── flags.ts               # CLI flags storage
-│   └── platform.ts            # Platform-specific initialization (Windows Terminal)
+│   ├── platform.ts            # Platform-specific initialization (Windows Terminal)
+│   └── init.ts                # Async app initialization (tools, AI service)
 └── types/                     # .d.ts declarations for untyped libs
+```
+
+## Startup Flow
+
+The application uses a **two-phase rendering** architecture where Splash and App are completely separate:
+
+```
+cli.tsx (entry point)
+    │
+    ├── Sync init: initConfig(), initAppData(), initLocalSettings(), initPlatform()
+    │
+    ├── Phase 1: render(<Splash />)
+    │   └── initApp() with progress callback
+    │       ├── "Discovering tools..." → ToolRegistry.discover()
+    │       └── "Loading AI config..." → createAIServiceFromConfig()
+    │
+    └── Phase 2: unmount Splash, render(<App initResult={...} />)
+```
+
+**Key Design Principles**:
+- Splash is **standalone** - not a child of App, controlled by cli.tsx
+- App receives `initResult` prop containing pre-initialized AI service
+- No `isReady` state in App - it only renders when fully ready
+- Progress updates via `splashInstance.rerender(<Splash message={...} />)`
+
+**Splash Component** (`components/Splash.tsx`):
+```typescript
+// Simple one-line display: "axiomate-cli v0.1.0 Loading..."
+export default function Splash({ message = "Loading..." }: Props) {
+  return (
+    <Text bold>
+      <Text color={THEME_PINK}>{APP_NAME}</Text>
+      <Text color={THEME_LIGHT_YELLOW}> v{VERSION}</Text>
+      <Text dimColor> {message}</Text>
+    </Text>
+  );
+}
+```
+
+**Initialization Module** (`utils/init.ts`):
+```typescript
+type InitResult = {
+  aiService: IAIService | null;
+};
+
+type InitProgress = {
+  stage: "tools" | "ai" | "done";
+  message: string;
+};
+
+async function initApp(onProgress?: (progress: InitProgress) => void): Promise<InitResult>;
 ```
 
 ## Application Layout
@@ -1304,32 +1357,28 @@ function toAnthropicMessages(messages: ChatMessage[]): AnthropicMessage[];
 **App.tsx Integration**:
 
 ```typescript
-// Initialize AI service
-useEffect(() => {
-  const initAI = async () => {
-    const registry = getToolRegistry();
-    await registry.discover();
+type Props = {
+  initResult: InitResult;  // Received from cli.tsx after Splash phase
+};
 
-    const service = createAIServiceFromConfig(registry);
-    if (service) {
-      aiServiceRef.current = service;
+export default function App({ initResult }: Props) {
+  // AI service pre-initialized during Splash phase
+  const aiServiceRef = useRef<IAIService | null>(initResult.aiService);
+
+  // Send message to AI
+  const sendToAI = useCallback(async (text: string) => {
+    if (!aiServiceRef.current) {
+      showMessage("AI 服务未配置");
+      return;
     }
-  };
-  initAI();
-}, []);
 
-// Send message to AI
-const sendToAI = useCallback(async (text: string) => {
-  if (!aiServiceRef.current) {
-    showMessage("AI 服务未配置");
-    return;
-  }
+    const context = { cwd: process.cwd(), userMessage: text };
+    const response = await aiServiceRef.current.sendMessage(text, context);
 
-  const context = { cwd: process.cwd(), userMessage: text };
-  const response = await aiServiceRef.current.sendMessage(text, context);
-
-  setMessages(prev => [...prev, { content: response.message.content }]);
-}, []);
+    setMessages(prev => [...prev, { content: response.message.content }]);
+  }, []);
+  // ...
+}
 ```
 
 **Tool Execution Flow**:
