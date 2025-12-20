@@ -295,12 +295,12 @@ export type IntentAnalysis = {
 export type AIServiceConfig = {
 	// AI 客户端
 	client: IAIClient;
-	// 是否启用两阶段调用
-	twoPhaseEnabled?: boolean;
 	// 最大工具调用轮数
 	maxToolCallRounds?: number;
-	// 是否启用上下文感知
+	// 是否启用上下文感知（本地目录分析）
 	contextAwareEnabled?: boolean;
+	// 上下文窗口大小（token 数）
+	contextWindow?: number;
 };
 
 /**
@@ -329,4 +329,9 @@ export type IAIService = {
 	 * 设置系统提示词
 	 */
 	setSystemPrompt(prompt: string): void;
+
+	/**
+	 * 获取上下文窗口大小
+	 */
+	getContextWindow(): number;
 };

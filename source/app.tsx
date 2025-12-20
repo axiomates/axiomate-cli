@@ -9,6 +9,7 @@ import { SLASH_COMMANDS } from "./constants/commands.js";
 import { VERSION, APP_NAME } from "./constants/meta.js";
 import {
 	type UserInput,
+	type FileReference,
 	isMessageInput,
 	isCommandInput,
 } from "./models/input.js";
@@ -23,6 +24,11 @@ import {
 	type IAIService,
 	type MatchContext,
 } from "./services/ai/index.js";
+import { buildMessageContent } from "./services/ai/contentBuilder.js";
+import {
+	MessageQueue,
+	type QueuedMessage,
+} from "./services/ai/messageQueue.js";
 import type { InitResult } from "./utils/init.js";
 import { resumeInput } from "./utils/stdin.js";
 
@@ -55,6 +61,78 @@ export default function App({ initResult }: Props) {
 
 	// AI 服务实例（从初始化结果获取）
 	const aiServiceRef = useRef<IAIService | null>(initResult.aiService);
+
+	// 消息处理函数（用于消息队列）
+	const processMessage = useCallback(
+		async (queuedMessage: QueuedMessage): Promise<string> => {
+			const aiService = aiServiceRef.current;
+			if (!aiService) {
+				throw new Error("AI 服务未配置");
+			}
+
+			const cwd = process.cwd();
+
+			// 构建消息内容（包含文件）
+			const buildResult = await buildMessageContent(
+				queuedMessage.content,
+				queuedMessage.files,
+				aiService.getContextWindow(),
+				cwd,
+			);
+
+			// 如果有截断提示，显示给用户
+			if (buildResult.wasTruncated) {
+				setMessages((prev) => [
+					...prev,
+					{
+						content: `⚠️ ${buildResult.truncationNotice}`,
+						type: "system" as const,
+						markdown: false,
+					},
+				]);
+			}
+
+			// 构建上下文
+			const context: MatchContext = {
+				cwd,
+				selectedFiles: queuedMessage.files.map((f) => f.path),
+			};
+
+			// 发送给 AI
+			return aiService.sendMessage(buildResult.content, context);
+		},
+		[],
+	);
+
+	// 消息队列实例
+	const messageQueueRef = useRef<MessageQueue | null>(null);
+
+	// 初始化消息队列
+	useEffect(() => {
+		messageQueueRef.current = new MessageQueue(processMessage, {
+			onMessageStart: () => {
+				setIsLoading(true);
+			},
+			onMessageComplete: (__, response) => {
+				setMessages((prev) => [...prev, { content: response }]);
+				setIsLoading(false);
+			},
+			onMessageError: (__, error) => {
+				setMessages((prev) => [
+					...prev,
+					{ content: `Error: ${error.message}`, markdown: false },
+				]);
+				setIsLoading(false);
+			},
+			onQueueEmpty: () => {
+				// 队列处理完毕
+			},
+		});
+
+		return () => {
+			messageQueueRef.current?.clear();
+		};
+	}, [processMessage]);
 
 	// 组件挂载后恢复 stdin 输入（之前在 cli.tsx 中被暂停）
 	useEffect(() => {
@@ -95,36 +173,34 @@ export default function App({ initResult }: Props) {
 		{ isActive: true },
 	);
 
-	// 发送消息给 AI
+	// 发送消息给 AI（支持文件附件）
 	const sendToAI = useCallback(
-		async (content: string, isUserMessage = true) => {
+		(content: string, files: FileReference[] = [], isUserMessage = true) => {
 			// 显示用户消息
 			if (isUserMessage) {
 				setMessages((prev) => [...prev, { content, type: "user" }]);
 			}
 
-			// 如果有 AI 服务，发送请求
-			if (aiServiceRef.current) {
-				setIsLoading(true);
-				try {
-					// 构建上下文
-					const context: MatchContext = {
-						cwd: process.cwd(),
-					};
-
-					const response = await aiServiceRef.current.sendMessage(
-						content,
-						context,
-					);
-					setMessages((prev) => [...prev, { content: response }]);
-				} catch (error) {
-					const errorMsg =
-						error instanceof Error ? error.message : String(error);
-					setMessages((prev) => [...prev, { content: `Error: ${errorMsg}` }]);
-				} finally {
-					setIsLoading(false);
-				}
+			// 检查 AI 服务是否可用
+			if (!aiServiceRef.current) {
+				setMessages((prev) => [
+					...prev,
+					{ content: "AI 服务未配置，请检查 API 设置", markdown: false },
+				]);
+				return;
 			}
+
+			// 检查消息队列是否可用
+			if (!messageQueueRef.current) {
+				setMessages((prev) => [
+					...prev,
+					{ content: "消息队列未初始化", markdown: false },
+				]);
+				return;
+			}
+
+			// 加入消息队列（异步处理）
+			messageQueueRef.current.enqueue(content, files);
 		},
 		[],
 	);
@@ -164,7 +240,8 @@ export default function App({ initResult }: Props) {
 	const handleSubmit = useCallback(
 		async (input: UserInput) => {
 			if (isMessageInput(input)) {
-				await sendToAI(input.text);
+				// 发送消息给 AI（带文件附件）
+				sendToAI(input.text, input.files);
 			} else if (isCommandInput(input)) {
 				// 除了 exit 命令，都先显示用户输入（但不发送给 AI）
 				const isExit = input.commandPath[0]?.toLowerCase() === "exit";

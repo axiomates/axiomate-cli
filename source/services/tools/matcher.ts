@@ -104,6 +104,74 @@ const PROJECT_TYPE_TOOLS: Record<ProjectType, string[]> = {
 };
 
 /**
+ * 目录/文件存在性检测规则
+ * 用于 autoSelect 自动推断需要的工具
+ */
+type DirectoryDetectionRule = {
+	/** 检测的路径（相对于 cwd） */
+	path: string;
+	/** 是否为目录 */
+	isDirectory: boolean;
+	/** 匹配后添加的工具 ID */
+	tools: string[];
+};
+
+const DIRECTORY_DETECTION_RULES: DirectoryDetectionRule[] = [
+	// 版本控制
+	{ path: ".git", isDirectory: true, tools: ["git"] },
+	{ path: ".svn", isDirectory: true, tools: ["svn"] },
+
+	// Docker
+	{ path: "Dockerfile", isDirectory: false, tools: ["docker"] },
+	{ path: "docker-compose.yml", isDirectory: false, tools: ["docker"] },
+	{ path: "docker-compose.yaml", isDirectory: false, tools: ["docker"] },
+	{ path: "compose.yml", isDirectory: false, tools: ["docker"] },
+	{ path: "compose.yaml", isDirectory: false, tools: ["docker"] },
+	{ path: ".dockerignore", isDirectory: false, tools: ["docker"] },
+
+	// Node.js 生态
+	{ path: "node_modules", isDirectory: true, tools: ["node"] },
+	{ path: "package-lock.json", isDirectory: false, tools: ["node"] },
+	{ path: "yarn.lock", isDirectory: false, tools: ["node"] },
+	{ path: "pnpm-lock.yaml", isDirectory: false, tools: ["node"] },
+	{ path: "bun.lockb", isDirectory: false, tools: ["node"] },
+	{ path: ".nvmrc", isDirectory: false, tools: ["node"] },
+	{ path: ".node-version", isDirectory: false, tools: ["node"] },
+
+	// Python 生态
+	{ path: ".venv", isDirectory: true, tools: ["python"] },
+	{ path: "venv", isDirectory: true, tools: ["python"] },
+	{ path: ".python-version", isDirectory: false, tools: ["python"] },
+	{ path: "Pipfile", isDirectory: false, tools: ["python"] },
+	{ path: "Pipfile.lock", isDirectory: false, tools: ["python"] },
+	{ path: "poetry.lock", isDirectory: false, tools: ["python"] },
+
+	// Java/Gradle/Maven
+	{ path: ".gradle", isDirectory: true, tools: ["java"] },
+	{ path: "gradlew", isDirectory: false, tools: ["java"] },
+	{ path: "mvnw", isDirectory: false, tools: ["java"] },
+	{ path: ".mvn", isDirectory: true, tools: ["java"] },
+
+	// Rust
+	{ path: "Cargo.lock", isDirectory: false, tools: ["rust"] },
+	{ path: "target", isDirectory: true, tools: ["rust"] },
+
+	// Go
+	{ path: "go.sum", isDirectory: false, tools: ["go"] },
+
+	// .NET
+	{ path: "bin", isDirectory: true, tools: ["dotnet"] },
+	{ path: "obj", isDirectory: true, tools: ["dotnet"] },
+	{ path: "*.csproj", isDirectory: false, tools: ["dotnet", "vs2022"] },
+	{ path: "*.sln", isDirectory: false, tools: ["dotnet", "vs2022"] },
+
+	// 数据库
+	{ path: "*.db", isDirectory: false, tools: ["sqlite"] },
+	{ path: "*.sqlite", isDirectory: false, tools: ["sqlite"] },
+	{ path: "*.sqlite3", isDirectory: false, tools: ["sqlite"] },
+];
+
+/**
  * 检测项目类型
  */
 export function detectProjectType(cwd: string): ProjectType {
@@ -280,6 +348,16 @@ export class ToolMatcher implements IToolMatcher {
 	 */
 	autoSelect(context: MatchContext): DiscoveredTool[] {
 		const results: DiscoveredTool[] = [];
+		const addedToolIds = new Set<string>();
+
+		const addTool = (toolId: string) => {
+			if (addedToolIds.has(toolId)) return;
+			const tool = this.registry.getTool(toolId);
+			if (tool?.installed) {
+				results.push(tool);
+				addedToolIds.add(toolId);
+			}
+		};
 
 		// 1. 根据项目类型选择
 		let projectType = context.projectType;
@@ -290,42 +368,119 @@ export class ToolMatcher implements IToolMatcher {
 		if (projectType) {
 			const toolIds = PROJECT_TYPE_TOOLS[projectType] || [];
 			for (const toolId of toolIds) {
-				const tool = this.registry.getTool(toolId);
-				if (tool?.installed) {
-					results.push(tool);
-				}
+				addTool(toolId);
 			}
 		}
 
-		// 2. 根据选中的文件推断工具
+		// 2. 根据目录内容检测工具（.git, Dockerfile 等）
+		if (context.cwd) {
+			const detectedTools = this.detectToolsFromDirectory(context.cwd);
+			for (const toolId of detectedTools) {
+				addTool(toolId);
+			}
+		}
+
+		// 3. 根据选中的文件推断工具
 		if (context.selectedFiles) {
 			for (const file of context.selectedFiles) {
 				const ext = path.extname(file).toLowerCase();
 				const inferredTools = this.inferToolsFromExtension(ext);
 				for (const toolId of inferredTools) {
-					const tool = this.registry.getTool(toolId);
-					if (tool?.installed && !results.some((t) => t.id === tool.id)) {
-						results.push(tool);
-					}
+					addTool(toolId);
+				}
+
+				// 检测特殊文件名
+				const fileName = path.basename(file).toLowerCase();
+				const fileNameTools = this.inferToolsFromFileName(fileName);
+				for (const toolId of fileNameTools) {
+					addTool(toolId);
 				}
 			}
 		}
 
-		// 3. 根据当前文件推断工具
+		// 4. 根据当前文件推断工具
 		if (context.currentFiles) {
 			for (const file of context.currentFiles) {
 				const ext = path.extname(file).toLowerCase();
 				const inferredTools = this.inferToolsFromExtension(ext);
 				for (const toolId of inferredTools) {
-					const tool = this.registry.getTool(toolId);
-					if (tool?.installed && !results.some((t) => t.id === tool.id)) {
-						results.push(tool);
-					}
+					addTool(toolId);
+				}
+
+				// 检测特殊文件名
+				const fileName = path.basename(file).toLowerCase();
+				const fileNameTools = this.inferToolsFromFileName(fileName);
+				for (const toolId of fileNameTools) {
+					addTool(toolId);
 				}
 			}
 		}
 
 		return results;
+	}
+
+	/**
+	 * 根据目录内容检测需要的工具
+	 */
+	private detectToolsFromDirectory(cwd: string): string[] {
+		const tools: string[] = [];
+
+		for (const rule of DIRECTORY_DETECTION_RULES) {
+			try {
+				if (rule.path.includes("*")) {
+					// glob 模式匹配
+					const ext = rule.path.replace("*", "");
+					const files = fs.readdirSync(cwd);
+					if (files.some((f) => f.endsWith(ext))) {
+						tools.push(...rule.tools);
+					}
+				} else {
+					const fullPath = path.join(cwd, rule.path);
+					if (fs.existsSync(fullPath)) {
+						const stat = fs.statSync(fullPath);
+						if (rule.isDirectory === stat.isDirectory()) {
+							tools.push(...rule.tools);
+						}
+					}
+				}
+			} catch {
+				// 忽略读取错误
+			}
+		}
+
+		return tools;
+	}
+
+	/**
+	 * 根据文件名推断工具
+	 */
+	private inferToolsFromFileName(fileName: string): string[] {
+		const fileNameMap: Record<string, string[]> = {
+			dockerfile: ["docker"],
+			"docker-compose.yml": ["docker"],
+			"docker-compose.yaml": ["docker"],
+			"compose.yml": ["docker"],
+			"compose.yaml": ["docker"],
+			".dockerignore": ["docker"],
+			"package.json": ["node"],
+			"package-lock.json": ["node"],
+			"yarn.lock": ["node"],
+			"pnpm-lock.yaml": ["node"],
+			"requirements.txt": ["python"],
+			"pyproject.toml": ["python"],
+			"setup.py": ["python"],
+			pipfile: ["python"],
+			"pom.xml": ["java"],
+			"build.gradle": ["java"],
+			"build.gradle.kts": ["java"],
+			"cargo.toml": ["rust"],
+			"go.mod": ["go"],
+			"go.sum": ["go"],
+			makefile: ["vscode"],
+			cmakelists: ["vscode"],
+		};
+
+		return fileNameMap[fileName] || [];
 	}
 
 	/**

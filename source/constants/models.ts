@@ -42,6 +42,10 @@ export type ModelPreset = {
 	 * - false: 可以同时使用 thinking 和 tools
 	 */
 	thinkingToolsExclusive: boolean;
+	/** 上下文窗口大小（token 数） */
+	contextWindow: number;
+	/** 是否支持 enable_thinking 参数 */
+	supportsThinking?: boolean;
 };
 
 /**
@@ -60,6 +64,7 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		description: "Chat model",
 		supportsTools: true,
 		thinkingToolsExclusive: false,
+		contextWindow: 131072,
 	},
 	{
 		id: "THUDM/GLM-Z1-9B-0414",
@@ -69,6 +74,7 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		description: "Latest GLM",
 		supportsTools: true,
 		thinkingToolsExclusive: false,
+		contextWindow: 32768,
 	},
 
 	// ============================================================================
@@ -82,6 +88,8 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		description: "Latest Qwen3",
 		supportsTools: true,
 		thinkingToolsExclusive: false,
+		contextWindow: 131072,
+		supportsThinking: true,
 	},
 	{
 		id: "Qwen/Qwen2-7B-Instruct",
@@ -91,6 +99,7 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		description: "Instruct model",
 		supportsTools: false,
 		thinkingToolsExclusive: false,
+		contextWindow: 32768,
 	},
 	{
 		id: "Qwen/Qwen2.5-7B-Instruct",
@@ -100,6 +109,7 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		description: "Instruct model",
 		supportsTools: true,
 		thinkingToolsExclusive: false,
+		contextWindow: 32768,
 	},
 
 	// ============================================================================
@@ -113,6 +123,7 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		description: "Reasoning distill",
 		supportsTools: true,
 		thinkingToolsExclusive: false,
+		contextWindow: 131072,
 	},
 ];
 

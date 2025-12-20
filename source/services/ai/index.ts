@@ -140,9 +140,10 @@ export function createAIServiceFromConfig(
 		{
 			client,
 			// 根据模型能力调整配置
-			twoPhaseEnabled: model.supportsTools,
 			contextAwareEnabled: model.supportsTools,
 			maxToolCallRounds: 5,
+			// 使用模型的上下文窗口大小
+			contextWindow: model.contextWindow,
 		},
 		registry,
 	);
