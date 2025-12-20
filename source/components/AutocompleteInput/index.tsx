@@ -10,6 +10,7 @@ import {
 	useState,
 	useMemo,
 	useEffect,
+	useLayoutEffect,
 	useRef,
 } from "react";
 import { useApp } from "ink";
@@ -284,8 +285,8 @@ export default function AutocompleteInput({
 		],
 	);
 
-	// 报告高度变化
-	useEffect(() => {
+	// 报告高度变化（使用 useLayoutEffect 避免视觉抖动）
+	useLayoutEffect(() => {
 		onHeightChange?.(inputAreaHeight);
 	}, [inputAreaHeight, onHeightChange]);
 
