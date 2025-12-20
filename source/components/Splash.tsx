@@ -1,10 +1,11 @@
 /**
  * 启动页组件
  *
- * 在应用初始化完成前显示，避免布局抖动
+ * 在应用初始化完成前显示的独立页面
+ * 与 App 组件完全分离，由 cli.tsx 控制切换
  */
 
-import { Box, Text } from "ink";
+import { Text } from "ink";
 import { APP_NAME, VERSION } from "../constants/meta.js";
 import { THEME_LIGHT_YELLOW, THEME_PINK } from "../constants/colors.js";
 
@@ -13,13 +14,12 @@ type Props = {
 };
 
 export default function Splash({ message = "Loading..." }: Props) {
+
 	return (
-		<Box>
-			<Text bold color={THEME_PINK}>
-					{APP_NAME} <Text color={THEME_LIGHT_YELLOW}>v{VERSION}</Text>
-				</Text>
-				<Text> </Text>
-			<Text dimColor>{message}</Text>
-		</Box>
+		<Text bold>
+			<Text color={THEME_PINK}>{APP_NAME}</Text>
+			<Text color={THEME_LIGHT_YELLOW}> v{VERSION}</Text>
+			<Text dimColor> {message}</Text>
+		</Text>
 	);
 }

@@ -1,10 +1,9 @@
 import { Box, useApp, useInput } from "ink";
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import AutocompleteInput from "./components/AutocompleteInput/index.js";
 import Divider from "./components/Divider.js";
 import Header from "./components/Header.js";
 import MessageOutput, { type Message } from "./components/MessageOutput.js";
-import Splash from "./components/Splash.js";
 import useTerminalHeight from "./hooks/useTerminalHeight.js";
 import { SLASH_COMMANDS } from "./constants/commands.js";
 import { VERSION, APP_NAME } from "./constants/meta.js";
@@ -25,6 +24,7 @@ import {
 	type IAIService,
 	type MatchContext,
 } from "./services/ai/index.js";
+import type { InitResult } from "./utils/init.js";
 
 /**
  * 应用焦点模式
@@ -33,15 +33,16 @@ import {
  */
 type FocusMode = "input" | "output";
 
-export default function App() {
+type Props = {
+	initResult: InitResult;
+};
+
+export default function App({ initResult }: Props) {
 	const { exit } = useApp();
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [focusMode, setFocusMode] = useState<FocusMode>("input");
 	const terminalHeight = useTerminalHeight();
 	const [inputAreaHeight, setInputAreaHeight] = useState(1);
-
-	// 应用就绪状态（初始化完成前显示 Splash）
-	const [isReady, setIsReady] = useState(false);
 
 	// 输入历史记录（提升到 App 组件，避免模式切换时丢失）
 	const [inputHistory, setInputHistory] = useState<HistoryEntry[]>([]);
@@ -52,24 +53,8 @@ export default function App() {
 	// AI 加载状态（将来用于显示加载指示器）
 	const [, setIsLoading] = useState(false);
 
-	// AI 服务实例
-	const aiServiceRef = useRef<IAIService | null>(null);
-
-	// 初始化工具注册表和 AI 服务
-	useEffect(() => {
-		const init = async () => {
-			// 初始化工具注册表
-			const registry = getToolRegistry();
-			await registry.discover();
-
-			// 尝试创建 AI 服务
-			aiServiceRef.current = createAIServiceFromConfig(registry);
-
-			// 标记初始化完成
-			setIsReady(true);
-		};
-		init();
-	}, []);
+	// AI 服务实例（从初始化结果获取）
+	const aiServiceRef = useRef<IAIService | null>(initResult.aiService);
 
 	// 焦点模式切换（Escape 键）
 	const toggleFocusMode = useCallback(() => {
@@ -231,11 +216,6 @@ export default function App() {
 	// 浏览模式: Header(1) + Divider(1) + MessageOutput = 2 行固定
 	const fixedHeight = isOutputMode ? 2 : 2 + 1 + inputAreaHeight;
 	const messageOutputHeight = Math.max(1, terminalHeight - fixedHeight);
-
-	// 初始化完成前显示启动页
-	if (!isReady) {
-		return <Splash />;
-	}
 
 	return (
 		<Box flexDirection="column" height={terminalHeight}>
