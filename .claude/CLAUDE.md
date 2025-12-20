@@ -1115,23 +1115,25 @@ type ModelPreset = {
   protocol: ApiProtocol;          // "openai" | "anthropic"
   supportsTools: boolean;         // Function calling support
   thinkingToolsExclusive: boolean; // true = thinking and tools are mutually exclusive
+  contextWindow: number;          // Context window size in tokens (e.g., 32768)
 };
 ```
 
 Available models (via SiliconFlow):
 
-| ID (apiModel)                            | Series   | Tools | Exclusive* |
-|------------------------------------------|----------|-------|------------|
-| `THUDM/glm-4-9b-chat`                    | GLM      | ✓     | ✗          |
-| `THUDM/GLM-Z1-9B-0414`                   | GLM      | ✓     | ✗          |
-| `Qwen/Qwen3-8B`                          | Qwen     | ✓     | ✗          |
-| `Qwen/Qwen2-7B-Instruct`                 | Qwen     | ✗     | ✗          |
-| `Qwen/Qwen2.5-7B-Instruct`               | Qwen     | ✓     | ✗          |
-| `deepseek-ai/DeepSeek-R1-Distill-Qwen-7B`| DeepSeek | ✓     | ✗          |
-| `deepseek-ai/DeepSeek-V3.1`              | DeepSeek | ✓     | ✓          |
-| `Pro/deepseek-ai/DeepSeek-V3.1`          | DeepSeek | ✓     | ✓          |
+| ID (apiModel)                            | Series   | Context | Tools | Exclusive* |
+|------------------------------------------|----------|---------|-------|------------|
+| `THUDM/glm-4-9b-chat`                    | GLM      | 32K     | ✓     | ✗          |
+| `THUDM/GLM-Z1-9B-0414`                   | GLM      | 32K     | ✓     | ✗          |
+| `Qwen/Qwen3-8B`                          | Qwen     | 32K     | ✓     | ✗          |
+| `Qwen/Qwen2-7B-Instruct`                 | Qwen     | 32K     | ✗     | ✗          |
+| `Qwen/Qwen2.5-7B-Instruct`               | Qwen     | 32K     | ✓     | ✗          |
+| `deepseek-ai/DeepSeek-R1-Distill-Qwen-7B`| DeepSeek | 32K     | ✓     | ✗          |
+| `deepseek-ai/DeepSeek-V3.1`              | DeepSeek | 64K     | ✓     | ✓          |
+| `Pro/deepseek-ai/DeepSeek-V3.1`          | DeepSeek | 64K     | ✓     | ✓          |
 
 *Exclusive: Thinking and tools modes are mutually exclusive (cannot be used together).
+*Context: Context window size (32K = 32768 tokens, 64K = 65536 tokens).
 
 Default model: `Qwen/Qwen3-8B`
 
@@ -1608,8 +1610,26 @@ type CompactCheckResult = {
 Instead of trimming old messages, the app uses an **auto-compact** strategy:
 
 1. Before sending each message, check if context usage will exceed threshold (default 85%)
-2. If threshold exceeded AND conversation has more than 2 messages, trigger auto-compact
+2. If threshold exceeded AND has **real conversation history** (≥2 real messages), trigger auto-compact
 3. Compact sends a summary prompt to AI, then resets session with summary as new context base
+
+**Anti-Recursion Protection**:
+
+The `shouldCompact()` method counts only **real messages**, excluding compact summaries (messages starting with `[Previous conversation summary]`). This prevents:
+
+- **First message with large files**: No history to summarize → no compact triggered
+- **Recursive compact**: After compact, only summary exists (not a "real" message) → no re-trigger
+- **Empty session**: No messages → no compact triggered
+
+```typescript
+// session.ts - shouldCompact()
+const realMessageCount = this.messages.filter(
+  (m) => !m.message.content.startsWith("[Previous conversation summary]")
+).length;
+
+const shouldCompact =
+  projectedPercent >= compactThreshold * 100 && realMessageCount >= 2;
+```
 
 **Implementation** (`app.tsx`):
 
@@ -1966,3 +1986,154 @@ export function helper() {
 | `contentBuilder.ts` | Assemble final content with files |
 | `session.ts` | Track token usage, manage context |
 | `service.ts` | Send to AI, handle tool calls |
+
+### Truncation Strategy
+
+When file contents exceed context limit:
+
+1. **User message preserved**: Never truncate user's message text
+2. **Proportional truncation**: Each file is truncated by the same ratio
+3. **Line-based truncation**: Truncate at line boundaries for readability
+4. **Truncation notice**: Add `[... 内容已截断，共 N 行，仅显示前 M 行 ...]` at cut point
+5. **User warning**: Show system message about truncation
+
+```typescript
+// Proportional allocation
+const ratio = maxTotalTokens / totalTokens;
+// Each file gets: allocatedTokens = fileTokens * ratio
+```
+
+### Error Handling
+
+| Error | Action |
+|-------|--------|
+| API not configured | Show "AI 服务未配置，请检查 API 设置" |
+| File not found | Include in XML: `<file path="..." error="true">ENOENT: no such file</file>` |
+| Context exceeded | Truncate files proportionally, show warning |
+| Network error | Show error message in MessageOutput |
+| Directory selected | List directory contents: `<directory path="...">file1, file2, ...</directory>` |
+
+### Tools Auto-Selection
+
+The app uses **local directory analysis** instead of two-phase AI calls to save tokens:
+
+**Detection Logic** (in `services/tools/matcher.ts`):
+
+1. Scan user's working directory (cwd) and @selected files/folders
+2. Detect project marker files:
+   - `.git/` → git tool
+   - `package.json` → node tool
+   - `requirements.txt`, `pyproject.toml` → python tool
+   - `pom.xml`, `build.gradle` → java tool
+   - `*.csproj`, `*.sln` → dotnet tool
+   - `Cargo.toml` → rust tool
+   - `go.mod` → go tool
+   - `Dockerfile`, `docker-compose.yml` → docker tool
+
+3. Infer from @selected file extensions:
+   - `.ts`, `.tsx`, `.js`, `.jsx` → node
+   - `.py` → python
+   - `.java` → java
+   - `.cs` → dotnet
+   - `.rs` → rust
+   - `.go` → go
+
+**Implementation**:
+
+```typescript
+// services/tools/matcher.ts
+function detectProjectType(cwd: string): ProjectType {
+  if (existsSync(join(cwd, "package.json"))) return "node";
+  if (existsSync(join(cwd, "requirements.txt"))) return "python";
+  if (existsSync(join(cwd, "pom.xml"))) return "java";
+  // ... etc
+  return "unknown";
+}
+
+// services/ai/service.ts - contextAwareChat()
+const autoSelectedTools = this.matcher.autoSelect(context);
+const queryMatches = this.matcher.match(userMessage, context);
+// Merge and deduplicate tools
+```
+
+**Key Design Decision**: Removed two-phase calling (`analyzeIntent()` + `chatWithTools()`). Now uses single-phase calling with local context matching, which:
+- Saves ~500-1000 tokens per request
+- Reduces latency (one API call instead of two)
+- More predictable tool selection based on project structure
+
+### Data Flow Diagram
+
+```
+User submits MessageInput with files
+    │
+    ▼
+sendToAI(text, files)
+    │
+    ├── Show user message in UI
+    │
+    ▼
+MessageQueue.enqueue(content, files)
+    │
+    ▼
+processMessage() callback
+    │
+    ├── API validation (check aiServiceRef)
+    │       │
+    │       └── If not configured: throw Error
+    │
+    ├── Session.getAvailableTokens()
+    │
+    ▼
+ContentBuilder.buildMessageContent()
+    │
+    ├── FileReader.readFileContents()
+    │       │
+    │       └── For each file: read or list directory
+    │
+    ├── transformUserMessage() - "@path" → "文件 path"
+    │
+    ├── TokenEstimator.estimateTokens()
+    │
+    ├── If exceeds available: truncateFilesProportionally()
+    │
+    └── formatFilesAsXml() + assemble content
+    │
+    ▼
+If wasTruncated: show warning to user
+    │
+    ▼
+Session.shouldCompact(estimatedTokens)
+    │
+    ├── If shouldCompact: execute compact()
+    │
+    ▼
+AIService.sendMessage(content, context)
+    │
+    ├── ToolMatcher.autoSelect(context)
+    │
+    ├── ToolMatcher.match(userMessage, context)
+    │
+    ├── Merge tools, convert to OpenAI format
+    │
+    └── client.chat(messages, tools)
+            │
+            ├── If tool_calls: execute and loop
+            │
+            └── Return final response
+    │
+    ▼
+MessageQueue callbacks
+    │
+    ├── onMessageComplete: add response to messages
+    │
+    └── onMessageError: show error message
+    │
+    ▼
+MessageOutput renders response as Markdown
+```
+
+### Future Enhancements
+
+1. **Streaming Response**: Display AI reply character-by-character for better UX
+2. **Conversation Persistence**: Save/restore conversation history across sessions
+3. **Multi-model Routing**: Route different queries to different models based on complexity

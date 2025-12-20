@@ -70,20 +70,6 @@ type CommandResult =
  * 内部命令处理器注册表
  */
 const internalHandlers: Record<string, InternalHandler> = {
-	help: () => ({
-		type: "message",
-		content:
-			"Available commands:\n" +
-			"  /help     - Show this help\n" +
-			"  /model    - Select AI model\n" +
-			"  /tools    - Manage local tools\n" +
-			"  /compact  - Summarize and compress context\n" +
-			"  /new      - Start a new session\n" +
-			"  /clear    - Clear screen (keeps context)\n" +
-			"  /version  - Show version\n" +
-			"  /exit     - Exit application",
-	}),
-
 	version: (_path, ctx) => ({
 		type: "message",
 		content: `${ctx.appName} v${ctx.version}`,

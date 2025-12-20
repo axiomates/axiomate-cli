@@ -277,13 +277,17 @@ export default function App({ initResult }: Props) {
 			return;
 		}
 
-		// 检查是否有足够的消息需要 compact
-		const status = aiService.getSessionStatus();
-		if (status.messageCount <= 2) {
+		// 检查是否有足够的真实消息需要 compact
+		// 使用 realMessageCount（排除 compact summary）
+		const compactCheck = aiService.shouldCompact(0);
+		if (compactCheck.realMessageCount < 2) {
 			setMessages((prev) => [
 				...prev,
 				{
-					content: "Not enough conversation to compact.",
+					content:
+						compactCheck.realMessageCount === 0
+							? "No conversation to compact."
+							: "Not enough conversation to compact (need at least 2 messages).",
 					type: "system",
 					markdown: false,
 				},

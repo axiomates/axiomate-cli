@@ -325,14 +325,16 @@ export type SessionStatus = {
  * Compact 检查结果
  */
 export type CompactCheckResult = {
-	/** 是否需要 compact */
+	/** 是否需要 compact（同时满足阈值和消息数条件） */
 	shouldCompact: boolean;
 	/** 当前使用百分比 */
 	usagePercent: number;
 	/** 预计添加新消息后的使用百分比 */
 	projectedPercent: number;
-	/** 消息数量 */
+	/** 消息数量（包括 summary） */
 	messageCount: number;
+	/** 真实消息数量（排除 compact summary） */
+	realMessageCount: number;
 };
 
 /**

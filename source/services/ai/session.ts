@@ -350,17 +350,28 @@ export class Session {
 		const projectedTokens = usedTokens + estimatedNewTokens;
 		const projectedPercent = (projectedTokens / contextWindow) * 100;
 
+		// 统计真正的对话消息数（排除 compact summary）
+		// compact summary 以 "[Previous conversation summary]" 开头
+		const realMessageCount = this.messages.filter(
+			(m) =>
+				!m.message.content.startsWith("[Previous conversation summary]"),
+		).length;
+
 		// 需要 compact 的条件：
 		// 1. 预计使用量超过阈值
-		// 2. 至少有一些对话历史（超过 2 条消息）
+		// 2. 必须有真实的对话历史（至少 2 条真实消息，即 1 轮完整对话）
+		//    这样可以防止：
+		//    - 首次发送大文件时误触发（此时没有历史可总结）
+		//    - compact 后立即再次触发（此时只有 summary）
 		const shouldCompact =
-			projectedPercent >= compactThreshold * 100 && this.messages.length > 2;
+			projectedPercent >= compactThreshold * 100 && realMessageCount >= 2;
 
 		return {
 			shouldCompact,
 			usagePercent,
 			projectedPercent,
 			messageCount: this.messages.length,
+			realMessageCount,
 		};
 	}
 

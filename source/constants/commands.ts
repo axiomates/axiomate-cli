@@ -59,11 +59,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		action: { type: "internal", handler: "new_session" },
 	},
 	{
-		name: "help",
-		description: "Show available commands",
-		action: { type: "internal", handler: "help" },
-	},
-	{
 		name: "clear",
 		description: "Clear the screen (keeps session context)",
 		action: { type: "internal", handler: "clear" },
