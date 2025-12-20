@@ -20,7 +20,6 @@ import {
 import { getToolRegistry } from "./services/tools/registry.js";
 import {
 	createAIServiceFromConfig,
-	setCurrentModel,
 	type IAIService,
 	type MatchContext,
 } from "./services/ai/index.js";
@@ -135,34 +134,14 @@ export default function App({ initResult }: Props) {
 		setMessages((prev) => [...prev, { content }]);
 	}, []);
 
-	// 更新配置
+	// 更新配置（模型切换现在由 model_select 处理器直接处理）
 	const setConfig = useCallback((key: string, value: string) => {
+		// 模型切换后需要重新创建 AI 服务
 		if (key === "model") {
-			// 解析模型路径，如 "openai gpt-4o" -> modelId = "gpt-4o"
-			const parts = value.split(" ");
-			const modelId = parts[parts.length - 1];
-
-			// 尝试设置当前模型
-			if (setCurrentModel(modelId)) {
-				// 重新创建 AI 服务
-				const registry = getToolRegistry();
-				aiServiceRef.current = createAIServiceFromConfig(registry);
-				setMessages((prev) => [
-					...prev,
-					{ content: `已切换到模型: ${modelId}` },
-				]);
-			} else {
-				// 模型未配置，提示用户需要先配置 API Key
-				setMessages((prev) => [
-					...prev,
-					{
-						content: `模型 ${modelId} 未配置。请先设置 API Key:\n\n使用 \`/model presets\` 查看可用预设`,
-					},
-				]);
-			}
-		} else {
-			setMessages((prev) => [...prev, { content: `${key} set to: ${value}` }]);
+			const registry = getToolRegistry();
+			aiServiceRef.current = createAIServiceFromConfig(registry);
 		}
+		setMessages((prev) => [...prev, { content: `${key} set to: ${value}` }]);
 	}, []);
 
 	// 清屏

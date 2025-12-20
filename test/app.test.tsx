@@ -1,11 +1,13 @@
 import { render } from "ink-testing-library";
 import { describe, expect, it } from "vitest";
 import App from "../source/app.js";
+import { getDefaultModel } from "../source/constants/models.js";
 import type { InitResult } from "../source/utils/init.js";
 
 // Mock initResult for App component
 const mockInitResult: InitResult = {
 	aiService: null,
+	currentModel: getDefaultModel(),
 };
 
 describe("App", () => {
@@ -25,6 +27,6 @@ describe("App", () => {
 		const { lastFrame } = render(<App initResult={mockInitResult} />);
 		// Header shows command hints
 		expect(lastFrame()).toContain("for commands");
-		expect(lastFrame()).toContain("Tab");
+		expect(lastFrame()).toContain("for shortcuts");
 	});
 });

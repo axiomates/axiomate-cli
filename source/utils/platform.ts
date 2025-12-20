@@ -358,8 +358,7 @@ export function restartApp(): Promise<never> {
 		return restartPromise;
 	}
 
-	restartPromise =
-		platform() === "win32" ? restartWindows() : restartUnix();
+	restartPromise = platform() === "win32" ? restartWindows() : restartUnix();
 
 	return restartPromise;
 }

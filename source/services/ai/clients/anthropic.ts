@@ -77,7 +77,10 @@ export class AnthropicClient implements IAIClient {
 		messages: ChatMessage[],
 		tools?: OpenAITool[],
 	): Promise<AIResponse> {
-		const url = `${this.config.baseUrl}/v1/messages`;
+		// 构建 URL：baseUrl 应该已经包含 /v1，只需添加 /messages
+		const baseUrl =
+			this.config.baseUrl?.replace(/\/$/, "") || "https://api.anthropic.com/v1";
+		const url = `${baseUrl}/messages`;
 
 		// 提取 system 消息
 		const systemPrompt = extractSystemMessage(messages);

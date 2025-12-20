@@ -10,10 +10,13 @@ import type {
 import { SLASH_COMMANDS } from "../constants/commands.js";
 import { getToolRegistry } from "./tools/registry.js";
 import {
-	loadAIConfig,
-	listConfiguredModels,
-	MODEL_PRESETS,
-} from "./ai/config.js";
+	getModelById,
+	getAllSeries,
+	getModelsBySeries,
+	getSeriesDisplayName,
+	DEFAULT_MODEL_ID,
+} from "../constants/models.js";
+import { getCurrentModelId, setCurrentModelId } from "../utils/config.js";
 
 /**
  * 命令执行结果（内部使用）
@@ -132,56 +135,75 @@ const internalHandlers: Record<string, InternalHandler> = {
 	model_list: () => ({
 		type: "message",
 		content: (() => {
-			const models = listConfiguredModels();
-			if (models.length === 0) {
-				return "未配置任何模型。使用 `/model <provider> <model>` 设置模型。";
-			}
+			const currentModelId = getCurrentModelId() || DEFAULT_MODEL_ID;
+			const currentModel = getModelById(currentModelId);
 
-			const lines = ["## 已配置模型", ""];
-			for (const { id, config, isCurrent } of models) {
-				const marker = isCurrent ? "→ " : "  ";
-				const provider = config.provider.toUpperCase();
-				lines.push(`${marker}**${id}** (${provider}: ${config.model})`);
-			}
+			const lines = ["## Available Models", ""];
 
-			const aiConfig = loadAIConfig();
-			lines.push("");
-			lines.push(`### 设置`);
-			lines.push(`- 两阶段调用: ${aiConfig.twoPhaseEnabled ? "启用" : "禁用"}`);
-			lines.push(
-				`- 上下文感知: ${aiConfig.contextAwareEnabled ? "启用" : "禁用"}`,
-			);
-			lines.push(`- 最大工具调用轮数: ${aiConfig.maxToolCallRounds}`);
+			// 按系列分组显示
+			for (const series of getAllSeries()) {
+				const seriesModels = getModelsBySeries(series);
+				lines.push(`### ${getSeriesDisplayName(series)}`);
 
-			return lines.join("\n");
-		})(),
-	}),
+				for (const model of seriesModels) {
+					const isCurrent = model.id === currentModelId;
+					const marker = isCurrent ? "→ " : "  ";
 
-	model_presets: () => ({
-		type: "message",
-		content: (() => {
-			const lines = ["## 可用模型预设", ""];
-			const grouped: Record<string, string[]> = {};
+					// 能力标签
+					const capabilities: string[] = [];
+					if (model.supportsTools) capabilities.push("tools");
+					if (model.supportsThinking) capabilities.push("thinking");
+					const capStr =
+						capabilities.length > 0 ? `[${capabilities.join(", ")}]` : "";
 
-			for (const [id, preset] of Object.entries(MODEL_PRESETS)) {
-				const provider = preset.provider || "custom";
-				if (!grouped[provider]) {
-					grouped[provider] = [];
+					// 描述
+					const desc = model.description ? ` - ${model.description}` : "";
+
+					lines.push(`${marker}**${model.id}** ${model.name}${desc} ${capStr}`);
 				}
-				grouped[provider].push(`  - ${id}`);
-			}
-
-			for (const [provider, models] of Object.entries(grouped)) {
-				lines.push(`### ${provider.toUpperCase()}`);
-				lines.push(...models);
 				lines.push("");
 			}
 
-			lines.push("使用 `/model <预设名> <API_KEY>` 添加模型配置");
+			// 当前模型信息
+			if (currentModel) {
+				lines.push("---");
+				lines.push(`**Current:** ${currentModel.name} (${currentModel.id})`);
+				lines.push(
+					`**Capabilities:** tools ${currentModel.supportsTools ? "✓" : "✗"}, thinking ${currentModel.supportsThinking ? "✓" : "✗"}`,
+				);
+				lines.push(`**Protocol:** ${currentModel.protocol}`);
+			}
 
 			return lines.join("\n");
 		})(),
 	}),
+
+	// 模型选择处理器
+	model_select: (path: string[]) => {
+		// path = ["model", "gpt-4o"] -> modelId = "gpt-4o"
+		const modelId = path[path.length - 1];
+		if (!modelId) {
+			return { type: "error" as const, message: "未指定模型" };
+		}
+
+		const model = getModelById(modelId);
+		if (!model) {
+			return { type: "error" as const, message: `未知模型: ${modelId}` };
+		}
+
+		// 保存到配置
+		setCurrentModelId(modelId);
+
+		// 返回成功消息，包含模型信息
+		const capabilities: string[] = [];
+		if (model.supportsTools) capabilities.push("tools");
+		if (model.supportsThinking) capabilities.push("thinking");
+
+		return {
+			type: "message" as const,
+			content: `已切换到 **${model.name}** (${model.id})\n\nCapabilities: ${capabilities.join(", ") || "none"}\nProtocol: ${model.protocol}`,
+		};
+	},
 };
 
 /**

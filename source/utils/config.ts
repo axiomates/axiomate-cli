@@ -10,6 +10,7 @@ const CONFIG_FILENAME = ".axiomate.json";
 export type Config = {
 	AXIOMATE_BASE_URL: string;
 	AXIOMATE_API_KEY: string;
+	AXIOMATE_MODEL: string;
 };
 
 /**
@@ -21,6 +22,7 @@ export type ConfigFile = Partial<Config>;
 const DEFAULT_CONFIG: Config = {
 	AXIOMATE_BASE_URL: "",
 	AXIOMATE_API_KEY: "",
+	AXIOMATE_MODEL: "",
 };
 
 // 运行时配置（单例）
@@ -141,4 +143,20 @@ export function isFirstTimeUser(): boolean {
 		!config.AXIOMATE_API_KEY ||
 		config.AXIOMATE_API_KEY.trim() === ""
 	);
+}
+
+/**
+ * 获取当前模型 ID
+ * 如果未设置，返回空字符串（调用方应使用 DEFAULT_MODEL_ID）
+ */
+export function getCurrentModelId(): string {
+	const config = getConfig();
+	return config.AXIOMATE_MODEL || "";
+}
+
+/**
+ * 设置当前模型 ID
+ */
+export function setCurrentModelId(modelId: string): void {
+	updateConfig({ AXIOMATE_MODEL: modelId });
 }

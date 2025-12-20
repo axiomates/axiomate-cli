@@ -4,13 +4,7 @@
  */
 
 import { Box } from "ink";
-import {
-	useReducer,
-	useCallback,
-	useMemo,
-	useEffect,
-	useRef,
-} from "react";
+import { useReducer, useCallback, useMemo, useEffect, useRef } from "react";
 import { useApp } from "ink";
 import useTerminalWidth from "../../hooks/useTerminalWidth.js";
 import { segmentsToRanges } from "../../models/richInput.js";

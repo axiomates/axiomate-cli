@@ -5,10 +5,16 @@
  */
 
 import { getToolRegistry } from "../services/tools/registry.js";
-import { createAIServiceFromConfig, type IAIService } from "../services/ai/index.js";
+import {
+	createAIServiceFromConfig,
+	getCurrentModel,
+	type IAIService,
+	type ModelPreset,
+} from "../services/ai/index.js";
 
 export type InitResult = {
 	aiService: IAIService | null;
+	currentModel: ModelPreset;
 };
 
 export type InitProgress = {
@@ -33,9 +39,10 @@ export async function initApp(
 	// 阶段 2: 创建 AI 服务
 	onProgress?.({ stage: "ai", message: "Loading AI config..." });
 	const aiService = createAIServiceFromConfig(registry);
+	const currentModel = getCurrentModel();
 
 	// 完成
 	onProgress?.({ stage: "done", message: "Ready" });
 
-	return { aiService };
+	return { aiService, currentModel };
 }

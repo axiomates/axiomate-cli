@@ -67,7 +67,10 @@ export class OpenAIClient implements IAIClient {
 		messages: ChatMessage[],
 		tools?: OpenAITool[],
 	): Promise<AIResponse> {
-		const url = `${this.config.baseUrl}/v1/chat/completions`;
+		// 构建 URL：baseUrl 应该已经包含 /v1，只需添加 /chat/completions
+		const baseUrl =
+			this.config.baseUrl?.replace(/\/$/, "") || "https://api.openai.com/v1";
+		const url = `${baseUrl}/chat/completions`;
 
 		const body: Record<string, unknown> = {
 			model: this.config.model,

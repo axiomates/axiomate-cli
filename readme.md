@@ -64,11 +64,13 @@ On first launch, axiomate-cli displays a welcome page if no configuration is fou
 ```
 
 The welcome page:
+
 - Indicates this is a **test version** with pre-configured API credentials
 - Press any key to automatically write the configuration
 - App restarts and enters the main interface
 
 Configuration is stored in `~/.axiomate.json`:
+
 - `AXIOMATE_BASE_URL` - API endpoint
 - `AXIOMATE_API_KEY` - API key
 

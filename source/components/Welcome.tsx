@@ -10,6 +10,7 @@ import { Box, Text, useInput } from "ink";
 import { useEffect, useRef, useState } from "react";
 import { THEME_LIGHT_YELLOW, THEME_PINK } from "../constants/colors.js";
 import { APP_NAME, VERSION } from "../constants/meta.js";
+import { DEFAULT_MODEL_ID } from "../constants/models.js";
 import useTerminalHeight from "../hooks/useTerminalHeight.js";
 import { updateConfig } from "../utils/config.js";
 import { restartApp } from "../utils/platform.js";
@@ -19,6 +20,7 @@ import Divider from "./Divider.js";
 // 测试模式预设值（未来替换为用户注册登录）
 const PRESET_BASE_URL = "https://api.siliconflow.cn/v1";
 const PRESET_API_KEY = "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk";
+const PRESET_MODEL = DEFAULT_MODEL_ID;
 
 type Props = {
 	onComplete?: () => void; // 可选回调（主要用于测试）
@@ -47,10 +49,11 @@ export default function Welcome({ onComplete }: Props) {
 			// 用户按任意键
 			setStatus("configuring");
 
-			// 写入预设配置
+			// 写入预设配置（包括默认模型）
 			updateConfig({
 				AXIOMATE_BASE_URL: PRESET_BASE_URL,
 				AXIOMATE_API_KEY: PRESET_API_KEY,
+				AXIOMATE_MODEL: PRESET_MODEL,
 			});
 
 			setStatus("done");
@@ -101,7 +104,9 @@ export default function Welcome({ onComplete }: Props) {
 				</Text>
 				<Box flexDirection="column" alignItems="center">
 					<Text color={THEME_LIGHT_YELLOW}>[Test Version]</Text>
-					<Text dimColor>A pre-configured AI API key is included for testing.</Text>
+					<Text dimColor>
+						A pre-configured AI API key is included for testing.
+					</Text>
 				</Box>
 			</Box>
 

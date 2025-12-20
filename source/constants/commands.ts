@@ -1,4 +1,16 @@
 import type { SlashCommand } from "../components/AutocompleteInput/index.js";
+import { MODEL_PRESETS } from "./models.js";
+
+/**
+ * 根据模型预设生成模型选择命令
+ */
+function generateModelCommands(): SlashCommand[] {
+	return MODEL_PRESETS.map((preset) => ({
+		name: preset.id,
+		description: `${preset.name}${preset.description ? ` - ${preset.description}` : ""}`,
+		action: { type: "internal" as const, handler: "model_select" },
+	}));
+}
 
 // 斜杠命令列表
 export const SLASH_COMMANDS: SlashCommand[] = [
@@ -8,97 +20,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		children: [
 			{
 				name: "list",
-				description: "List configured models",
+				description: "List available models",
 				action: { type: "internal", handler: "model_list" },
 			},
-			{
-				name: "presets",
-				description: "Show available model presets",
-				action: { type: "internal", handler: "model_presets" },
-			},
-			{
-				name: "openai",
-				description: "OpenAI models",
-				children: [
-					{
-						name: "gpt-4o",
-						description: "GPT-4o (recommended)",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "gpt-4",
-						description: "GPT-4",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "gpt-4-turbo",
-						description: "GPT-4 Turbo",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "gpt-3.5-turbo",
-						description: "GPT-3.5 Turbo",
-						action: { type: "config", key: "model" },
-					},
-				],
-			},
-			{
-				name: "qwen",
-				description: "Qwen models",
-				children: [
-					{
-						name: "qwen-72b",
-						description: "Qwen 72B",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "qwen-14b",
-						description: "Qwen 14B",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "qwen-7b",
-						description: "Qwen 7B",
-						action: { type: "config", key: "model" },
-					},
-				],
-			},
-			{
-				name: "claude",
-				description: "Anthropic Claude models",
-				children: [
-					{
-						name: "claude-3-opus",
-						description: "Claude 3 Opus",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "claude-3-sonnet",
-						description: "Claude 3 Sonnet",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "claude-3-haiku",
-						description: "Claude 3 Haiku",
-						action: { type: "config", key: "model" },
-					},
-					{
-						name: "claude-3.5-sonnet",
-						description: "Claude 3.5 Sonnet",
-						action: { type: "config", key: "model" },
-					},
-				],
-			},
-			{
-				name: "deepseek-v3",
-				description: "DeepSeek V3",
-				action: { type: "config", key: "model" },
-			},
-			{
-				name: "llama-3.3-70b",
-				description: "Llama 3.3 70B",
-				action: { type: "config", key: "model" },
-			},
+			// 动态生成模型选择命令
+			...generateModelCommands(),
 		],
 	},
 	{

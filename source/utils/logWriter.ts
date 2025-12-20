@@ -50,7 +50,10 @@ export class LogWriter {
 	private currentFileSize = 0;
 	private initialized = false;
 
-	constructor(basePath: string, options?: Partial<Omit<LogWriterConfig, "basePath">>) {
+	constructor(
+		basePath: string,
+		options?: Partial<Omit<LogWriterConfig, "basePath">>,
+	) {
 		this.config = {
 			basePath,
 			...DEFAULT_CONFIG,
@@ -144,7 +147,11 @@ export class LogWriter {
 		try {
 			const files = await fs.promises.readdir(this.config.basePath);
 			const todayFiles = files
-				.filter((f) => f.startsWith(`${this.config.baseName}.${today}`) && f.endsWith(".log"))
+				.filter(
+					(f) =>
+						f.startsWith(`${this.config.baseName}.${today}`) &&
+						f.endsWith(".log"),
+				)
 				.sort();
 
 			if (todayFiles.length === 0) {
@@ -238,7 +245,10 @@ export class LogWriter {
 			return path.join(basePath, `${baseName}.${this.currentDate}.log`);
 		}
 		// app.2024-12-20.1.log
-		return path.join(basePath, `${baseName}.${this.currentDate}.${this.currentFileIndex}.log`);
+		return path.join(
+			basePath,
+			`${baseName}.${this.currentDate}.${this.currentFileIndex}.log`,
+		);
 	}
 
 	/**

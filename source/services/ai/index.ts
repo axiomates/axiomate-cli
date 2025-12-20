@@ -66,22 +66,26 @@ export { AIService, createAIService } from "./service.js";
 
 // 配置管理
 export {
-	type AIProvider,
-	type AIModelConfig,
-	type AIConfig,
-	MODEL_PRESETS,
-	loadAIConfig,
-	saveAIConfig,
-	updateAIConfig,
-	getCurrentModelConfig,
-	setCurrentModel,
-	addModelConfig,
-	addModelFromPreset,
-	removeModelConfig,
-	listConfiguredModels,
-	validateModelConfig,
-	getAIConfigPath,
+	getCurrentModel,
+	getApiConfig,
+	getModelApiConfig,
+	isApiConfigValid,
+	getCurrentModelId,
+	DEFAULT_MODEL_ID,
 } from "./config.js";
+
+// 模型预设（从 constants 导出）
+export {
+	MODEL_PRESETS,
+	getModelById,
+	getModelsBySeries,
+	getAllSeries,
+	getSeriesDisplayName,
+	getDefaultModel,
+	type ModelPreset,
+	type ModelSeries,
+	type ApiProtocol,
+} from "../../constants/models.js";
 
 // 工厂函数：创建完整的 AI 服务实例
 import type { IToolRegistry } from "../tools/types.js";
@@ -90,53 +94,72 @@ import { OpenAIClient } from "./clients/openai.js";
 import { AnthropicClient } from "./clients/anthropic.js";
 import { AIService } from "./service.js";
 import {
-	getCurrentModelConfig,
-	loadAIConfig,
-	type AIModelConfig,
+	getCurrentModel,
+	getModelApiConfig,
+	isApiConfigValid,
 } from "./config.js";
+import type { ModelPreset } from "../../constants/models.js";
 
 /**
- * 根据配置创建 AI 客户端
+ * 根据模型预设创建 AI 客户端
  */
-export function createAIClient(modelConfig: AIModelConfig): IAIClient {
-	const config = {
-		apiKey: modelConfig.apiKey,
-		model: modelConfig.model,
-		baseUrl: modelConfig.baseUrl,
+export function createAIClient(model: ModelPreset): IAIClient {
+	const apiConfig = getModelApiConfig(model);
+
+	const clientConfig = {
+		apiKey: apiConfig.apiKey,
+		model: apiConfig.apiModel,
+		baseUrl: apiConfig.baseUrl,
 	};
 
-	switch (modelConfig.provider) {
+	switch (apiConfig.protocol) {
 		case "anthropic":
-			return new AnthropicClient(config);
+			return new AnthropicClient(clientConfig);
 		case "openai":
-		case "azure":
-		case "custom":
 		default:
-			return new OpenAIClient(config);
+			return new OpenAIClient(clientConfig);
 	}
 }
 
 /**
  * 创建 AI 服务实例（使用当前配置）
+ *
+ * @returns AI 服务实例，如果配置无效则返回 null
  */
 export function createAIServiceFromConfig(
 	registry: IToolRegistry,
 ): IAIService | null {
-	const modelConfig = getCurrentModelConfig();
-	if (!modelConfig) {
+	if (!isApiConfigValid()) {
 		return null;
 	}
 
-	const aiConfig = loadAIConfig();
-	const client = createAIClient(modelConfig);
+	const model = getCurrentModel();
+	const client = createAIClient(model);
 
 	return new AIService(
 		{
 			client,
-			twoPhaseEnabled: aiConfig.twoPhaseEnabled,
-			contextAwareEnabled: aiConfig.contextAwareEnabled,
-			maxToolCallRounds: aiConfig.maxToolCallRounds,
+			// 根据模型能力调整配置
+			twoPhaseEnabled: model.supportsTools,
+			contextAwareEnabled: model.supportsTools,
+			maxToolCallRounds: 5,
 		},
 		registry,
 	);
+}
+
+/**
+ * 获取当前模型信息（用于 App 状态）
+ */
+export function getCurrentModelInfo(): {
+	model: ModelPreset;
+	isConfigured: boolean;
+} {
+	const model = getCurrentModel();
+	const isConfigured = isApiConfigValid();
+
+	return {
+		model,
+		isConfigured,
+	};
 }
