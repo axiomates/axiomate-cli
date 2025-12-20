@@ -50,11 +50,13 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{
 		name: "compact",
-		description: "Summarize conversation context",
-		action: {
-			type: "prompt",
-			template: "请帮我总结上面的对话内容，提取关键信息。",
-		},
+		description: "Summarize and compress conversation context",
+		action: { type: "internal", handler: "compact" },
+	},
+	{
+		name: "new",
+		description: "Start a new session (discard current context)",
+		action: { type: "internal", handler: "new_session" },
 	},
 	{
 		name: "help",
@@ -63,7 +65,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 	},
 	{
 		name: "clear",
-		description: "Clear the screen",
+		description: "Clear the screen (keeps session context)",
 		action: { type: "internal", handler: "clear" },
 	},
 	{

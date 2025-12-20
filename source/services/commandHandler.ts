@@ -19,17 +19,6 @@ import {
 import { getCurrentModelId, setCurrentModelId } from "../utils/config.js";
 
 /**
- * 命令执行结果（内部使用）
- */
-type CommandResult =
-	| { type: "message"; content: string } // 显示消息（内部处理完成）
-	| { type: "prompt"; content: string } // 发送给 AI 的 prompt
-	| { type: "config"; key: string; value: string } // 配置变更
-	| { type: "action"; action: "clear" | "exit" } // 特殊动作
-	| { type: "async"; handler: () => Promise<string> } // 异步命令
-	| { type: "error"; message: string }; // 错误
-
-/**
  * 内部命令处理器映射
  */
 type InternalHandler = (
@@ -55,11 +44,27 @@ export type CommandCallbacks = {
 	sendToAI: (content: string) => void;
 	/** 更新配置 */
 	setConfig: (key: string, value: string) => void;
-	/** 清屏 */
+	/** 清屏（仅清空 UI，保留会话上下文） */
 	clear: () => void;
+	/** 开始新会话（清空会话上下文） */
+	newSession: () => void;
+	/** 执行 compact（总结并压缩会话） */
+	compact: () => Promise<void>;
 	/** 退出 */
 	exit: () => void;
 };
+
+/**
+ * 命令执行结果 - 新增 callback 类型
+ */
+type CommandResult =
+	| { type: "message"; content: string }
+	| { type: "prompt"; content: string }
+	| { type: "config"; key: string; value: string }
+	| { type: "action"; action: "clear" | "exit" }
+	| { type: "async"; handler: () => Promise<string> }
+	| { type: "callback"; callback: "new_session" | "compact" }
+	| { type: "error"; message: string };
 
 /**
  * 内部命令处理器注册表
@@ -68,7 +73,15 @@ const internalHandlers: Record<string, InternalHandler> = {
 	help: () => ({
 		type: "message",
 		content:
-			"Available commands: /help, /exit, /clear, /version, /model, /tools, /compact",
+			"Available commands:\n" +
+			"  /help     - Show this help\n" +
+			"  /model    - Select AI model\n" +
+			"  /tools    - Manage local tools\n" +
+			"  /compact  - Summarize and compress context\n" +
+			"  /new      - Start a new session\n" +
+			"  /clear    - Clear screen (keeps context)\n" +
+			"  /version  - Show version\n" +
+			"  /exit     - Exit application",
 	}),
 
 	version: (_path, ctx) => ({
@@ -84,6 +97,16 @@ const internalHandlers: Record<string, InternalHandler> = {
 	exit: () => ({
 		type: "action",
 		action: "exit",
+	}),
+
+	new_session: () => ({
+		type: "callback",
+		callback: "new_session",
+	}),
+
+	compact: () => ({
+		type: "callback",
+		callback: "compact",
 	}),
 
 	// 工具命令处理器
@@ -339,6 +362,14 @@ export async function handleCommand(
 				callbacks.showMessage(
 					`Error: ${err instanceof Error ? err.message : String(err)}`,
 				);
+			}
+			break;
+
+		case "callback":
+			if (result.callback === "new_session") {
+				callbacks.newSession();
+			} else if (result.callback === "compact") {
+				await callbacks.compact();
 			}
 			break;
 

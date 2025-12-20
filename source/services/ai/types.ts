@@ -304,6 +304,38 @@ export type AIServiceConfig = {
 };
 
 /**
+ * Session 状态（从 session.ts 重新导出以便外部使用）
+ */
+export type SessionStatus = {
+	/** 已使用的 token 数 */
+	usedTokens: number;
+	/** 可用的 token 数（用于新消息 + 响应） */
+	availableTokens: number;
+	/** 使用百分比 (0-100) */
+	usagePercent: number;
+	/** 是否接近上限 (>80%) */
+	isNearLimit: boolean;
+	/** 是否已满 (>95%) */
+	isFull: boolean;
+	/** 消息数量 */
+	messageCount: number;
+};
+
+/**
+ * Compact 检查结果
+ */
+export type CompactCheckResult = {
+	/** 是否需要 compact */
+	shouldCompact: boolean;
+	/** 当前使用百分比 */
+	usagePercent: number;
+	/** 预计添加新消息后的使用百分比 */
+	projectedPercent: number;
+	/** 消息数量 */
+	messageCount: number;
+};
+
+/**
  * AI 服务接口
  */
 export type IAIService = {
@@ -334,4 +366,26 @@ export type IAIService = {
 	 * 获取上下文窗口大小
 	 */
 	getContextWindow(): number;
+
+	/**
+	 * 获取 Session 状态
+	 */
+	getSessionStatus(): SessionStatus;
+
+	/**
+	 * 获取可用于新消息的 token 数
+	 */
+	getAvailableTokens(): number;
+
+	/**
+	 * 检查是否需要 compact
+	 * @param estimatedNewTokens 预计新消息的 token 数
+	 */
+	shouldCompact(estimatedNewTokens?: number): CompactCheckResult;
+
+	/**
+	 * 使用总结内容重置会话
+	 * @param summary AI 生成的对话总结
+	 */
+	compactWith(summary: string): void;
 };

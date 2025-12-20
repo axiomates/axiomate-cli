@@ -2,6 +2,7 @@
  * AI 服务
  * 实现上下文感知 + 工具调用循环
  * 使用本地目录分析自动选择工具（不使用两阶段 AI 调用）
+ * 使用 Session 管理对话历史和 token 追踪
  */
 
 import type {
@@ -17,11 +18,31 @@ import type { IToolMatcher } from "./types.js";
 import { toOpenAITools } from "./adapters/openai.js";
 import { ToolCallHandler } from "./tool-call-handler.js";
 import { ToolMatcher, detectProjectType } from "../tools/matcher.js";
+import {
+	Session,
+	type SessionStatus,
+	type TrimResult,
+	type CompactCheckResult,
+} from "./session.js";
 
 /**
  * 默认上下文窗口大小
  */
 const DEFAULT_CONTEXT_WINDOW = 32768;
+
+/**
+ * 发送消息的结果
+ */
+export type SendMessageResult = {
+	/** 响应内容 */
+	content: string;
+	/** Session 状态 */
+	sessionStatus: SessionStatus;
+	/** 是否进行了历史裁剪 */
+	historyTrimmed: boolean;
+	/** 裁剪详情（如果有裁剪） */
+	trimResult?: TrimResult;
+};
 
 /**
  * AI 服务实现
@@ -31,13 +52,10 @@ export class AIService implements IAIService {
 	private registry: IToolRegistry;
 	private matcher: IToolMatcher;
 	private toolCallHandler: ToolCallHandler;
-
-	private history: ChatMessage[] = [];
-	private systemPrompt: string = "";
+	private session: Session;
 
 	private maxToolCallRounds: number;
 	private contextAwareEnabled: boolean;
-	private contextWindow: number;
 
 	constructor(config: AIServiceConfig, registry: IToolRegistry) {
 		this.client = config.client;
@@ -47,55 +65,119 @@ export class AIService implements IAIService {
 
 		this.maxToolCallRounds = config.maxToolCallRounds ?? 5;
 		this.contextAwareEnabled = config.contextAwareEnabled ?? true;
-		this.contextWindow = config.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
+
+		// 创建 Session
+		this.session = new Session({
+			contextWindow: config.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
+		});
 	}
 
 	/**
 	 * 设置系统提示词
 	 */
 	setSystemPrompt(prompt: string): void {
-		this.systemPrompt = prompt;
+		this.session.setSystemPrompt(prompt);
 	}
 
 	/**
 	 * 获取对话历史
 	 */
 	getHistory(): ChatMessage[] {
-		return [...this.history];
+		return this.session.getHistory();
 	}
 
 	/**
 	 * 清空对话历史
 	 */
 	clearHistory(): void {
-		this.history = [];
+		this.session.clear();
 	}
 
 	/**
 	 * 获取上下文窗口大小
 	 */
 	getContextWindow(): number {
-		return this.contextWindow;
+		return this.session.getConfig().contextWindow;
+	}
+
+	/**
+	 * 获取 Session 状态
+	 */
+	getSessionStatus(): SessionStatus {
+		return this.session.getStatus();
+	}
+
+	/**
+	 * 获取可用于新消息的 token 数
+	 */
+	getAvailableTokens(): number {
+		return this.session.getAvailableTokens();
+	}
+
+	/**
+	 * 检查是否需要 compact
+	 */
+	shouldCompact(estimatedNewTokens: number = 0): CompactCheckResult {
+		return this.session.shouldCompact(estimatedNewTokens);
+	}
+
+	/**
+	 * 使用总结内容重置会话
+	 */
+	compactWith(summary: string): void {
+		this.session.compactWith(summary);
 	}
 
 	/**
 	 * 发送消息并获取响应
+	 * 注意：不再自动裁剪历史，改为在 app.tsx 中检查 shouldCompact 并触发 compact
 	 */
 	async sendMessage(
 		userMessage: string,
 		context?: MatchContext,
 	): Promise<string> {
-		// 添加用户消息到历史
-		this.history.push({
-			role: "user",
-			content: userMessage,
-		});
+		// 添加用户消息到 Session
+		this.session.addUserMessage(userMessage);
 
 		// 增强上下文
 		const enhancedContext = this.enhanceContext(context);
 
 		// 使用本地上下文匹配选择工具
-		return this.contextAwareChat(userMessage, enhancedContext);
+		const result = await this.contextAwareChat(userMessage, enhancedContext);
+
+		return result.content;
+	}
+
+	/**
+	 * 发送消息并获取详细结果（包含 Session 状态）
+	 */
+	async sendMessageWithStatus(
+		userMessage: string,
+		context?: MatchContext,
+	): Promise<SendMessageResult> {
+		// 检查是否需要先裁剪历史
+		const estimatedTokens = userMessage.length / 4; // 粗略估算
+		let trimResult: TrimResult | undefined;
+
+		if (!this.session.canAccommodate(estimatedTokens)) {
+			trimResult = this.session.ensureSpace(estimatedTokens);
+		}
+
+		// 添加用户消息到 Session
+		this.session.addUserMessage(userMessage);
+
+		// 增强上下文
+		const enhancedContext = this.enhanceContext(context);
+
+		// 使用本地上下文匹配选择工具
+		const result = await this.contextAwareChat(userMessage, enhancedContext);
+
+		return {
+			content: result.content,
+			sessionStatus: this.session.getStatus(),
+			historyTrimmed: trimResult?.trimmed ?? false,
+			trimResult,
+		};
 	}
 
 	/**
@@ -119,7 +201,7 @@ export class AIService implements IAIService {
 	private async contextAwareChat(
 		userMessage: string,
 		context: MatchContext,
-	): Promise<string> {
+	): Promise<SendMessageResult> {
 		// 获取相关工具
 		let tools: OpenAITool[] = [];
 
@@ -159,22 +241,26 @@ export class AIService implements IAIService {
 	/**
 	 * 直接对话（不带工具）
 	 */
-	private async directChat(): Promise<string> {
-		const messages = this.buildMessages();
+	private async directChat(): Promise<SendMessageResult> {
+		const messages = this.session.getMessages();
 
 		const response = await this.client.chat(messages);
 
-		// 添加到历史
-		this.history.push(response.message);
+		// 添加到 Session（带 usage 信息）
+		this.session.addAssistantMessage(response.message, response.usage);
 
-		return response.message.content;
+		return {
+			content: response.message.content,
+			sessionStatus: this.session.getStatus(),
+			historyTrimmed: false,
+		};
 	}
 
 	/**
 	 * 带工具的对话
 	 */
-	private async chatWithTools(tools: OpenAITool[]): Promise<string> {
-		const messages = this.buildMessages();
+	private async chatWithTools(tools: OpenAITool[]): Promise<SendMessageResult> {
+		const messages = this.session.getMessages();
 		let rounds = 0;
 
 		while (rounds < this.maxToolCallRounds) {
@@ -186,8 +272,8 @@ export class AIService implements IAIService {
 				response.message.tool_calls &&
 				response.message.tool_calls.length > 0
 			) {
-				// 添加 assistant 消息到历史
-				this.history.push(response.message);
+				// 添加 assistant 消息到 Session
+				this.session.addAssistantMessage(response.message, response.usage);
 				messages.push(response.message);
 
 				// 执行工具调用
@@ -195,9 +281,9 @@ export class AIService implements IAIService {
 					response.message.tool_calls,
 				);
 
-				// 添加工具结果到历史和消息
+				// 添加工具结果到 Session 和消息
 				for (const result of toolResults) {
-					this.history.push(result);
+					this.session.addToolMessage(result);
 					messages.push(result);
 				}
 
@@ -206,32 +292,21 @@ export class AIService implements IAIService {
 			}
 
 			// 没有工具调用，返回最终响应
-			this.history.push(response.message);
-			return response.message.content;
+			this.session.addAssistantMessage(response.message, response.usage);
+
+			return {
+				content: response.message.content,
+				sessionStatus: this.session.getStatus(),
+				historyTrimmed: false,
+			};
 		}
 
 		// 达到最大轮数
-		return "已达到最大工具调用轮数限制。";
-	}
-
-	/**
-	 * 构建消息列表
-	 */
-	private buildMessages(): ChatMessage[] {
-		const messages: ChatMessage[] = [];
-
-		// 添加系统提示词
-		if (this.systemPrompt) {
-			messages.push({
-				role: "system",
-				content: this.systemPrompt,
-			});
-		}
-
-		// 添加历史消息
-		messages.push(...this.history);
-
-		return messages;
+		return {
+			content: "已达到最大工具调用轮数限制。",
+			sessionStatus: this.session.getStatus(),
+			historyTrimmed: false,
+		};
 	}
 }
 

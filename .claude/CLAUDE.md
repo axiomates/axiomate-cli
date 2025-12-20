@@ -78,7 +78,12 @@ source/
 │   ├── ai/                    # AI service integration
 │   │   ├── types.ts           # ChatMessage, ToolCall, AIResponse, interfaces
 │   │   ├── config.ts          # AI config helpers (getCurrentModel, getModelApiConfig)
-│   │   ├── service.ts         # AIService with two-phase calling
+│   │   ├── service.ts         # AIService with context-aware tool calling
+│   │   ├── session.ts         # Session class (token tracking, compact)
+│   │   ├── tokenEstimator.ts  # Token estimation for messages
+│   │   ├── fileReader.ts      # Read files, format as XML for AI
+│   │   ├── contentBuilder.ts  # Build message content with file attachments
+│   │   ├── messageQueue.ts    # Async message queue for AI requests
 │   │   ├── tool-call-handler.ts # Execute tools, format results
 │   │   ├── index.ts           # Main exports and factory functions
 │   │   ├── adapters/          # Protocol adapters
@@ -610,9 +615,10 @@ Current command tree:
   /list (internal: tools_list, async)
   /refresh (internal: tools_refresh, async)
   /stats (internal: tools_stats, async)
-/compact (prompt: summarize conversation)
+/compact (internal: compact) - Summarize and compress conversation context
+/new (internal: new_session) - Start a new session (discard current context)
 /help (internal: help)
-/clear (internal: clear)
+/clear (internal: clear) - Clear screen only (keeps session context)
 /version (internal: version)
 /exit (internal: exit)
 ```
@@ -630,18 +636,21 @@ type CommandResult =
   | { type: "config"; key: string; value: string }
   | { type: "action"; action: "clear" | "exit" }
   | { type: "async"; handler: () => Promise<string> }  // Async commands
+  | { type: "callback"; callback: "new_session" | "compact" }  // App callbacks
   | { type: "error"; message: string };
 
 type CommandCallbacks = {
   showMessage: (content: string) => void;
   sendToAI: (content: string) => void;
   setConfig: (key: string, value: string) => void;
-  clear: () => void;
+  clear: () => void;           // Clear UI only (keeps session context)
+  newSession: () => void;      // Start new session (clears AI context)
+  compact: () => Promise<void>; // Summarize and compress context
   exit: () => void;
 };
 ```
 
-**Note**: The `handleCommand` function is now async to support commands like `/tools list` that require async operations.
+**Note**: The `handleCommand` function is now async to support commands like `/tools list` and `/compact` that require async operations.
 
 ### Component Communication
 
@@ -1135,7 +1144,11 @@ source/constants/
 source/services/ai/
 ├── types.ts              # Core AI types and interfaces
 ├── config.ts             # getCurrentModel, getModelApiConfig, isApiConfigValid
-├── service.ts            # AIService with two-phase calling
+├── service.ts            # AIService with context-aware tool calling
+├── session.ts            # Session class (token tracking, compact)
+├── tokenEstimator.ts     # Token estimation for messages
+├── contentBuilder.ts     # Build message content with file attachments
+├── messageQueue.ts       # Async message queue for AI requests
 ├── tool-call-handler.ts  # Tool execution and result formatting
 ├── index.ts              # Main exports and factory functions
 ├── adapters/
@@ -1531,3 +1544,424 @@ if (finish_reason === "tool_calls"):
     Loop until finish_reason === "stop"
     ↓
 Return final AI response
+```
+
+## Session Management
+
+### Overview
+
+The application manages two separate types of history:
+
+1. **Input History (`inputHistory`)**: User's command/message history for ↑/↓ navigation. Preserved throughout app lifetime.
+2. **Session Context (`Session.messages`)**: AI conversation context sent with each request. Managed by Session class.
+
+### Session Class
+
+Located in `services/ai/session.ts`:
+
+```typescript
+class Session {
+  private messages: SessionMessage[] = [];
+  private systemPrompt: SessionMessage | null = null;
+  private config: Required<SessionConfig>;
+  private actualPromptTokens: number = 0;
+  private actualCompletionTokens: number = 0;
+
+  // Token tracking
+  getUsedTokens(): number;
+  getAvailableTokens(): number;
+  getStatus(): SessionStatus;
+
+  // Message management
+  addUserMessage(content: string): void;
+  addAssistantMessage(message: ChatMessage, usage?: TokenUsage): void;
+  addToolMessage(message: ChatMessage): void;
+  getMessages(): ChatMessage[];
+  getHistory(): ChatMessage[];
+  clear(): void;
+
+  // Compact functionality
+  shouldCompact(estimatedNewTokens?: number, compactThreshold?: number): CompactCheckResult;
+  compactWith(summary: string): void;
+}
+
+type SessionStatus = {
+  usedTokens: number;
+  availableTokens: number;
+  usagePercent: number;
+  isNearLimit: boolean;
+  isFull: boolean;
+  messageCount: number;
+};
+
+type CompactCheckResult = {
+  shouldCompact: boolean;
+  usagePercent: number;
+  projectedPercent: number;
+  messageCount: number;
+};
+```
+
+### Auto-Compact Strategy
+
+Instead of trimming old messages, the app uses an **auto-compact** strategy:
+
+1. Before sending each message, check if context usage will exceed threshold (default 85%)
+2. If threshold exceeded AND conversation has more than 2 messages, trigger auto-compact
+3. Compact sends a summary prompt to AI, then resets session with summary as new context base
+
+**Implementation** (`app.tsx`):
+
+```typescript
+// Compact prompt (English) - defined outside component
+const COMPACT_PROMPT =
+  "Summarize our conversation so far in a concise but comprehensive way. " +
+  "Include key decisions, code changes discussed, important context, and any unresolved questions. " +
+  "This summary will become the context for our continued discussion. " +
+  "Respond with only the summary, no additional commentary.";
+
+// In processMessage callback
+const compactCheck = aiService.shouldCompact(buildResult.estimatedTokens);
+if (compactCheck.shouldCompact && compactRef.current) {
+  setMessages((prev) => [...prev, {
+    content: `⚠️ Context usage at ${compactCheck.usagePercent.toFixed(0)}%, auto-compacting...`,
+    type: "system",
+  }]);
+  await compactRef.current();  // Execute compact
+}
+```
+
+### Compact Flow
+
+```
+Context usage >= 85% threshold
+    ↓
+Display system message: "Context usage at X%, auto-compacting..."
+    ↓
+Send COMPACT_PROMPT to AI (not shown as user message)
+    ↓
+AI returns summary of conversation
+    ↓
+Session.compactWith(summary):
+  - Clear all messages
+  - Reset token counters
+  - Add summary as assistant message: "[Previous conversation summary]\n{summary}"
+    ↓
+Clear UI messages, display compact success + summary
+    ↓
+Continue conversation with reduced context
+```
+
+### Commands
+
+| Command | Behavior |
+|---------|----------|
+| `/clear` | Clear screen only (UI messages). Session context preserved. |
+| `/new` | Start new session. Clears both UI and AI session context. Displays "Started a new session." |
+| `/compact` | Manually trigger compact. Summarizes conversation and uses summary as new context. |
+
+**Implementation** (`app.tsx`):
+
+```typescript
+// Clear screen only (UI)
+const clearScreen = useCallback(() => {
+  setMessages([]);
+}, []);
+
+// Start new session (clears AI context)
+const newSession = useCallback(() => {
+  setMessages([]);
+  if (aiServiceRef.current) {
+    aiServiceRef.current.clearHistory();
+  }
+  setMessages([{ content: "Started a new session.", type: "system" }]);
+}, []);
+
+// Manual compact
+const compact = useCallback(async () => {
+  const aiService = aiServiceRef.current;
+  if (!aiService) return;
+
+  const status = aiService.getSessionStatus();
+  if (status.messageCount <= 2) {
+    showMessage("Not enough conversation to compact.");
+    return;
+  }
+
+  showMessage("⏳ Compacting conversation...");
+
+  const summary = await aiService.sendMessage(COMPACT_PROMPT, context);
+  aiService.compactWith(summary);
+
+  setMessages([{
+    content: "✅ Conversation compacted successfully.\n\n---\n\n" + summary,
+    type: "system",
+  }]);
+}, []);
+```
+
+### Key Design Decisions
+
+1. **No message trimming**: Old strategy of removing earliest messages is replaced by compact
+2. **85% threshold**: Auto-compact triggers when projected usage exceeds 85%
+3. **Minimum 2 messages**: Compact only runs if there's enough conversation history
+4. **Summary as context**: After compact, summary becomes an assistant message prefixed with `[Previous conversation summary]`
+5. **Input history preserved**: `inputHistory` (↑/↓ navigation) is never cleared during compact or new session
+6. **English prompt**: Compact prompt is always in English regardless of user's language
+
+## Message Processing Pipeline
+
+### Overview
+
+When a user sends a message (with optional file attachments), it goes through a multi-stage pipeline:
+
+```
+User Input (text + @files)
+    ↓
+MessageQueue.enqueue()
+    ↓
+processMessage() callback
+    ↓
+contentBuilder.buildMessageContent()
+    ↓
+Auto-compact check
+    ↓
+AIService.sendMessage()
+    ↓
+Response displayed to user
+```
+
+### Message Queue
+
+Located in `services/ai/messageQueue.ts`. Ensures messages are processed sequentially:
+
+```typescript
+class MessageQueue {
+  private queue: QueuedMessage[] = [];
+  private processing: boolean = false;
+
+  enqueue(content: string, files: FileReference[]): string;
+  clear(): void;
+  getQueueLength(): number;
+  isProcessing(): boolean;
+}
+
+type QueuedMessage = {
+  id: string;           // Unique ID (e.g., "msg_1_1703123456789")
+  content: string;      // User message text
+  files: FileReference[]; // Attached files via @
+  createdAt: number;    // Timestamp
+};
+
+type MessageQueueCallbacks = {
+  onMessageStart: (id: string) => void;
+  onMessageComplete: (id: string, response: string) => void;
+  onMessageError: (id: string, error: Error) => void;
+  onQueueEmpty: () => void;
+};
+```
+
+**Key behaviors**:
+- Only one message processed at a time
+- Messages wait in queue if another is processing
+- Automatically processes next message when current completes
+
+### File Reading and XML Formatting
+
+Located in `services/ai/fileReader.ts`:
+
+```typescript
+// Read file contents
+async function readFileContents(
+  files: FileReference[],
+  cwd: string
+): Promise<FileReadResult>;
+
+// Format as XML for AI consumption
+function formatFilesAsXml(files: FileContent[]): string;
+```
+
+**XML Output Format**:
+
+```xml
+<file path="src/app.tsx">
+// file content here...
+</file>
+
+<directory path="src/components">file1.tsx, file2.tsx, ...</directory>
+
+<file path="missing.ts" error="true">ENOENT: no such file</file>
+```
+
+### Content Builder
+
+Located in `services/ai/contentBuilder.ts`. Assembles user message with file contents:
+
+```typescript
+type ContentBuildResult = {
+  content: string;          // Final content to send to AI
+  wasTruncated: boolean;    // Whether files were truncated
+  truncationNotice: string; // Notice if truncated
+  fileSummary: string;      // e.g., "包含 3 个文件: app.tsx, index.ts, ..."
+  estimatedTokens: number;  // Estimated token count
+  exceedsAvailable: boolean; // Whether exceeds available space
+};
+
+async function buildMessageContent(options: {
+  userMessage: string;
+  files: FileReference[];
+  cwd: string;
+  availableTokens: number;
+  reserveForResponse?: number;
+}): Promise<ContentBuildResult>;
+```
+
+**Build Flow**:
+
+```
+1. Read file contents (fileReader.readFileContents)
+    ↓
+2. Transform user message: "@src/app.tsx" → "文件 src/app.tsx"
+    ↓
+3. Estimate tokens for message
+    ↓
+4. Calculate available space for files:
+   availableForFiles = availableTokens - messageTokens - reserveForResponse - buffer
+    ↓
+5. If files exceed space, truncate proportionally
+    ↓
+6. Format files as XML
+    ↓
+7. Assemble final content: XML + transformed message
+```
+
+**Message Transformation**:
+
+```typescript
+// Input:  "请帮我看看 @src/app.tsx 的问题"
+// Output: "请帮我看看 文件 src/app.tsx 的问题"
+
+// For directories:
+// Input:  "列出 @src/components 目录"
+// Output: "列出 目录 src/components 目录"
+```
+
+### Token Estimation
+
+Located in `services/ai/tokenEstimator.ts`. Heuristic-based estimation (no external deps):
+
+```typescript
+function estimateTokens(text: string): number;
+
+// Heuristic rules:
+// - CJK characters: ~1.5 chars per token (0.67 tokens/char)
+// - ASCII: ~4 chars per token (0.25 tokens/char)
+// - Other Unicode: ~2 chars per token (0.5 tokens/char)
+```
+
+**Truncation Functions**:
+
+```typescript
+// Truncate single file to fit token limit
+function truncateToFit(content: string, maxTokens: number): TruncateResult;
+
+// Truncate multiple files proportionally
+function truncateFilesProportionally(
+  files: Array<{ path: string; content: string }>,
+  maxTotalTokens: number
+): Array<{ path: string; content: string; wasTruncated: boolean }>;
+```
+
+### Complete Message Processing Flow
+
+**In `app.tsx`**:
+
+```typescript
+// 1. User submits message
+const sendToAI = useCallback((content: string, files: FileReference[]) => {
+  // Show user message in UI
+  setMessages(prev => [...prev, { content, type: "user" }]);
+
+  // Enqueue for processing
+  messageQueueRef.current.enqueue(content, files);
+}, []);
+
+// 2. Queue calls processMessage for each message
+const processMessage = useCallback(async (queuedMessage: QueuedMessage) => {
+  const aiService = aiServiceRef.current;
+  const cwd = process.cwd();
+
+  // Get available token space from Session
+  const availableTokens = aiService.getAvailableTokens();
+
+  // Build message content (read files, format XML, truncate if needed)
+  const buildResult = await buildMessageContent({
+    userMessage: queuedMessage.content,
+    files: queuedMessage.files,
+    cwd,
+    availableTokens,
+  });
+
+  // Show truncation warning if needed
+  if (buildResult.wasTruncated) {
+    setMessages(prev => [...prev, {
+      content: `⚠️ ${buildResult.truncationNotice}`,
+      type: "system",
+    }]);
+  }
+
+  // Check if auto-compact needed
+  const compactCheck = aiService.shouldCompact(buildResult.estimatedTokens);
+  if (compactCheck.shouldCompact) {
+    await compact();
+  }
+
+  // Send to AI and return response
+  const context = { cwd, selectedFiles: queuedMessage.files.map(f => f.path) };
+  return aiService.sendMessage(buildResult.content, context);
+}, []);
+
+// 3. Queue callbacks handle response
+messageQueueRef.current = new MessageQueue(processMessage, {
+  onMessageStart: () => setIsLoading(true),
+  onMessageComplete: (id, response) => {
+    setMessages(prev => [...prev, { content: response }]);
+    setIsLoading(false);
+  },
+  onMessageError: (id, error) => {
+    setMessages(prev => [...prev, { content: `Error: ${error.message}` }]);
+    setIsLoading(false);
+  },
+  onQueueEmpty: () => {},
+});
+```
+
+### Final Content Structure
+
+When sent to AI, the content looks like:
+
+```
+<file path="src/app.tsx">
+import { useState } from "react";
+// ... file content ...
+</file>
+
+<file path="src/utils/helper.ts">
+export function helper() {
+  // ... file content ...
+}
+</file>
+
+请帮我看看 文件 src/app.tsx 和 文件 src/utils/helper.ts 中的类型错误
+```
+
+### Key Files Summary
+
+| File | Purpose |
+|------|---------|
+| `messageQueue.ts` | Sequential message processing queue |
+| `fileReader.ts` | Read files, format as XML |
+| `tokenEstimator.ts` | Estimate token count, truncate content |
+| `contentBuilder.ts` | Assemble final content with files |
+| `session.ts` | Track token usage, manage context |
+| `service.ts` | Send to AI, handle tool calls |

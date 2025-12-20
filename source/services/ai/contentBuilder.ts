@@ -22,6 +22,26 @@ export type ContentBuildResult = {
 	truncationNotice: string;
 	/** 文件摘要（如 "包含 3 个文件: app.tsx, index.ts, ..."） */
 	fileSummary: string;
+	/** 估算的 token 数 */
+	estimatedTokens: number;
+	/** 是否超出可用空间 */
+	exceedsAvailable: boolean;
+};
+
+/**
+ * 构建消息内容选项
+ */
+export type BuildContentOptions = {
+	/** 用户原始消息 */
+	userMessage: string;
+	/** 文件引用列表 */
+	files: FileReference[];
+	/** 当前工作目录 */
+	cwd: string;
+	/** 可用的 token 数（来自 Session） */
+	availableTokens: number;
+	/** 预留给响应的 token 数（默认 4096） */
+	reserveForResponse?: number;
 };
 
 /**
@@ -34,43 +54,80 @@ export type ContentBuildResult = {
  * 4. 转换用户消息中的 @ 符号
  * 5. 组装最终内容
  *
- * @param userMessage 用户原始消息
- * @param files 文件引用列表
- * @param contextWindow 上下文窗口大小
- * @param cwd 当前工作目录
+ * @param options 构建选项
  * @returns 构建结果
+ */
+export async function buildMessageContent(
+	options: BuildContentOptions,
+): Promise<ContentBuildResult>;
+
+/**
+ * 构建消息内容（兼容旧接口）
+ * @deprecated 请使用 options 对象形式
  */
 export async function buildMessageContent(
 	userMessage: string,
 	files: FileReference[],
 	contextWindow: number,
 	cwd: string,
+): Promise<ContentBuildResult>;
+
+export async function buildMessageContent(
+	optionsOrUserMessage: BuildContentOptions | string,
+	files?: FileReference[],
+	contextWindow?: number,
+	cwd?: string,
 ): Promise<ContentBuildResult> {
+	// 处理重载
+	let options: BuildContentOptions;
+
+	if (typeof optionsOrUserMessage === "string") {
+		// 旧接口兼容
+		options = {
+			userMessage: optionsOrUserMessage,
+			files: files ?? [],
+			cwd: cwd ?? process.cwd(),
+			// 旧接口使用 contextWindow 计算可用空间
+			availableTokens: (contextWindow ?? 32768) * 0.75 - 500,
+			reserveForResponse: Math.floor((contextWindow ?? 32768) * 0.25),
+		};
+	} else {
+		options = optionsOrUserMessage;
+	}
+
+	const {
+		userMessage,
+		files: fileRefs,
+		cwd: workingDir,
+		availableTokens,
+		reserveForResponse = 4096,
+	} = options;
+
 	// 如果没有文件，直接返回用户消息
-	if (files.length === 0) {
+	if (fileRefs.length === 0) {
+		const estimatedTokens = estimateTokens(userMessage);
 		return {
 			content: userMessage,
 			wasTruncated: false,
 			truncationNotice: "",
 			fileSummary: "",
+			estimatedTokens,
+			exceedsAvailable: estimatedTokens > availableTokens,
 		};
 	}
 
 	// 1. 读取文件内容
-	const readResult = await readFileContents(files, cwd);
+	const readResult = await readFileContents(fileRefs, workingDir);
 
 	// 2. 转换用户消息（移除 @ 符号，改为文字描述）
-	const transformedMessage = transformUserMessage(userMessage, files);
+	const transformedMessage = transformUserMessage(userMessage, fileRefs);
 
 	// 3. 估算用户消息的 token
 	const messageTokens = estimateTokens(transformedMessage);
 
-	// 预留给响应的 token（约 25% 的上下文窗口）
-	const reserveForResponse = Math.floor(contextWindow * 0.25);
-
-	// 文件可用的 token = 总窗口 - 消息 token - 预留响应 - 一些缓冲
+	// 文件可用的 token = 可用空间 - 消息 token - 预留响应 - 缓冲
 	const availableForFiles =
-		contextWindow - messageTokens - reserveForResponse - 500;
+		availableTokens - messageTokens - reserveForResponse - 500;
 
 	// 4. 检查是否需要截断
 	let wasTruncated = false;
@@ -91,7 +148,15 @@ export async function buildMessageContent(
 		0,
 	);
 
-	if (totalFileTokens > availableForFiles) {
+	if (availableForFiles <= 0) {
+		// 没有空间放置文件内容
+		wasTruncated = true;
+		truncationNotice = `上下文空间不足，${fileRefs.length} 个文件内容被完全省略`;
+		processedFiles = readResult.files.map((f) => ({
+			...f,
+			content: "[内容因上下文限制被省略]",
+		}));
+	} else if (totalFileTokens > availableForFiles) {
 		// 需要截断
 		const truncatedFiles = truncateFilesProportionally(
 			fileContentsForCheck,
@@ -134,17 +199,22 @@ export async function buildMessageContent(
 	);
 
 	// 6. 生成文件摘要
-	const fileNames = files.map((f) => f.path.split(/[/\\]/).pop()).join(", ");
-	const fileSummary = `包含 ${files.length} 个文件: ${fileNames}`;
+	const fileNames = fileRefs.map((f) => f.path.split(/[/\\]/).pop()).join(", ");
+	const fileSummary = `包含 ${fileRefs.length} 个文件: ${fileNames}`;
 
 	// 7. 组装最终内容
 	const finalContent = `${xmlContent}\n\n${transformedMessage}`;
+
+	// 估算最终内容的 token 数
+	const estimatedTokens = estimateTokens(finalContent);
 
 	return {
 		content: finalContent,
 		wasTruncated,
 		truncationNotice,
 		fileSummary,
+		estimatedTokens,
+		exceedsAvailable: estimatedTokens > availableTokens,
 	};
 }
 

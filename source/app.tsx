@@ -43,6 +43,13 @@ type Props = {
 	initResult: InitResult;
 };
 
+// Compact prompt (English) - defined outside component to avoid recreation
+const COMPACT_PROMPT =
+	"Summarize our conversation so far in a concise but comprehensive way. " +
+	"Include key decisions, code changes discussed, important context, and any unresolved questions. " +
+	"This summary will become the context for our continued discussion. " +
+	"Respond with only the summary, no additional commentary.";
+
 export default function App({ initResult }: Props) {
 	const { exit } = useApp();
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -62,6 +69,9 @@ export default function App({ initResult }: Props) {
 	// AI 服务实例（从初始化结果获取）
 	const aiServiceRef = useRef<IAIService | null>(initResult.aiService);
 
+	// Auto-compact 引用（需要在 compact 定义后设置）
+	const compactRef = useRef<(() => Promise<void>) | null>(null);
+
 	// 消息处理函数（用于消息队列）
 	const processMessage = useCallback(
 		async (queuedMessage: QueuedMessage): Promise<string> => {
@@ -72,13 +82,16 @@ export default function App({ initResult }: Props) {
 
 			const cwd = process.cwd();
 
-			// 构建消息内容（包含文件）
-			const buildResult = await buildMessageContent(
-				queuedMessage.content,
-				queuedMessage.files,
-				aiService.getContextWindow(),
+			// 获取当前可用的 token 空间
+			const availableTokens = aiService.getAvailableTokens();
+
+			// 构建消息内容（包含文件），使用 Session 的可用空间
+			const buildResult = await buildMessageContent({
+				userMessage: queuedMessage.content,
+				files: queuedMessage.files,
 				cwd,
-			);
+				availableTokens,
+			});
 
 			// 如果有截断提示，显示给用户
 			if (buildResult.wasTruncated) {
@@ -90,6 +103,21 @@ export default function App({ initResult }: Props) {
 						markdown: false,
 					},
 				]);
+			}
+
+			// 检查是否需要自动 compact（在发送消息之前）
+			const compactCheck = aiService.shouldCompact(buildResult.estimatedTokens);
+			if (compactCheck.shouldCompact && compactRef.current) {
+				setMessages((prev) => [
+					...prev,
+					{
+						content: `⚠️ Context usage at ${compactCheck.usagePercent.toFixed(0)}%, auto-compacting...`,
+						type: "system" as const,
+						markdown: false,
+					},
+				]);
+				// 执行自动 compact
+				await compactRef.current();
 			}
 
 			// 构建上下文
@@ -220,10 +248,92 @@ export default function App({ initResult }: Props) {
 		setMessages((prev) => [...prev, { content: `${key} set to: ${value}` }]);
 	}, []);
 
-	// 清屏
-	const clearMessages = useCallback(() => {
+	// 清屏（仅清空 UI，保留会话上下文）
+	const clearScreen = useCallback(() => {
 		setMessages([]);
 	}, []);
+
+	// 开始新会话（清空会话上下文，但保留 inputHistory）
+	const newSession = useCallback(() => {
+		setMessages([]);
+		if (aiServiceRef.current) {
+			aiServiceRef.current.clearHistory();
+		}
+		setMessages([{ content: "Started a new session.", type: "system" }]);
+	}, []);
+
+	// 执行 compact（总结并压缩会话）
+	const compact = useCallback(async () => {
+		const aiService = aiServiceRef.current;
+		if (!aiService) {
+			setMessages((prev) => [
+				...prev,
+				{
+					content: "AI service not configured.",
+					type: "system",
+					markdown: false,
+				},
+			]);
+			return;
+		}
+
+		// 检查是否有足够的消息需要 compact
+		const status = aiService.getSessionStatus();
+		if (status.messageCount <= 2) {
+			setMessages((prev) => [
+				...prev,
+				{
+					content: "Not enough conversation to compact.",
+					type: "system",
+					markdown: false,
+				},
+			]);
+			return;
+		}
+
+		// 显示正在压缩的消息
+		setMessages((prev) => [
+			...prev,
+			{
+				content: "⏳ Compacting conversation...",
+				type: "system",
+				markdown: false,
+			},
+		]);
+
+		try {
+			// 发送 compact prompt 给 AI（不显示为用户消息）
+			const cwd = process.cwd();
+			const context: MatchContext = { cwd };
+			const summary = await aiService.sendMessage(COMPACT_PROMPT, context);
+
+			// 使用总结重置会话（使用新的 compactWith 方法）
+			aiService.compactWith(summary);
+
+			// 清空 UI 并显示总结
+			setMessages([
+				{
+					content:
+						"✅ Conversation compacted successfully.\n\n---\n\n" + summary,
+					type: "system",
+				},
+			]);
+		} catch (error) {
+			setMessages((prev) => [
+				...prev,
+				{
+					content: `Error during compact: ${error instanceof Error ? error.message : String(error)}`,
+					type: "system",
+					markdown: false,
+				},
+			]);
+		}
+	}, []);
+
+	// 设置 compactRef 以便 processMessage 可以调用 compact
+	useEffect(() => {
+		compactRef.current = compact;
+	}, [compact]);
 
 	// 命令回调集合
 	const commandCallbacks: CommandCallbacks = useMemo(
@@ -231,10 +341,12 @@ export default function App({ initResult }: Props) {
 			showMessage,
 			sendToAI,
 			setConfig,
-			clear: clearMessages,
+			clear: clearScreen,
+			newSession,
+			compact,
 			exit,
 		}),
-		[showMessage, sendToAI, setConfig, clearMessages, exit],
+		[showMessage, sendToAI, setConfig, clearScreen, newSession, compact, exit],
 	);
 
 	const handleSubmit = useCallback(

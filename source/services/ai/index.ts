@@ -36,7 +36,18 @@ export type {
 	IntentAnalysis,
 	AIServiceConfig,
 	IAIService,
+	SessionStatus,
+	CompactCheckResult,
 } from "./types.js";
+
+// Session 管理
+export {
+	Session,
+	createSession,
+	type SessionConfig,
+	type TrimResult,
+	type TokenUsage,
+} from "./session.js";
 
 // 适配器导出
 export {
@@ -62,7 +73,11 @@ export { AnthropicClient } from "./clients/anthropic.js";
 export { ToolCallHandler, createToolCallHandler } from "./tool-call-handler.js";
 
 // AI 服务
-export { AIService, createAIService } from "./service.js";
+export {
+	AIService,
+	createAIService,
+	type SendMessageResult,
+} from "./service.js";
 
 // 配置管理
 export {
