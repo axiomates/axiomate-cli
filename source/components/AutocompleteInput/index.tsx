@@ -10,7 +10,6 @@ import {
 	useState,
 	useMemo,
 	useEffect,
-	useLayoutEffect,
 	useRef,
 } from "react";
 import { useApp } from "ink";
@@ -102,9 +101,7 @@ export default function AutocompleteInput({
 			if (onHistoryChange) {
 				// 使用外部状态，通过 ref 获取最新值
 				const newHistory =
-					typeof updater === "function"
-						? updater(historyRef.current)
-						: updater;
+					typeof updater === "function" ? updater(historyRef.current) : updater;
 				onHistoryChange(newHistory);
 			} else {
 				// 使用本地状态
@@ -222,7 +219,7 @@ export default function AutocompleteInput({
 				onClear?.();
 			}
 		},
-		[onSubmit, onClear, onExit, exit],
+		[onSubmit, onClear, onExit, exit, setHistory],
 	);
 
 	// 键盘输入处理 Hook
@@ -285,8 +282,8 @@ export default function AutocompleteInput({
 		],
 	);
 
-	// 报告高度变化（使用 useLayoutEffect 避免视觉抖动）
-	useLayoutEffect(() => {
+	// 报告高度变化
+	useEffect(() => {
 		onHeightChange?.(inputAreaHeight);
 	}, [inputAreaHeight, onHeightChange]);
 

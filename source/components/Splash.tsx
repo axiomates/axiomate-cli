@@ -20,14 +20,13 @@ export default function Splash({ message = "Loading..." }: Props) {
 
 	// 计算垂直居中位置
 	const contentHeight = 3; // 应用名 + 空行 + 加载提示
-	const topPadding = Math.max(0, Math.floor((terminalHeight - contentHeight) / 2));
+	const topPadding = Math.max(
+		0,
+		Math.floor((terminalHeight - contentHeight) / 2),
+	);
 
 	return (
-		<Box
-			flexDirection="column"
-			height={terminalHeight}
-			width={terminalWidth}
-		>
+		<Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
 			{/* 顶部空白 */}
 			<Box height={topPadding} />
 
