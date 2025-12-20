@@ -155,6 +155,17 @@ export default function App({ initResult }: Props) {
 			onQueueEmpty: () => {
 				// 队列处理完毕
 			},
+			onStopped: (queuedCount) => {
+				const msg =
+					queuedCount > 0
+						? `Stopped. Cleared ${queuedCount} queued message(s).`
+						: "Stopped.";
+				setMessages((prev) => [
+					...prev,
+					{ content: msg, type: "system", markdown: false },
+				]);
+				setIsLoading(false);
+			},
 		});
 
 		return () => {
@@ -339,6 +350,11 @@ export default function App({ initResult }: Props) {
 		compactRef.current = compact;
 	}, [compact]);
 
+	// 停止当前处理并清空消息队列
+	const stopProcessing = useCallback(() => {
+		messageQueueRef.current?.stop();
+	}, []);
+
 	// 命令回调集合
 	const commandCallbacks: CommandCallbacks = useMemo(
 		() => ({
@@ -348,9 +364,19 @@ export default function App({ initResult }: Props) {
 			clear: clearScreen,
 			newSession,
 			compact,
+			stop: stopProcessing,
 			exit,
 		}),
-		[showMessage, sendToAI, setConfig, clearScreen, newSession, compact, exit],
+		[
+			showMessage,
+			sendToAI,
+			setConfig,
+			clearScreen,
+			newSession,
+			compact,
+			stopProcessing,
+			exit,
+		],
 	);
 
 	const handleSubmit = useCallback(

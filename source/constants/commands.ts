@@ -64,9 +64,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		action: { type: "internal", handler: "clear" },
 	},
 	{
-		name: "version",
-		description: "Show version information",
-		action: { type: "internal", handler: "version" },
+		name: "stop",
+		description: "Stop current processing and clear message queue",
+		action: { type: "internal", handler: "stop" },
 	},
 	{
 		name: "exit",

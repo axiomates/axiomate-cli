@@ -50,6 +50,8 @@ export type CommandCallbacks = {
 	newSession: () => void;
 	/** 执行 compact（总结并压缩会话） */
 	compact: () => Promise<void>;
+	/** 停止当前处理并清空消息队列 */
+	stop: () => void;
 	/** 退出 */
 	exit: () => void;
 };
@@ -63,18 +65,13 @@ type CommandResult =
 	| { type: "config"; key: string; value: string }
 	| { type: "action"; action: "clear" | "exit" }
 	| { type: "async"; handler: () => Promise<string> }
-	| { type: "callback"; callback: "new_session" | "compact" }
+	| { type: "callback"; callback: "new_session" | "compact" | "stop" }
 	| { type: "error"; message: string };
 
 /**
  * 内部命令处理器注册表
  */
 const internalHandlers: Record<string, InternalHandler> = {
-	version: (_path, ctx) => ({
-		type: "message",
-		content: `${ctx.appName} v${ctx.version}`,
-	}),
-
 	clear: () => ({
 		type: "action",
 		action: "clear",
@@ -93,6 +90,11 @@ const internalHandlers: Record<string, InternalHandler> = {
 	compact: () => ({
 		type: "callback",
 		callback: "compact",
+	}),
+
+	stop: () => ({
+		type: "callback",
+		callback: "stop",
 	}),
 
 	// 工具命令处理器
@@ -356,6 +358,8 @@ export async function handleCommand(
 				callbacks.newSession();
 			} else if (result.callback === "compact") {
 				await callbacks.compact();
+			} else if (result.callback === "stop") {
+				callbacks.stop();
 			}
 			break;
 

@@ -617,9 +617,8 @@ Current command tree:
   /stats (internal: tools_stats, async)
 /compact (internal: compact) - Summarize and compress conversation context
 /new (internal: new_session) - Start a new session (discard current context)
-/help (internal: help)
 /clear (internal: clear) - Clear screen only (keeps session context)
-/version (internal: version)
+/stop (internal: stop) - Stop current AI processing and clear message queue
 /exit (internal: exit)
 ```
 
@@ -636,7 +635,7 @@ type CommandResult =
   | { type: "config"; key: string; value: string }
   | { type: "action"; action: "clear" | "exit" }
   | { type: "async"; handler: () => Promise<string> }  // Async commands
-  | { type: "callback"; callback: "new_session" | "compact" }  // App callbacks
+  | { type: "callback"; callback: "new_session" | "compact" | "stop" }  // App callbacks
   | { type: "error"; message: string };
 
 type CommandCallbacks = {
@@ -646,6 +645,7 @@ type CommandCallbacks = {
   clear: () => void;           // Clear UI only (keeps session context)
   newSession: () => void;      // Start new session (clears AI context)
   compact: () => Promise<void>; // Summarize and compress context
+  stop: () => void;            // Stop current processing and clear queue
   exit: () => void;
 };
 ```
@@ -1760,9 +1760,12 @@ Located in `services/ai/messageQueue.ts`. Ensures messages are processed sequent
 class MessageQueue {
   private queue: QueuedMessage[] = [];
   private processing: boolean = false;
+  private stopped: boolean = false;
 
   enqueue(content: string, files: FileReference[]): string;
   clear(): void;
+  stop(): number;           // Stop processing, clear queue, return cleared count
+  isStopped(): boolean;
   getQueueLength(): number;
   isProcessing(): boolean;
 }
@@ -1779,6 +1782,7 @@ type MessageQueueCallbacks = {
   onMessageComplete: (id: string, response: string) => void;
   onMessageError: (id: string, error: Error) => void;
   onQueueEmpty: () => void;
+  onStopped?: (queuedCount: number) => void;  // Called when stop() is invoked
 };
 ```
 
@@ -1786,6 +1790,8 @@ type MessageQueueCallbacks = {
 - Only one message processed at a time
 - Messages wait in queue if another is processing
 - Automatically processes next message when current completes
+- `stop()` sets `stopped` flag, clears queue, and prevents callbacks for in-flight request
+- `enqueue()` resets `stopped` flag to allow new messages after stop
 
 ### File Reading and XML Formatting
 

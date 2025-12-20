@@ -31,6 +31,8 @@ export type MessageQueueCallbacks = {
 	onMessageError: (id: string, error: Error) => void;
 	/** 队列已空 */
 	onQueueEmpty: () => void;
+	/** 队列被停止（可选） */
+	onStopped?: (queuedCount: number) => void;
 };
 
 /**
@@ -45,6 +47,7 @@ export type MessageProcessor = (message: QueuedMessage) => Promise<string>;
 export class MessageQueue {
 	private queue: QueuedMessage[] = [];
 	private processing: boolean = false;
+	private stopped: boolean = false;
 	private callbacks: MessageQueueCallbacks;
 	private processor: MessageProcessor;
 	private idCounter: number = 0;
@@ -61,6 +64,9 @@ export class MessageQueue {
 	 * @returns 消息 ID
 	 */
 	enqueue(content: string, files: FileReference[] = []): string {
+		// 新消息入队时重置停止状态
+		this.stopped = false;
+
 		const id = `msg_${++this.idCounter}_${Date.now()}`;
 		const message: QueuedMessage = {
 			id,
@@ -87,6 +93,29 @@ export class MessageQueue {
 	}
 
 	/**
+	 * 停止当前处理并清空队列
+	 * 当前正在执行的消息会完成，但结果会被丢弃
+	 * @returns 被清空的消息数量
+	 */
+	stop(): number {
+		const queuedCount = this.queue.length;
+		this.stopped = true;
+		this.queue = [];
+
+		// 通知停止
+		this.callbacks.onStopped?.(queuedCount);
+
+		return queuedCount;
+	}
+
+	/**
+	 * 是否已停止
+	 */
+	isStopped(): boolean {
+		return this.stopped;
+	}
+
+	/**
 	 * 获取队列长度
 	 */
 	getQueueLength(): number {
@@ -104,8 +133,8 @@ export class MessageQueue {
 	 * 处理下一条消息
 	 */
 	private async processNext(): Promise<void> {
-		if (this.processing || this.queue.length === 0) {
-			if (this.queue.length === 0 && !this.processing) {
+		if (this.processing || this.queue.length === 0 || this.stopped) {
+			if (this.queue.length === 0 && !this.processing && !this.stopped) {
 				this.callbacks.onQueueEmpty();
 			}
 			return;
@@ -118,14 +147,22 @@ export class MessageQueue {
 
 		try {
 			const response = await this.processor(message);
-			this.callbacks.onMessageComplete(message.id, response);
+			// 如果在处理过程中被停止，不调用完成回调
+			if (!this.stopped) {
+				this.callbacks.onMessageComplete(message.id, response);
+			}
 		} catch (error) {
-			const err = error instanceof Error ? error : new Error(String(error));
-			this.callbacks.onMessageError(message.id, err);
+			// 如果在处理过程中被停止，不调用错误回调
+			if (!this.stopped) {
+				const err = error instanceof Error ? error : new Error(String(error));
+				this.callbacks.onMessageError(message.id, err);
+			}
 		} finally {
 			this.processing = false;
-			// 继续处理下一条
-			this.processNext();
+			// 如果没有被停止，继续处理下一条
+			if (!this.stopped) {
+				this.processNext();
+			}
 		}
 	}
 }
