@@ -604,7 +604,6 @@ type CommandAction =
 Current command tree:
 ```
 /model
-  /list (internal: model_list) - List available models
   /glm-4-9b (internal: model_select)
   /glm-z1-9b (internal: model_select)
   /qwen3-8b (internal: model_select) - Default model

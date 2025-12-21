@@ -18,11 +18,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		name: "model",
 		description: "Select AI model",
 		children: [
-			{
-				name: "list",
-				description: "List available models",
-				action: { type: "internal", handler: "model_list" },
-			},
 			// 动态生成模型选择命令
 			...generateModelCommands(),
 		],

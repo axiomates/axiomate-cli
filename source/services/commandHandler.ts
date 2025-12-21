@@ -9,14 +9,8 @@ import type {
 } from "../components/AutocompleteInput/index.js";
 import { SLASH_COMMANDS } from "../constants/commands.js";
 import { getToolRegistry } from "./tools/registry.js";
-import {
-	getModelById,
-	getAllSeries,
-	getModelsBySeries,
-	getSeriesDisplayName,
-	DEFAULT_MODEL_ID,
-} from "../constants/models.js";
-import { getCurrentModelId, setCurrentModelId } from "../utils/config.js";
+import { getModelById } from "../constants/models.js";
+import { setCurrentModelId } from "../utils/config.js";
 
 /**
  * 内部命令处理器映射
@@ -140,58 +134,6 @@ const internalHandlers: Record<string, InternalHandler> = {
 			}
 			return lines.join("\n");
 		},
-	}),
-
-	// AI 模型命令处理器
-	model_list: () => ({
-		type: "message",
-		content: (() => {
-			const currentModelId = getCurrentModelId() || DEFAULT_MODEL_ID;
-			const currentModel = getModelById(currentModelId);
-
-			const lines = ["## Available Models", ""];
-
-			// 按系列分组显示
-			for (const series of getAllSeries()) {
-				const seriesModels = getModelsBySeries(series);
-				lines.push(`### ${getSeriesDisplayName(series)}`);
-
-				for (const model of seriesModels) {
-					const isCurrent = model.id === currentModelId;
-					const marker = isCurrent ? "→ " : "  ";
-
-					// 能力标签
-					const capabilities: string[] = [];
-					if (model.supportsTools) capabilities.push("tools");
-					if (model.thinkingToolsExclusive) {
-						capabilities.push("thinking*"); // * 表示与 tools 互斥
-					}
-					const capStr =
-						capabilities.length > 0 ? `[${capabilities.join(", ")}]` : "";
-
-					// 描述
-					const desc = model.description ? ` - ${model.description}` : "";
-
-					lines.push(`${marker}**${model.id}** ${model.name}${desc} ${capStr}`);
-				}
-				lines.push("");
-			}
-
-			// 当前模型信息
-			if (currentModel) {
-				lines.push("---");
-				lines.push(`**Current:** ${currentModel.name} (${currentModel.id})`);
-				const exclusiveNote = currentModel.thinkingToolsExclusive
-					? " (mutually exclusive)"
-					: "";
-				lines.push(
-					`**Capabilities:** tools ${currentModel.supportsTools ? "✓" : "✗"}${exclusiveNote}`,
-				);
-				lines.push(`**Protocol:** ${currentModel.protocol}`);
-			}
-
-			return lines.join("\n");
-		})(),
 	}),
 
 	// 模型选择处理器
