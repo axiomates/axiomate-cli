@@ -51,7 +51,8 @@ function renderMarkdownSync(content: string, width: number): string {
 	}
 	const result = markedInstance.parse(content);
 	if (typeof result === "string") {
-		return result.trim();
+		// 只移除尾部空白，保留开头缩进（如列表项的缩进）
+		return result.replace(/\s+$/, "");
 	}
 	return content;
 }
