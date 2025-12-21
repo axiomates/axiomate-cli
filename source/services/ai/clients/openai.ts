@@ -8,8 +8,10 @@ import type {
 	AIClientConfig,
 	ChatMessage,
 	AIResponse,
+	AIStreamChunk,
 	OpenAITool,
 	FinishReason,
+	ToolCall,
 } from "../types.js";
 import { toOpenAIMessages, parseOpenAIToolCalls } from "../adapters/openai.js";
 
@@ -149,25 +151,185 @@ export class OpenAIClient implements IAIClient {
 		}
 
 		// 转换 finish_reason
-		let finishReason: FinishReason = "stop";
-		switch (choice.finish_reason) {
-			case "stop":
-				finishReason = "stop";
-				break;
-			case "tool_calls":
-				finishReason = "tool_calls";
-				break;
-			case "length":
-				finishReason = "length";
-				break;
-			default:
-				finishReason = "stop";
-		}
+		const finishReason = this.parseFinishReason(choice.finish_reason);
 
 		return {
 			message,
 			finish_reason: finishReason,
 			usage: data.usage,
 		};
+	}
+
+	/**
+	 * 解析 finish_reason
+	 */
+	private parseFinishReason(reason: string | null | undefined): FinishReason {
+		switch (reason) {
+			case "stop":
+				return "stop";
+			case "eos":
+				return "eos";
+			case "tool_calls":
+				return "tool_calls";
+			case "length":
+				return "length";
+			default:
+				return "stop";
+		}
+	}
+
+	/**
+	 * 流式聊天请求
+	 * 使用 SSE (Server-Sent Events) 格式解析流式响应
+	 */
+	async *streamChat(
+		messages: ChatMessage[],
+		tools?: OpenAITool[],
+	): AsyncGenerator<AIStreamChunk> {
+		const baseUrl =
+			this.config.baseUrl?.replace(/\/$/, "") || "https://api.openai.com/v1";
+		const url = `${baseUrl}/chat/completions`;
+
+		const body: Record<string, unknown> = {
+			model: this.config.model,
+			messages: toOpenAIMessages(messages),
+			stream: true, // 启用流式响应
+		};
+
+		if (tools && tools.length > 0) {
+			body.tools = tools;
+			body.tool_choice = "auto";
+		}
+
+		const controller = new AbortController();
+		const timeoutId = setTimeout(
+			() => controller.abort(),
+			this.config.timeout || 120000, // 流式响应使用更长的超时
+		);
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.config.apiKey}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(body),
+				signal: controller.signal,
+			});
+
+			clearTimeout(timeoutId);
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(
+					`OpenAI API error: ${response.status} ${response.statusText} - ${errorText}`,
+				);
+			}
+
+			if (!response.body) {
+				throw new Error("Response body is null");
+			}
+
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = "";
+
+			// 累积 tool_calls (流式响应中会分多个 chunk 返回)
+			const accumulatedToolCalls: Map<
+				number,
+				{
+					id: string;
+					type: string;
+					function: { name: string; arguments: string };
+				}
+			> = new Map();
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split("\n");
+				buffer = lines.pop() || ""; // 保留最后未完成的行
+
+				for (const line of lines) {
+					const trimmed = line.trim();
+					if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+					const data = trimmed.slice(6); // 去掉 "data: "
+					if (data === "[DONE]") return;
+
+					try {
+						const chunk = JSON.parse(data);
+						if (!chunk.choices?.length) continue;
+
+						const choice = chunk.choices[0];
+						const delta = choice.delta || {};
+
+						// 处理 tool_calls 增量更新
+						if (delta.tool_calls) {
+							for (const tc of delta.tool_calls) {
+								const existing = accumulatedToolCalls.get(tc.index);
+								if (existing) {
+									// 累积 arguments
+									if (tc.function?.arguments) {
+										existing.function.arguments += tc.function.arguments;
+									}
+								} else {
+									// 新的 tool_call
+									accumulatedToolCalls.set(tc.index, {
+										id: tc.id || "",
+										type: tc.type || "function",
+										function: {
+											name: tc.function?.name || "",
+											arguments: tc.function?.arguments || "",
+										},
+									});
+								}
+							}
+						}
+
+						// 构建 AIStreamChunk
+						const streamChunk: AIStreamChunk = {
+							delta: {
+								// 优先使用 content，其次使用 reasoning_content (DeepSeek-R1, QwQ)
+								content: delta.content || delta.reasoning_content || "",
+							},
+						};
+
+						// 如果是结束帧，设置 finish_reason
+						if (choice.finish_reason) {
+							streamChunk.finish_reason = this.parseFinishReason(
+								choice.finish_reason,
+							);
+
+							// 如果是 tool_calls 结束，附加完整的 tool_calls
+							if (choice.finish_reason === "tool_calls") {
+								const toolCalls: ToolCall[] = [];
+								for (const [, tc] of accumulatedToolCalls) {
+									toolCalls.push({
+										id: tc.id,
+										type: "function",
+										function: {
+											name: tc.function.name,
+											arguments: tc.function.arguments,
+										},
+									});
+								}
+								streamChunk.delta.tool_calls = toolCalls;
+							}
+						}
+
+						yield streamChunk;
+					} catch {
+						// JSON 解析失败，跳过这行
+						continue;
+					}
+				}
+			}
+		} finally {
+			clearTimeout(timeoutId);
+		}
 	}
 }

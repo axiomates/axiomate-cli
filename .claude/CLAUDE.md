@@ -1192,7 +1192,7 @@ type ToolCall = {
 // AI response
 type AIResponse = {
   message: ChatMessage;
-  finish_reason: FinishReason;  // "stop" | "tool_calls" | "length"
+  finish_reason: FinishReason;  // "stop" | "eos" | "tool_calls" | "length" | "error"
   usage?: { prompt_tokens, completion_tokens, total_tokens };
 };
 
@@ -1204,7 +1204,55 @@ type MatchContext = {
 };
 
 type ProjectType = "node" | "python" | "java" | "dotnet" | "rust" | "go" | "unknown";
+
+// Streaming callbacks
+type StreamCallbacks = {
+  onStart?: () => void;           // Called when streaming begins
+  onChunk?: (content: string) => void;  // Called with accumulated content
+  onEnd?: (finalContent: string) => void;  // Called when streaming ends
+};
 ```
+
+### Streaming Response
+
+AI responses are streamed in real-time using SSE (Server-Sent Events). The streaming implementation provides:
+
+1. **Real-time Content Display**: AI responses appear character-by-character as they're generated
+2. **Animated Loading Indicator**: A Braille spinner (`⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`) shows during generation
+3. **Tool Call Support**: Tool calls are accumulated during streaming and executed when complete
+
+**Usage Flow**:
+```
+User sends message
+    ↓
+App.tsx calls aiService.streamMessage() with callbacks
+    ↓
+AIService calls OpenAIClient.streamChat() (async generator)
+    ↓
+SSE chunks parsed: "data: {...}" lines
+    ↓
+onChunk() callback updates MessageOutput in real-time
+    ↓
+Stream ends (data: [DONE] or finish_reason != null)
+    ↓
+onEnd() callback finalizes the message
+    ↓
+MessageOutput removes spinner, shows complete message
+```
+
+**SSE Format** (SiliconFlow API):
+```
+data: {"choices":[{"delta":{"content":"Hello"}}],"finish_reason":null}
+data: {"choices":[{"delta":{"content":" world"}}],"finish_reason":null}
+data: {"choices":[{"delta":{}}],"finish_reason":"stop"}
+data: [DONE]
+```
+
+**Key Implementation Files**:
+- `services/ai/clients/openai.ts`: `streamChat()` async generator
+- `services/ai/service.ts`: `streamMessage()` method
+- `services/ai/messageQueue.ts`: Streaming callbacks integration
+- `components/MessageOutput.tsx`: Spinner animation and streaming display
 
 ### Two-Phase Calling Flow
 

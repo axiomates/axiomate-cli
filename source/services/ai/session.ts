@@ -353,8 +353,7 @@ export class Session {
 		// 统计真正的对话消息数（排除 compact summary）
 		// compact summary 以 "[Previous conversation summary]" 开头
 		const realMessageCount = this.messages.filter(
-			(m) =>
-				!m.message.content.startsWith("[Previous conversation summary]"),
+			(m) => !m.message.content.startsWith("[Previous conversation summary]"),
 		).length;
 
 		// 需要 compact 的条件：

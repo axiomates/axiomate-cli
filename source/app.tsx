@@ -28,6 +28,7 @@ import { buildMessageContent } from "./services/ai/contentBuilder.js";
 import {
 	MessageQueue,
 	type QueuedMessage,
+	type ProcessorStreamCallbacks,
 } from "./services/ai/messageQueue.js";
 import type { InitResult } from "./utils/init.js";
 import { resumeInput } from "./utils/stdin.js";
@@ -74,7 +75,10 @@ export default function App({ initResult }: Props) {
 
 	// 消息处理函数（用于消息队列）
 	const processMessage = useCallback(
-		async (queuedMessage: QueuedMessage): Promise<string> => {
+		async (
+			queuedMessage: QueuedMessage,
+			streamCallbacks?: ProcessorStreamCallbacks,
+		): Promise<string> => {
 			const aiService = aiServiceRef.current;
 			if (!aiService) {
 				throw new Error("AI 服务未配置");
@@ -126,8 +130,12 @@ export default function App({ initResult }: Props) {
 				selectedFiles: queuedMessage.files.map((f) => f.path),
 			};
 
-			// 发送给 AI
-			return aiService.sendMessage(buildResult.content, context);
+			// 使用流式 API 发送给 AI
+			return aiService.streamMessage(buildResult.content, context, {
+				onStart: streamCallbacks?.onStart,
+				onChunk: streamCallbacks?.onChunk,
+				onEnd: streamCallbacks?.onEnd,
+			});
 		},
 		[],
 	);
@@ -141,15 +149,29 @@ export default function App({ initResult }: Props) {
 			onMessageStart: () => {
 				setIsLoading(true);
 			},
-			onMessageComplete: (__, response) => {
-				setMessages((prev) => [...prev, { content: response }]);
+			onMessageComplete: () => {
+				// 流式模式下，内容已通过 onStreamEnd 更新，这里只需重置加载状态
 				setIsLoading(false);
 			},
 			onMessageError: (__, error) => {
-				setMessages((prev) => [
-					...prev,
-					{ content: `Error: ${error.message}`, markdown: false },
-				]);
+				// 错误时更新最后一条消息（如果是流式消息）或添加新消息
+				setMessages((prev) => {
+					const lastMsg = prev[prev.length - 1];
+					if (lastMsg?.streaming) {
+						// 更新流式消息为错误状态
+						const newMessages = [...prev];
+						newMessages[newMessages.length - 1] = {
+							...lastMsg,
+							content: lastMsg.content + `\n\nError: ${error.message}`,
+							streaming: false,
+						};
+						return newMessages;
+					}
+					return [
+						...prev,
+						{ content: `Error: ${error.message}`, markdown: false },
+					];
+				});
 				setIsLoading(false);
 			},
 			onQueueEmpty: () => {
@@ -160,11 +182,57 @@ export default function App({ initResult }: Props) {
 					queuedCount > 0
 						? `Stopped. Cleared ${queuedCount} queued message(s).`
 						: "Stopped.";
-				setMessages((prev) => [
-					...prev,
-					{ content: msg, type: "system", markdown: false },
-				]);
+				// 如果有正在流式生成的消息，标记为结束
+				setMessages((prev) => {
+					const lastMsg = prev[prev.length - 1];
+					if (lastMsg?.streaming) {
+						const newMessages = [...prev];
+						newMessages[newMessages.length - 1] = {
+							...lastMsg,
+							streaming: false,
+						};
+						return [
+							...newMessages,
+							{ content: msg, type: "system", markdown: false },
+						];
+					}
+					return [...prev, { content: msg, type: "system", markdown: false }];
+				});
 				setIsLoading(false);
+			},
+			// 流式回调
+			onStreamStart: () => {
+				// 添加一条空的流式消息
+				setMessages((prev) => [...prev, { content: "", streaming: true }]);
+			},
+			onStreamChunk: (__, content) => {
+				// 更新最后一条消息的内容
+				setMessages((prev) => {
+					const newMessages = [...prev];
+					const lastMsg = newMessages[newMessages.length - 1];
+					if (lastMsg?.streaming) {
+						newMessages[newMessages.length - 1] = {
+							...lastMsg,
+							content,
+						};
+					}
+					return newMessages;
+				});
+			},
+			onStreamEnd: (__, finalContent) => {
+				// 标记流式结束
+				setMessages((prev) => {
+					const newMessages = [...prev];
+					const lastMsg = newMessages[newMessages.length - 1];
+					if (lastMsg?.streaming) {
+						newMessages[newMessages.length - 1] = {
+							...lastMsg,
+							content: finalContent,
+							streaming: false,
+						};
+					}
+					return newMessages;
+				});
 			},
 		});
 

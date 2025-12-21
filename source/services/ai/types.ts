@@ -43,8 +43,13 @@ export type ChatMessage = {
 
 /**
  * AI 响应完成原因
+ * - stop: 正常结束
+ * - eos: 遇到结束标记 (SiliconFlow)
+ * - tool_calls: 需要执行工具调用
+ * - length: 达到最大长度限制
+ * - error: 发生错误
  */
-export type FinishReason = "stop" | "tool_calls" | "length" | "error";
+export type FinishReason = "stop" | "eos" | "tool_calls" | "length" | "error";
 
 /**
  * AI 响应
@@ -338,6 +343,18 @@ export type CompactCheckResult = {
 };
 
 /**
+ * 流式消息回调
+ */
+export type StreamCallbacks = {
+	/** 流式内容更新 (content 是累积的完整内容) */
+	onChunk?: (content: string) => void;
+	/** 流式开始 */
+	onStart?: () => void;
+	/** 流式结束 */
+	onEnd?: (finalContent: string) => void;
+};
+
+/**
  * AI 服务接口
  */
 export type IAIService = {
@@ -348,6 +365,19 @@ export type IAIService = {
 	 * @returns 最终响应
 	 */
 	sendMessage(userMessage: string, context?: MatchContext): Promise<string>;
+
+	/**
+	 * 流式发送消息（实时返回生成内容）
+	 * @param userMessage 用户消息
+	 * @param context 上下文信息
+	 * @param callbacks 流式回调
+	 * @returns 最终完整响应
+	 */
+	streamMessage(
+		userMessage: string,
+		context?: MatchContext,
+		callbacks?: StreamCallbacks,
+	): Promise<string>;
 
 	/**
 	 * 获取当前对话历史

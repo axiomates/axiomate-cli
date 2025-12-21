@@ -20,6 +20,18 @@ export type QueuedMessage = {
 };
 
 /**
+ * 流式回调
+ */
+export type StreamingCallbacks = {
+	/** 流式开始 */
+	onStreamStart?: (id: string) => void;
+	/** 流式内容更新 (content 是累积的完整内容) */
+	onStreamChunk?: (id: string, content: string) => void;
+	/** 流式结束 */
+	onStreamEnd?: (id: string, finalContent: string) => void;
+};
+
+/**
  * 消息队列回调
  */
 export type MessageQueueCallbacks = {
@@ -33,12 +45,26 @@ export type MessageQueueCallbacks = {
 	onQueueEmpty: () => void;
 	/** 队列被停止（可选） */
 	onStopped?: (queuedCount: number) => void;
+} & StreamingCallbacks;
+
+/**
+ * 消息处理器流式回调
+ */
+export type ProcessorStreamCallbacks = {
+	onStart?: () => void;
+	onChunk?: (content: string) => void;
+	onEnd?: (finalContent: string) => void;
 };
 
 /**
  * 消息处理器类型
+ * @param message 消息
+ * @param streamCallbacks 流式回调（可选）
  */
-export type MessageProcessor = (message: QueuedMessage) => Promise<string>;
+export type MessageProcessor = (
+	message: QueuedMessage,
+	streamCallbacks?: ProcessorStreamCallbacks,
+) => Promise<string>;
 
 /**
  * 消息队列类
@@ -145,8 +171,27 @@ export class MessageQueue {
 
 		this.callbacks.onMessageStart(message.id);
 
+		// 构建流式回调（转发到队列回调）
+		const streamCallbacks: ProcessorStreamCallbacks = {
+			onStart: () => {
+				if (!this.stopped) {
+					this.callbacks.onStreamStart?.(message.id);
+				}
+			},
+			onChunk: (content: string) => {
+				if (!this.stopped) {
+					this.callbacks.onStreamChunk?.(message.id, content);
+				}
+			},
+			onEnd: (finalContent: string) => {
+				if (!this.stopped) {
+					this.callbacks.onStreamEnd?.(message.id, finalContent);
+				}
+			},
+		};
+
 		try {
-			const response = await this.processor(message);
+			const response = await this.processor(message, streamCallbacks);
 			// 如果在处理过程中被停止，不调用完成回调
 			if (!this.stopped) {
 				this.callbacks.onMessageComplete(message.id, response);

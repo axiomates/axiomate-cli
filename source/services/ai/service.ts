@@ -12,6 +12,7 @@ import type {
 	ChatMessage,
 	MatchContext,
 	OpenAITool,
+	StreamCallbacks,
 } from "./types.js";
 import type { IToolRegistry } from "../tools/types.js";
 import type { IToolMatcher } from "./types.js";
@@ -178,6 +179,171 @@ export class AIService implements IAIService {
 			historyTrimmed: trimResult?.trimmed ?? false,
 			trimResult,
 		};
+	}
+
+	/**
+	 * 流式发送消息（实时返回生成内容）
+	 */
+	async streamMessage(
+		userMessage: string,
+		context?: MatchContext,
+		callbacks?: StreamCallbacks,
+	): Promise<string> {
+		// 添加用户消息到 Session
+		this.session.addUserMessage(userMessage);
+
+		// 增强上下文
+		const enhancedContext = this.enhanceContext(context);
+
+		// 获取相关工具
+		const tools = this.getContextTools(enhancedContext);
+
+		// 通知流式开始
+		callbacks?.onStart?.();
+
+		// 使用流式 API
+		const result = await this.streamChatWithTools(tools, callbacks);
+
+		// 通知流式结束
+		callbacks?.onEnd?.(result);
+
+		return result;
+	}
+
+	/**
+	 * 获取上下文相关工具
+	 */
+	private getContextTools(context: MatchContext): OpenAITool[] {
+		if (!this.contextAwareEnabled) {
+			return [];
+		}
+
+		// 1. 根据项目类型和文件自动选择工具
+		const autoSelectedTools = this.matcher.autoSelect(context);
+
+		// 2. 根据用户消息关键词匹配工具（使用 cwd 作为 query 的一部分不太合适，暂时跳过）
+		// 可以从 session 获取最后一条用户消息
+		const history = this.session.getHistory();
+		const lastUserMsg = [...history].reverse().find((m) => m.role === "user");
+		const queryMatches = lastUserMsg
+			? this.matcher.match(lastUserMsg.content, context)
+			: [];
+
+		// 3. 合并工具，去重
+		const toolIds = new Set<string>();
+		for (const tool of autoSelectedTools) {
+			toolIds.add(tool.id);
+		}
+		for (const match of queryMatches.slice(0, 10)) {
+			toolIds.add(match.tool.id);
+		}
+
+		// 4. 转换为 OpenAI 工具格式
+		const filteredTools = Array.from(toolIds)
+			.map((id) => this.registry.getTool(id))
+			.filter(
+				(t): t is NonNullable<typeof t> => t !== undefined && t.installed,
+			);
+
+		return toOpenAITools(filteredTools);
+	}
+
+	/**
+	 * 流式对话（支持工具调用）
+	 */
+	private async streamChatWithTools(
+		tools: OpenAITool[],
+		callbacks?: StreamCallbacks,
+	): Promise<string> {
+		// 检查客户端是否支持流式
+		if (!this.client.streamChat) {
+			// 回退到非流式
+			const result =
+				tools.length > 0
+					? await this.chatWithTools(tools)
+					: await this.directChat();
+			return result.content;
+		}
+
+		const messages = this.session.getMessages();
+		let rounds = 0;
+		let fullContent = "";
+
+		while (rounds < this.maxToolCallRounds) {
+			fullContent = "";
+
+			// 流式请求
+			for await (const chunk of this.client.streamChat(
+				messages,
+				tools.length > 0 ? tools : undefined,
+			)) {
+				// 累积内容
+				if (chunk.delta.content) {
+					fullContent += chunk.delta.content;
+					callbacks?.onChunk?.(fullContent);
+				}
+
+				// 检查是否需要执行工具
+				if (
+					chunk.finish_reason === "tool_calls" &&
+					chunk.delta.tool_calls &&
+					chunk.delta.tool_calls.length > 0
+				) {
+					// 添加 assistant 消息到 Session
+					const assistantMessage: ChatMessage = {
+						role: "assistant",
+						content: fullContent,
+						tool_calls: chunk.delta.tool_calls,
+					};
+					this.session.addAssistantMessage(assistantMessage);
+					messages.push(assistantMessage);
+
+					// 执行工具调用
+					const toolResults = await this.toolCallHandler.handleToolCalls(
+						chunk.delta.tool_calls,
+					);
+
+					// 添加工具结果到 Session 和消息
+					for (const result of toolResults) {
+						this.session.addToolMessage(result);
+						messages.push(result);
+					}
+
+					rounds++;
+					// 继续下一轮对话
+					break;
+				}
+
+				// 正常结束
+				if (
+					chunk.finish_reason === "stop" ||
+					chunk.finish_reason === "eos" ||
+					chunk.finish_reason === "length"
+				) {
+					// 添加到 Session
+					this.session.addAssistantMessage({
+						role: "assistant",
+						content: fullContent,
+					});
+					return fullContent;
+				}
+			}
+
+			// 如果 for 循环正常结束（没有 break），说明流已经结束
+			if (rounds === 0 || fullContent) {
+				// 如果没有经过工具调用就结束了
+				if (!messages.some((m) => m.tool_calls)) {
+					this.session.addAssistantMessage({
+						role: "assistant",
+						content: fullContent,
+					});
+					return fullContent;
+				}
+			}
+		}
+
+		// 达到最大轮数
+		return fullContent || "已达到最大工具调用轮数限制。";
 	}
 
 	/**

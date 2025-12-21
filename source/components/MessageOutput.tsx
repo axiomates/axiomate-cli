@@ -6,6 +6,7 @@ import { THEME_PINK } from "../constants/colors.js";
 export type Message = {
 	content: string;
 	type?: "user" | "system"; // user: 用户输入, system: 系统输出（默认）
+	streaming?: boolean; // true = 正在流式生成, false/undefined = 已完成
 };
 
 /**
@@ -20,6 +21,9 @@ type Props = {
 	height: number; // 可用高度（行数）
 	focusMode?: FocusMode; // 焦点模式（默认 input）
 };
+
+// Braille 点阵旋转动画帧
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 // 延迟加载 marked 和 marked-terminal，避免测试环境问题
 let markedInstance: {
@@ -71,6 +75,21 @@ export default function MessageOutput({
 	// scrollOffset: 从底部向上的偏移量（0 = 显示最新消息）
 	const [scrollOffset, setScrollOffset] = useState(0);
 
+	// 动画 spinner 状态
+	const [spinnerIndex, setSpinnerIndex] = useState(0);
+	const hasStreamingMessage = messages.some((m) => m.streaming);
+
+	// Spinner 动画效果
+	useEffect(() => {
+		if (!hasStreamingMessage) return;
+
+		const timer = setInterval(() => {
+			setSpinnerIndex((prev) => (prev + 1) % SPINNER_FRAMES.length);
+		}, 80); // 80ms 每帧，约 12.5 FPS
+
+		return () => clearInterval(timer);
+	}, [hasStreamingMessage]);
+
 	// 预加载 marked
 	useEffect(() => {
 		getMarkedInstance(width);
@@ -78,10 +97,23 @@ export default function MessageOutput({
 
 	// 渲染单条消息（统一 Markdown 渲染）
 	const renderContent = useCallback(
-		(msg: Message): string => {
-			return renderMarkdownSync(msg.content, width - 2);
+		(msg: Message, isLastMessage: boolean): string => {
+			let content = renderMarkdownSync(msg.content, width - 2);
+
+			// 如果是最后一条消息且正在流式生成，添加动画 spinner
+			if (msg.streaming && isLastMessage) {
+				// 确保 spinner 在内容后面（同一行或新行）
+				const spinnerChar = SPINNER_FRAMES[spinnerIndex] || SPINNER_FRAMES[0];
+				if (content.endsWith("\n")) {
+					content = content.slice(0, -1) + " " + spinnerChar;
+				} else {
+					content += " " + spinnerChar;
+				}
+			}
+
+			return content;
 		},
-		[width],
+		[width, spinnerIndex],
 	);
 
 	// 去除 ANSI 转义码，计算可见字符宽度
@@ -168,7 +200,8 @@ export default function MessageOutput({
 		for (let i = 0; i < messages.length; i++) {
 			const msg = messages[i]!;
 			const isUser = msg.type === "user";
-			const content = renderContent(msg);
+			const isLastMessage = i === messages.length - 1;
+			const content = renderContent(msg, isLastMessage);
 			const msgLines = content.split("\n");
 
 			let isFirstLineOfMsg = true;
