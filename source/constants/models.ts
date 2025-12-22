@@ -44,8 +44,6 @@ export type ModelPreset = {
 	thinkingToolsExclusive: boolean;
 	/** 上下文窗口大小（token 数） */
 	contextWindow: number;
-	/** 是否支持 enable_thinking 参数 */
-	supportsThinking?: boolean;
 };
 
 /**
@@ -89,7 +87,6 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		supportsTools: true,
 		thinkingToolsExclusive: false,
 		contextWindow: 131072,
-		supportsThinking: true,
 	},
 	{
 		id: "Qwen/Qwen2-7B-Instruct",
