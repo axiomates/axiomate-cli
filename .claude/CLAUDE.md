@@ -1152,6 +1152,11 @@ type MessageGroup = {
 ▶ 请帮我看看 src/app.tsx... → 我检查了文件... (23 行)
 ```
 
+**Arrow Symbols**:
+- Collapsed: `▶` (hollow right triangle)
+- Expanded: `▼` (hollow down triangle)
+- Using hollow triangles for consistent width across different fonts
+
 **Browse Mode Controls**:
 
 | Key     | Function                            |
@@ -1160,6 +1165,11 @@ type MessageGroup = {
 | `Enter` | Expand/collapse selected group      |
 | `e`     | Expand all groups                   |
 | `c`     | Collapse all groups (except last)   |
+
+**Cursor Behavior on Toggle**:
+- When expanding/collapsing a group via Enter, cursor jumps to the group's header line
+- This is handled by `justToggledGroupId` state in `MessageOutput.tsx`
+- Prevents cursor from staying at an invalid position after content changes
 
 **State Management** (`app.tsx`):
 ```typescript
