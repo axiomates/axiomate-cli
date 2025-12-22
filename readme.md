@@ -497,7 +497,3 @@ source/
 - [Zod](https://zod.dev/) - Schema validation
 - [esbuild](https://esbuild.github.io/) - Fast bundling
 - [Bun](https://bun.sh/) - Standalone executable packaging (optional)
-
-## License
-
-MIT
