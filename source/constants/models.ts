@@ -97,7 +97,7 @@ export const MODEL_PRESETS: ModelPreset[] = [
 		supportsTools: true,
 		contextWindow: 32768,
 	},
-    {
+	{
 		id: "Qwen/Qwen3-Coder-480B-A35B-Instruct",
 		name: "Qwen3 Coder 480B",
 		series: "qwen",

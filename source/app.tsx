@@ -14,6 +14,7 @@ import {
 	isCommandInput,
 } from "./models/input.js";
 import type { HistoryEntry } from "./models/inputInstance.js";
+import { groupMessages, canCollapse } from "./models/messageGroup.js";
 import {
 	handleCommand,
 	type CommandCallbacks,
@@ -66,6 +67,58 @@ export default function App({ initResult }: Props) {
 
 	// AI 加载状态（将来用于显示加载指示器）
 	const [, setIsLoading] = useState(false);
+
+	// 折叠状态管理
+	const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+		new Set(),
+	);
+
+	// 计算消息组（缓存）
+	const messageGroups = useMemo(() => groupMessages(messages), [messages]);
+
+	// 自动折叠：当新对话组到来时，只折叠前一个对话组
+	const prevGroupCountRef = useRef(0);
+	useEffect(() => {
+		const currentCount = messageGroups.length;
+		if (currentCount > prevGroupCountRef.current && currentCount > 1) {
+			// 新消息组到来，只折叠前一个组（倒数第二个）
+			const prevGroup = messageGroups[currentCount - 2];
+			if (prevGroup && canCollapse(prevGroup)) {
+				setCollapsedGroups((prev) => {
+					const next = new Set(prev);
+					next.add(prevGroup.id);
+					return next;
+				});
+			}
+		}
+		prevGroupCountRef.current = currentCount;
+	}, [messageGroups]);
+
+	// 切换单个组的折叠状态
+	const toggleCollapse = useCallback((groupId: string) => {
+		setCollapsedGroups((prev) => {
+			const next = new Set(prev);
+			if (next.has(groupId)) {
+				next.delete(groupId);
+			} else {
+				next.add(groupId);
+			}
+			return next;
+		});
+	}, []);
+
+	// 展开所有组
+	const expandAll = useCallback(() => {
+		setCollapsedGroups(new Set());
+	}, []);
+
+	// 折叠所有可折叠的组
+	const collapseAll = useCallback(() => {
+		const toCollapse = messageGroups
+			.filter((g) => canCollapse(g))
+			.map((g) => g.id);
+		setCollapsedGroups(new Set(toCollapse));
+	}, [messageGroups]);
 
 	// AI 服务实例（从初始化结果获取）
 	const aiServiceRef = useRef<IAIService | null>(initResult.aiService);
@@ -330,11 +383,15 @@ export default function App({ initResult }: Props) {
 	// 清屏（仅清空 UI，保留会话上下文）
 	const clearScreen = useCallback(() => {
 		setMessages([]);
+		setCollapsedGroups(new Set());
+		prevGroupCountRef.current = 0;
 	}, []);
 
 	// 开始新会话（清空会话上下文，但保留 inputHistory）
 	const newSession = useCallback(() => {
 		setMessages([]);
+		setCollapsedGroups(new Set());
+		prevGroupCountRef.current = 0;
 		if (aiServiceRef.current) {
 			aiServiceRef.current.clearHistory();
 		}
@@ -506,6 +563,10 @@ export default function App({ initResult }: Props) {
 				messages={messages}
 				height={messageOutputHeight}
 				focusMode={focusMode}
+				collapsedGroups={collapsedGroups}
+				onToggleCollapse={toggleCollapse}
+				onExpandAll={expandAll}
+				onCollapseAll={collapseAll}
 			/>
 
 			{/* 输出区域与输入框分隔线（仅输入模式显示） */}

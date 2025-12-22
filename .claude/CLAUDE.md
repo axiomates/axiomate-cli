@@ -66,6 +66,7 @@ source/
 ├── models/
 │   ├── input.ts               # UserInput types (for submit callback)
 │   ├── inputInstance.ts       # InputInstance - core input data model
+│   ├── messageGroup.ts        # MessageGroup type, groupMessages, collapse utils
 │   └── richInput.ts           # ColoredSegment, ColorRange, conversion utils
 ├── constants/
 │   ├── commands.ts            # Slash command tree (SLASH_COMMANDS)
@@ -1080,6 +1081,107 @@ useInput((_input, key) => {
 - `scrollOffset`: Lines to skip from the top
 - Auto-scrolls to bottom when new messages arrive (unless manually scrolled up)
 - Shows scroll hints when content extends beyond visible area
+
+### Browse Mode Cursor
+
+In browse mode (output focus), a cursor indicator shows the current line. The cursor is displayed as a **background color on the first character** of each line.
+
+**Cursor Display**:
+- The first visible character of the cursor line gets a background color
+- Background color matches the foreground color (same ANSI code, converted to background)
+- For Markdown-rendered text, ANSI escape codes are parsed and converted:
+  - Basic colors: `ESC[3Xm` → `ESC[4Xm` (30-37 → 40-47)
+  - Bright colors: `ESC[9Xm` → `ESC[10Xm` (90-97 → 100-107)
+  - 256 colors: `ESC[38;5;Nm` → `ESC[48;5;Nm`
+  - True colors: `ESC[38;2;R;G;Bm` → `ESC[48;2;R;G;Bm`
+
+**Implementation** (`MessageOutput.tsx`):
+```typescript
+// Convert foreground ANSI code to background
+const convertFgToBgAnsi = (ansiCodes: string): string | null => {
+  // True color: ESC[38;2;R;G;Bm -> ESC[48;2;R;G;Bm
+  const trueColorMatch = ansiCodes.match(/\x1b\[38;2;(\d+);(\d+);(\d+)m/);
+  if (trueColorMatch) {
+    return `\x1b[48;2;${trueColorMatch[1]};${trueColorMatch[2]};${trueColorMatch[3]}m`;
+  }
+  // ... similar for 256 colors and basic colors
+};
+
+// Render line with cursor background on first character
+const renderLineWithCursorBg = (text: string, fgColor?: string) => {
+  // For simple text (like ">" prefix): use Ink's Text component
+  // For Markdown text: inject ANSI background codes
+};
+```
+
+**Key Design Decisions**:
+- Using same ANSI color for background ensures terminal theme consistency
+- Background color resets after first character: `ESC[49m`
+- Default fallback for uncolored text: light gray background `#e0e0e0`
+
+### Message Collapsing
+
+When conversation history grows long, messages are automatically collapsed to save screen space.
+
+**Message Grouping**:
+
+Messages are grouped into "Q&A pairs" where each group contains:
+- A user message (optional, system message groups may not have one)
+- Response messages (AI responses + system messages)
+
+```typescript
+// models/messageGroup.ts
+type MessageGroup = {
+  id: string;                    // Unique ID (e.g., "group-0")
+  startIndex: number;            // Start message index
+  endIndex: number;              // End message index (exclusive)
+  userMessage: Message | null;   // User message (may be null)
+  responses: Message[];          // Response messages
+  isLast: boolean;               // Is this the last group?
+  hasStreaming: boolean;         // Contains streaming message?
+};
+```
+
+**Auto-Collapse Rules**:
+- Last group: **Never collapsed** (always visible)
+- Streaming group: **Never collapsed** (active conversation)
+- Other groups: **Auto-collapsed** when new group arrives
+
+**Collapsed Display**:
+```
+▶ 请帮我看看 src/app.tsx... → 我检查了文件... (23 行)
+```
+
+**Browse Mode Controls**:
+
+| Key     | Function                            |
+|---------|-------------------------------------|
+| `↑/↓`   | Scroll + navigate collapsed groups  |
+| `Enter` | Expand/collapse selected group      |
+| `e`     | Expand all groups                   |
+| `c`     | Collapse all groups (except last)   |
+
+**State Management** (`app.tsx`):
+```typescript
+// Collapse state
+const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+// Auto-collapse when new group arrives
+useEffect(() => {
+  if (messageGroups.length > prevCount && messageGroups.length > 1) {
+    const toCollapse = messageGroups
+      .slice(0, -1)
+      .filter(g => canCollapse(g))
+      .map(g => g.id);
+    setCollapsedGroups(new Set(toCollapse));
+  }
+}, [messageGroups]);
+```
+
+**Key Functions**:
+- `groupMessages(messages)`: Group messages into Q&A pairs
+- `canCollapse(group)`: Check if group can be collapsed
+- `generateCollapsedSummary(group, width)`: Generate collapsed summary text
 
 ## AI Service Integration
 

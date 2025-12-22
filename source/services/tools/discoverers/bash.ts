@@ -51,8 +51,7 @@ const bashDefinition: ToolDefinition = {
 			commandTemplate: "bash --version",
 		},
 	],
-	installHint:
-		"Linux/macOS: 通常预装\nWindows: 安装 Git Bash 或 WSL",
+	installHint: "Linux/macOS: 通常预装\nWindows: 安装 Git Bash 或 WSL",
 };
 
 export async function detectBash(): Promise<DiscoveredTool> {
