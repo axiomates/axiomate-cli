@@ -109,7 +109,6 @@
 		"modelCapabilities": "Capabilities",
 		"modelProtocol": "Protocol",
 		"languageSwitched": "Language switched to: {{language}}",
-		"languageReloadHint": "Note: Some UI elements will update on next command.",
 		"sessionCleared": "Screen cleared.",
 		"newSession": "Started a new session.",
 		"stopSuccess": "Stopped AI processing. Cleared {{count}} queued message(s).",

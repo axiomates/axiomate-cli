@@ -109,7 +109,6 @@
 		"modelCapabilities": "功能",
 		"modelProtocol": "协议",
 		"languageSwitched": "已切换语言至：{{language}}",
-		"languageReloadHint": "注意：部分界面元素将在下次命令时更新。",
 		"sessionCleared": "屏幕已清空。",
 		"newSession": "已开始新会话。",
 		"stopSuccess": "已停止 AI 处理。清除了 {{count}} 条排队消息。",

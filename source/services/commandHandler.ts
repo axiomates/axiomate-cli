@@ -171,9 +171,7 @@ const internalHandlers: Record<string, InternalHandler> = {
 		setLocale("en");
 		return {
 			type: "message" as const,
-			content:
-				t("commandHandler.languageSwitched", { language: "English" }) +
-				`\n${t("commandHandler.languageReloadHint")}`,
+			content: t("commandHandler.languageSwitched", { language: "English" }),
 		};
 	},
 
@@ -181,9 +179,7 @@ const internalHandlers: Record<string, InternalHandler> = {
 		setLocale("zh-CN");
 		return {
 			type: "message" as const,
-			content:
-				t("commandHandler.languageSwitched", { language: "简体中文" }) +
-				`\n${t("commandHandler.languageReloadHint")}`,
+			content: t("commandHandler.languageSwitched", { language: "简体中文" }),
 		};
 	},
 };
