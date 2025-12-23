@@ -11,7 +11,7 @@ import { SLASH_COMMANDS } from "../constants/commands.js";
 import { getToolRegistry } from "./tools/registry.js";
 import { getModelById } from "../constants/models.js";
 import { setCurrentModelId } from "../utils/config.js";
-import { t, setLocale, type Locale } from "../i18n/index.js";
+import { t, setLocale } from "../i18n/index.js";
 
 /**
  * 内部命令处理器映射
