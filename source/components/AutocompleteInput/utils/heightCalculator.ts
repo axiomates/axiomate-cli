@@ -122,9 +122,9 @@ export function calculateInputAreaHeight(
 			}
 		}
 	} else if (isHelpMode(uiMode)) {
-		// HelpPanel: divider(1) + 6行内容
+		// HelpPanel: divider(1) + 7行内容
 		height += 1; // divider
-		height += 6; // HelpPanel 固定6行
+		height += 7; // HelpPanel 固定7行
 	}
 
 	return height;

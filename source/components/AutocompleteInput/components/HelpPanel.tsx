@@ -74,6 +74,16 @@ export function HelpPanel({ columns }: HelpPanelProps) {
 					<Text color="gray">switch Input/View mode</Text>
 				</Box>
 			</Box>
+			<Box flexDirection="row" flexWrap="wrap">
+				<Box width="50%">
+					<Text color={THEME_LIGHT_YELLOW}>PageUp/PageDown </Text>
+					<Text color="gray">scroll output</Text>
+				</Box>
+				<Box width="50%">
+					<Text color={THEME_LIGHT_YELLOW}>e/c </Text>
+					<Text color="gray">expand/collapse groups (View mode)</Text>
+				</Box>
+			</Box>
 		</Box>
 	);
 }
