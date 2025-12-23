@@ -25,6 +25,7 @@ import {
 	type TrimResult,
 	type CompactCheckResult,
 } from "./session.js";
+import { buildSystemPrompt, SYSTEM_PROMPT } from "../../constants/prompts.js";
 
 /**
  * 默认上下文窗口大小
@@ -57,6 +58,7 @@ export class AIService implements IAIService {
 
 	private maxToolCallRounds: number;
 	private contextAwareEnabled: boolean;
+	private contextInjected: boolean = false;
 
 	constructor(config: AIServiceConfig, registry: IToolRegistry) {
 		this.client = config.client;
@@ -71,6 +73,9 @@ export class AIService implements IAIService {
 		this.session = new Session({
 			contextWindow: config.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
 		});
+
+		// 设置 System Prompt
+		this.session.setSystemPrompt(SYSTEM_PROMPT);
 	}
 
 	/**
@@ -88,10 +93,14 @@ export class AIService implements IAIService {
 	}
 
 	/**
-	 * 清空对话历史
+	 * 清空对话历史（新 session 自动重新设置 system prompt）
 	 */
 	clearHistory(): void {
 		this.session.clear();
+		// 重置上下文注入标志，下次消息会重新注入
+		this.contextInjected = false;
+		// 重新设置 System Prompt，确保新 session 也有
+		this.session.setSystemPrompt(SYSTEM_PROMPT);
 	}
 
 	/**
@@ -137,11 +146,14 @@ export class AIService implements IAIService {
 		userMessage: string,
 		context?: MatchContext,
 	): Promise<string> {
-		// 添加用户消息到 Session
-		this.session.addUserMessage(userMessage);
-
 		// 增强上下文
 		const enhancedContext = this.enhanceContext(context);
+
+		// 确保上下文已注入到 System Prompt
+		this.ensureContextInSystemPrompt(enhancedContext);
+
+		// 添加用户消息到 Session
+		this.session.addUserMessage(userMessage);
 
 		// 使用本地上下文匹配选择工具
 		const result = await this.contextAwareChat(userMessage, enhancedContext);
@@ -156,6 +168,12 @@ export class AIService implements IAIService {
 		userMessage: string,
 		context?: MatchContext,
 	): Promise<SendMessageResult> {
+		// 增强上下文
+		const enhancedContext = this.enhanceContext(context);
+
+		// 确保上下文已注入到 System Prompt
+		this.ensureContextInSystemPrompt(enhancedContext);
+
 		// 检查是否需要先裁剪历史
 		const estimatedTokens = userMessage.length / 4; // 粗略估算
 		let trimResult: TrimResult | undefined;
@@ -166,9 +184,6 @@ export class AIService implements IAIService {
 
 		// 添加用户消息到 Session
 		this.session.addUserMessage(userMessage);
-
-		// 增强上下文
-		const enhancedContext = this.enhanceContext(context);
 
 		// 使用本地上下文匹配选择工具
 		const result = await this.contextAwareChat(userMessage, enhancedContext);
@@ -189,11 +204,14 @@ export class AIService implements IAIService {
 		context?: MatchContext,
 		callbacks?: StreamCallbacks,
 	): Promise<string> {
-		// 添加用户消息到 Session
-		this.session.addUserMessage(userMessage);
-
 		// 增强上下文
 		const enhancedContext = this.enhanceContext(context);
+
+		// 确保上下文已注入到 System Prompt
+		this.ensureContextInSystemPrompt(enhancedContext);
+
+		// 添加用户消息到 Session
+		this.session.addUserMessage(userMessage);
 
 		// 获取相关工具
 		const tools = this.getContextTools(enhancedContext);
@@ -208,6 +226,18 @@ export class AIService implements IAIService {
 		callbacks?.onEnd?.(result);
 
 		return result;
+	}
+
+	/**
+	 * 确保上下文已注入到 System Prompt（仅首次调用时生效）
+	 */
+	private ensureContextInSystemPrompt(context: MatchContext): void {
+		if (this.contextInjected) return;
+
+		// 构建带上下文的 System Prompt
+		const prompt = buildSystemPrompt(context.cwd, context.projectType);
+		this.session.setSystemPrompt(prompt);
+		this.contextInjected = true;
 	}
 
 	/**
