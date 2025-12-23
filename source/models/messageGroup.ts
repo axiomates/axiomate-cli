@@ -167,34 +167,6 @@ export function generateGroupHeaderParts(
 }
 
 /**
- * 生成折叠摘要的各个部分（向后兼容）
- * @deprecated 使用 generateGroupHeaderParts 代替
- */
-export type CollapsedSummaryParts = GroupHeaderParts;
-
-/**
- * 生成折叠摘要的各部分（向后兼容）
- * @deprecated 使用 generateGroupHeaderParts 代替
- */
-export function generateCollapsedSummaryParts(
-	group: MessageGroup,
-	maxWidth: number,
-): CollapsedSummaryParts {
-	return generateGroupHeaderParts(group, maxWidth, true);
-}
-
-/**
- * 生成折叠摘要行（纯文本版本）
- */
-export function generateCollapsedSummary(
-	group: MessageGroup,
-	maxWidth: number,
-): string {
-	const parts = generateCollapsedSummaryParts(group, maxWidth);
-	return `${parts.arrow} ${parts.userPreview} ${parts.separator} ${parts.responsePreview} ${parts.lineCount}`;
-}
-
-/**
  * 判断消息组是否可以折叠
  *
  * 不可折叠的情况：
