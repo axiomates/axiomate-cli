@@ -13,6 +13,40 @@ const translations: Record<Locale, Translations> = {
 // Current locale (mutable singleton)
 let currentLocale: Locale = "en";
 
+// Locale change listeners
+type LocaleChangeListener = (newLocale: Locale) => void;
+const localeChangeListeners: LocaleChangeListener[] = [];
+
+/**
+ * Add a listener for locale changes
+ */
+export function addLocaleChangeListener(
+	listener: LocaleChangeListener,
+): void {
+	localeChangeListeners.push(listener);
+}
+
+/**
+ * Remove a locale change listener
+ */
+export function removeLocaleChangeListener(
+	listener: LocaleChangeListener,
+): void {
+	const index = localeChangeListeners.indexOf(listener);
+	if (index !== -1) {
+		localeChangeListeners.splice(index, 1);
+	}
+}
+
+/**
+ * Notify all listeners of locale change
+ */
+function notifyLocaleChange(newLocale: Locale): void {
+	for (const listener of localeChangeListeners) {
+		listener(newLocale);
+	}
+}
+
 /**
  * Detect system locale from environment variables
  * Falls back to English if no match
@@ -50,10 +84,13 @@ export function getCurrentLocale(): Locale {
 }
 
 /**
- * Set current locale
+ * Set current locale and notify listeners
  */
 export function setLocale(locale: Locale): void {
-	currentLocale = locale;
+	if (currentLocale !== locale) {
+		currentLocale = locale;
+		notifyLocaleChange(locale);
+	}
 }
 
 /**

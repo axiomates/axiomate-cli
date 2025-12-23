@@ -74,6 +74,14 @@
 			"stats": "stats",
 			"statsDesc": "Show tool statistics"
 		},
+		"language": {
+			"name": "language",
+			"description": "Switch interface language",
+			"en": "en",
+			"enDesc": "English",
+			"zhCN": "zh-CN",
+			"zhCNDesc": "简体中文 (Simplified Chinese)"
+		},
 		"compact": {
 			"name": "compact",
 			"description": "Summarize and compress conversation context"
@@ -100,6 +108,8 @@
 		"modelSwitched": "Model switched to: {{model}}",
 		"modelCapabilities": "Capabilities",
 		"modelProtocol": "Protocol",
+		"languageSwitched": "Language switched to: {{language}}",
+		"languageReloadHint": "Note: Some UI elements will update on next command.",
 		"sessionCleared": "Screen cleared.",
 		"newSession": "Started a new session.",
 		"stopSuccess": "Stopped AI processing. Cleared {{count}} queued message(s).",

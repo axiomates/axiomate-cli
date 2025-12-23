@@ -1,6 +1,6 @@
 import type { SlashCommand } from "../components/AutocompleteInput/index.js";
 import { MODEL_PRESETS } from "./models.js";
-import { t } from "../i18n/index.js";
+import { t, addLocaleChangeListener } from "../i18n/index.js";
 
 /**
  * 根据模型预设生成模型选择命令
@@ -69,6 +69,22 @@ export function getSlashCommands(): SlashCommand[] {
 			action: { type: "internal", handler: "stop" },
 		},
 		{
+			name: "language",
+			description: t("commands.language.description"),
+			children: [
+				{
+					name: "en",
+					description: t("commands.language.enDesc"),
+					action: { type: "internal", handler: "language_en" },
+				},
+				{
+					name: "zh-CN",
+					description: t("commands.language.zhCNDesc"),
+					action: { type: "internal", handler: "language_zh-CN" },
+				},
+			],
+		},
+		{
 			name: "exit",
 			description: t("commands.exit.description"),
 			action: { type: "internal", handler: "exit" },
@@ -79,6 +95,12 @@ export function getSlashCommands(): SlashCommand[] {
 // 向后兼容：导出一个懒加载的 SLASH_COMMANDS
 // 第一次访问时生成命令
 let cachedCommands: SlashCommand[] | null = null;
+
+// 监听语言切换，清除缓存
+addLocaleChangeListener(() => {
+	cachedCommands = null;
+});
+
 export const SLASH_COMMANDS: SlashCommand[] = new Proxy([] as SlashCommand[], {
 	get(target, prop) {
 		if (!cachedCommands) {

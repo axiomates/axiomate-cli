@@ -11,7 +11,7 @@ import { SLASH_COMMANDS } from "../constants/commands.js";
 import { getToolRegistry } from "./tools/registry.js";
 import { getModelById } from "../constants/models.js";
 import { setCurrentModelId } from "../utils/config.js";
-import { t } from "../i18n/index.js";
+import { t, setLocale, type Locale } from "../i18n/index.js";
 
 /**
  * 内部命令处理器映射
@@ -163,6 +163,27 @@ const internalHandlers: Record<string, InternalHandler> = {
 					model: `**${model.name}** (${model.id})`,
 				}) +
 				`\n\n${t("commandHandler.modelCapabilities")}: ${capabilities.join(", ") || "none"}\n${t("commandHandler.modelProtocol")}: ${model.protocol}`,
+		};
+	},
+
+	// 语言切换处理器
+	"language_en": () => {
+		setLocale("en");
+		return {
+			type: "message" as const,
+			content:
+				t("commandHandler.languageSwitched", { language: "English" }) +
+				`\n${t("commandHandler.languageReloadHint")}`,
+		};
+	},
+
+	"language_zh-CN": () => {
+		setLocale("zh-CN");
+		return {
+			type: "message" as const,
+			content:
+				t("commandHandler.languageSwitched", { language: "简体中文" }) +
+				`\n${t("commandHandler.languageReloadHint")}`,
 		};
 	},
 };
