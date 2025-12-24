@@ -294,6 +294,7 @@ export class AutocompleteClient {
 	 * - Remove leading/trailing whitespace
 	 * - Remove quotes if the AI wrapped the response
 	 * - Ensure it doesn't repeat the input
+	 * - Replace newlines with spaces (single-line display)
 	 */
 	private cleanSuggestion(suggestion: string, input: string): string | null {
 		let cleaned = suggestion.trim();
@@ -305,6 +306,13 @@ export class AutocompleteClient {
 		) {
 			cleaned = cleaned.slice(1, -1);
 		}
+
+		// Replace all newlines (\n, \r, \r\n) with a single space
+		// This ensures autocomplete suggestions are always single-line
+		cleaned = cleaned.replace(/\r\n|\r|\n/g, " ");
+
+		// Collapse multiple consecutive spaces into one
+		cleaned = cleaned.replace(/\s+/g, " ");
 
 		// If the suggestion is empty or just whitespace, return null
 		if (!cleaned || cleaned.trim() === "") {
