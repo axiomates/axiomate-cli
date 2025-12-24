@@ -35,7 +35,7 @@
 		"enterSubmit": "Enter - 发送消息",
 		"upDownHistory": "↑/↓ - 浏览历史（输入模式）",
 		"leftRightCursor": "←/→ - 移动光标",
-		"tabComplete": "Tab - 自动完成",
+		"tabComplete": "Tab - 自动补全",
 		"ctrlCExit": "Ctrl+C - 退出",
 		"slashCommands": "打开命令",
 		"atFiles": "选择文件",
