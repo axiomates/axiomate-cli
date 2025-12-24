@@ -10,7 +10,7 @@ export type ProcessedLines = {
 	lineOffsets: number[];
 	/** 光标所在行索引 */
 	cursorLine: number;
-	/** 光标所在列索引 */
+	/** 光标所在列索引（显示宽度） */
 	cursorCol: number;
 	/** 每行宽度 */
 	lineWidth: number;
@@ -19,22 +19,87 @@ export type ProcessedLines = {
 export type InputEndInfo = {
 	/** 输入文本结束的行索引 */
 	endLine: number;
-	/** 输入文本结束的列索引 */
+	/** 输入文本结束的列索引（显示宽度） */
 	endCol: number;
 };
 
 /**
- * 将单行文本按宽度自动换行
+ * 判断字符是否是宽字符（占用2个终端列宽）
+ * 包括中文、日文、韩文等CJK字符
+ */
+export function isWideChar(char: string): boolean {
+	const code = char.codePointAt(0);
+	if (code === undefined) return false;
+
+	// CJK 统一表意文字
+	if (code >= 0x4e00 && code <= 0x9fff) return true;
+	// CJK 扩展 A
+	if (code >= 0x3400 && code <= 0x4dbf) return true;
+	// CJK 扩展 B-F
+	if (code >= 0x20000 && code <= 0x2ebef) return true;
+	// CJK 兼容表意文字
+	if (code >= 0xf900 && code <= 0xfaff) return true;
+	// 全角字符
+	if (code >= 0xff00 && code <= 0xffef) return true;
+	// 日文平假名和片假名
+	if (code >= 0x3040 && code <= 0x30ff) return true;
+	// 韩文音节
+	if (code >= 0xac00 && code <= 0xd7af) return true;
+	// 韩文字母
+	if (code >= 0x1100 && code <= 0x11ff) return true;
+	// 中文标点符号
+	if (code >= 0x3000 && code <= 0x303f) return true;
+
+	return false;
+}
+
+/**
+ * 计算字符的显示宽度
+ */
+export function getCharWidth(char: string): number {
+	return isWideChar(char) ? 2 : 1;
+}
+
+/**
+ * 计算字符串的显示宽度
+ */
+export function getStringWidth(str: string): number {
+	let width = 0;
+	for (const char of str) {
+		width += getCharWidth(char);
+	}
+	return width;
+}
+
+/**
+ * 将单行文本按显示宽度自动换行
  */
 export function wrapLine(text: string, width: number): string[] {
 	if (width <= 0 || text.length === 0) return [text];
 	const lines: string[] = [];
-	let remaining = text;
-	while (remaining.length > 0) {
-		lines.push(remaining.slice(0, width));
-		remaining = remaining.slice(width);
+	let currentLine = "";
+	let currentWidth = 0;
+
+	for (const char of text) {
+		const charWidth = getCharWidth(char);
+
+		// 如果添加这个字符会超出宽度，先换行
+		if (currentWidth + charWidth > width && currentLine.length > 0) {
+			lines.push(currentLine);
+			currentLine = "";
+			currentWidth = 0;
+		}
+
+		currentLine += char;
+		currentWidth += charWidth;
 	}
-	return lines.length > 0 ? lines : [""];
+
+	// 添加最后一行
+	if (currentLine.length > 0 || lines.length === 0) {
+		lines.push(currentLine);
+	}
+
+	return lines;
 }
 
 /**
@@ -80,7 +145,9 @@ export function processLines(
 
 				if (cursorPos >= lineStart && cursorPos <= lineEnd) {
 					cursorLine = allLines.length;
-					cursorCol = cursorPos - lineStart;
+					// 光标列位置需要计算到光标位置的显示宽度
+					const charsBeforeCursor = line.slice(0, cursorPos - lineStart);
+					cursorCol = getStringWidth(charsBeforeCursor);
 					foundCursor = true;
 				}
 			}
@@ -98,7 +165,8 @@ export function processLines(
 	// 如果没找到光标（光标在末尾），设置到最后
 	if (!foundCursor) {
 		cursorLine = allLines.length - 1;
-		cursorCol = allLines[cursorLine]?.length || 0;
+		const lastLine = allLines[cursorLine] || "";
+		cursorCol = getStringWidth(lastLine);
 	}
 
 	return { lines: allLines, lineOffsets, cursorLine, cursorCol, lineWidth };
@@ -113,22 +181,19 @@ export function getInputEndInfo(
 ): InputEndInfo {
 	const manualLines = displayText.split("\n");
 	let totalLines = 0;
-	let lastLineLength = 0;
+	let lastLineWidth = 0;
 
 	for (const manualLine of manualLines) {
-		const wrappedCount = Math.max(
-			1,
-			Math.ceil(manualLine.length / lineWidth) || 1,
-		);
-		totalLines += wrappedCount;
-		lastLineLength = manualLine.length % lineWidth;
-		if (manualLine.length > 0 && lastLineLength === 0) {
-			lastLineLength = lineWidth;
-		}
+		// 使用 wrapLine 来获取正确的换行结果
+		const wrappedLines = wrapLine(manualLine, lineWidth);
+		totalLines += wrappedLines.length;
+		// 最后一个换行后的行的显示宽度
+		const lastWrappedLine = wrappedLines[wrappedLines.length - 1] || "";
+		lastLineWidth = getStringWidth(lastWrappedLine);
 	}
 
 	return {
 		endLine: totalLines - 1,
-		endCol: lastLineLength,
+		endCol: lastLineWidth,
 	};
 }

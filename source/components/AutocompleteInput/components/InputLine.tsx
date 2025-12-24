@@ -7,6 +7,7 @@ import { Box, Text } from "ink";
 import type { ReactNode } from "react";
 import type { ColorRange } from "../../../models/richInput.js";
 import { THEME_PINK } from "../../../constants/colors.js";
+import { getStringWidth, getCharWidth } from "../utils/lineProcessor.js";
 
 type InputLineProps = {
 	/** 当前行文本 */
@@ -109,12 +110,16 @@ export function InputLine({
 	colorRanges = [],
 }: InputLineProps) {
 	// 拆分行内容：用户输入部分 vs 建议部分
+	// suggestionStart 现在是显示宽度，需要转换为字符索引
 	let userPart = line;
 	let suggestPart = "";
 
-	if (suggestionStart >= 0 && suggestionStart < line.length) {
-		userPart = line.slice(0, suggestionStart);
-		suggestPart = line.slice(suggestionStart);
+	const lineWidth = getStringWidth(line);
+	if (suggestionStart >= 0 && suggestionStart < lineWidth) {
+		// 根据显示宽度找到对应的字符索引
+		const splitIndex = findCharIndexByWidth(line, suggestionStart);
+		userPart = line.slice(0, splitIndex);
+		suggestPart = line.slice(splitIndex);
 	}
 
 	return (
@@ -170,6 +175,27 @@ function ColoredContent({
 }
 
 /**
+ * 根据显示宽度找到字符串中的字符索引
+ * @param str 字符串
+ * @param displayWidth 目标显示宽度
+ * @returns 字符索引，如果宽度超出字符串则返回字符串长度
+ */
+function findCharIndexByWidth(str: string, displayWidth: number): number {
+	let currentWidth = 0;
+	let charIndex = 0;
+
+	for (const char of str) {
+		if (currentWidth >= displayWidth) {
+			break;
+		}
+		currentWidth += getCharWidth(char);
+		charIndex++;
+	}
+
+	return charIndex;
+}
+
+/**
  * 光标所在行的内容渲染
  */
 function CursorLineContent({
@@ -197,13 +223,18 @@ function CursorLineContent({
 		return undefined;
 	};
 
-	// 光标在用户输入部分
-	if (cursorCol < userPart.length) {
-		const beforeCursor = userPart.slice(0, cursorCol);
-		const atCursor = userPart[cursorCol];
-		const afterCursor = userPart.slice(cursorCol + 1);
+	// cursorCol 现在是显示宽度，需要将其转换为字符索引
+	const userPartWidth = getStringWidth(userPart);
 
-		const cursorGlobalPos = lineOffset + cursorCol;
+	// 光标在用户输入部分
+	if (cursorCol < userPartWidth) {
+		// 根据显示宽度找到对应的字符索引
+		const cursorCharIndex = findCharIndexByWidth(userPart, cursorCol);
+		const beforeCursor = userPart.slice(0, cursorCharIndex);
+		const atCursor = userPart[cursorCharIndex];
+		const afterCursor = userPart.slice(cursorCharIndex + 1);
+
+		const cursorGlobalPos = lineOffset + cursorCharIndex;
 		const cursorColor = getColorAt(cursorGlobalPos);
 
 		return (
@@ -215,7 +246,7 @@ function CursorLineContent({
 				{renderWithColorRanges(
 					afterCursor,
 					colorRanges,
-					lineOffset + cursorCol + 1,
+					lineOffset + cursorCharIndex + 1,
 				)}
 				<Text color="gray">{suggestPart}</Text>
 			</>
