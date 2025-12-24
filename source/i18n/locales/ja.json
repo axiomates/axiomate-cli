@@ -103,6 +103,13 @@
 		"exit": {
 			"name": "exit",
 			"description": "アプリケーションを終了"
+		},
+		"autocomplete": {
+			"name": "autocomplete",
+			"description": "AI自動補完を設定",
+			"onDesc": "自動補完を有効にする",
+			"offDesc": "自動補完を無効にする",
+			"modelDesc": "自動補完モデルを選択"
 		}
 	},
 	"commandHandler": {
