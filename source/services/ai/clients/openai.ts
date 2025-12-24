@@ -14,6 +14,7 @@ import type {
 	ToolCall,
 } from "../types.js";
 import { toOpenAIMessages, parseOpenAIToolCalls } from "../adapters/openai.js";
+import { logger } from "../../../utils/logger.js";
 
 /**
  * OpenAI API 响应类型
@@ -245,6 +246,9 @@ export class OpenAIClient implements IAIClient {
 				}
 			> = new Map();
 
+			// 跟踪是否已经 yield 过带 finish_reason 的 chunk
+			let hasYieldedFinish = false;
+
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) break;
@@ -258,7 +262,13 @@ export class OpenAIClient implements IAIClient {
 					if (!trimmed || !trimmed.startsWith("data: ")) continue;
 
 					const data = trimmed.slice(6); // 去掉 "data: "
-					if (data === "[DONE]") return;
+					if (data === "[DONE]") {
+						// 如果还没有 yield 过 finish_reason，补充一个 stop
+						if (!hasYieldedFinish) {
+							yield { delta: { content: "" }, finish_reason: "stop" };
+						}
+						return;
+					}
 
 					try {
 						const chunk = JSON.parse(data);
@@ -266,6 +276,13 @@ export class OpenAIClient implements IAIClient {
 
 						const choice = chunk.choices[0];
 						const delta = choice.delta || {};
+
+						// 记录每个 chunk 的 finish_reason
+						if (choice.finish_reason !== undefined && choice.finish_reason !== null) {
+							logger.warn(
+								`[OpenAIClient.streamChat] chunk finish_reason: ${JSON.stringify(choice.finish_reason)}`,
+							);
+						}
 
 						// 处理 tool_calls 增量更新
 						if (delta.tool_calls) {
@@ -303,6 +320,7 @@ export class OpenAIClient implements IAIClient {
 							streamChunk.finish_reason = this.parseFinishReason(
 								choice.finish_reason,
 							);
+							hasYieldedFinish = true;
 
 							// 如果是 tool_calls 结束，附加完整的 tool_calls
 							if (choice.finish_reason === "tool_calls") {
@@ -327,6 +345,12 @@ export class OpenAIClient implements IAIClient {
 						continue;
 					}
 				}
+			}
+
+			// 流正常结束（reader.read() 返回 done: true）
+			// 如果还没有 yield 过 finish_reason，补充一个 stop
+			if (!hasYieldedFinish) {
+				yield { delta: { content: "" }, finish_reason: "stop" };
 			}
 		} finally {
 			clearTimeout(timeoutId);
