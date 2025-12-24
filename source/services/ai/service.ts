@@ -66,7 +66,7 @@ export class AIService implements IAIService {
 		this.matcher = new ToolMatcher(registry);
 		this.toolCallHandler = new ToolCallHandler(registry);
 
-		this.maxToolCallRounds = config.maxToolCallRounds ?? 5;
+		this.maxToolCallRounds = config.maxToolCallRounds ?? 100;
 		this.contextAwareEnabled = config.contextAwareEnabled ?? true;
 
 		// 创建 Session

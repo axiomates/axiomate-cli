@@ -1,4 +1,4 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance for Claude Code when working with this repository.
 
@@ -143,7 +143,7 @@ source/
 
 ## Startup Flow
 
-The application uses a **three-phase rendering** architecture with first-time user detection:
+The application uses a **two-phase rendering** architecture with first-time user detection:
 
 ```
 cli.tsx (entry point)
@@ -235,7 +235,7 @@ Located in `components/Welcome.tsx`:
 - Centered welcome message with test version notice
 - Pre-configured API credentials for testing (future: user registration/login)
 - Status display: waiting → configuring → restarting
-- Calls `restartApp()` after writing config to apply changes
+- Updates configuration and continues to main application interface without restart
 
 **Model Presets** (`DEFAULT_MODEL_PRESETS`):
 
