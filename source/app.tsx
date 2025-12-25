@@ -406,13 +406,15 @@ export default function App({ initResult }: Props) {
 				return;
 			}
 
+			// 显示用户消息
+			// 如果队列正在处理其他消息，标记为 queued 以显示等待指示器
+			// 注意：需要在 enqueue 之前检查 isProcessing，因为 enqueue 会立即开始处理
+			const isQueueProcessing = messageQueueRef.current.isProcessing();
+
 			// 加入消息队列（异步处理）
 			const messageId = messageQueueRef.current.enqueue(content, files);
 
-			// 显示用户消息
-			// 如果队列正在处理其他消息，标记为 queued 以显示等待指示器
 			if (isUserMessage) {
-				const isQueueProcessing = messageQueueRef.current.isProcessing();
 				setMessages((prev) => [
 					...prev,
 					{
