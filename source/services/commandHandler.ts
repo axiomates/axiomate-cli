@@ -14,6 +14,7 @@ import {
 	setCurrentModelId,
 	setSuggestionModelId,
 	setSuggestionEnabled,
+	setThinkingEnabled,
 } from "../utils/config.js";
 import { t, setLocale } from "../i18n/index.js";
 
@@ -231,6 +232,23 @@ const internalHandlers: Record<string, InternalHandler> = {
 		return {
 			type: "message" as const,
 			content: t("commandHandler.suggestionModelSwitched", { model: model.name }),
+		};
+	},
+
+	// AI 思考模式开关处理器
+	thinking_on: () => {
+		setThinkingEnabled(true);
+		return {
+			type: "message" as const,
+			content: t("commandHandler.thinkingEnabled"),
+		};
+	},
+
+	thinking_off: () => {
+		setThinkingEnabled(false);
+		return {
+			type: "message" as const,
+			content: t("commandHandler.thinkingDisabled"),
 		};
 	},
 };

@@ -110,6 +110,12 @@
 			"onDesc": "Enable AI suggestion",
 			"offDesc": "Disable AI suggestion",
 			"modelDesc": "Select suggestion model"
+		},
+		"thinking": {
+			"name": "thinking",
+			"description": "Toggle AI thinking mode",
+			"onDesc": "Enable thinking mode",
+			"offDesc": "Disable thinking mode"
 		}
 	},
 	"commandHandler": {
@@ -130,7 +136,9 @@
 		"toolsRefreshed": "✅ Tools refreshed. Found {{count}} tools.",
 		"suggestionEnabled": "AI suggestion enabled",
 		"suggestionDisabled": "AI suggestion disabled",
-		"suggestionModelSwitched": "Suggestion model switched to: {{model}}"
+		"suggestionModelSwitched": "Suggestion model switched to: {{model}}",
+		"thinkingEnabled": "AI thinking mode enabled",
+		"thinkingDisabled": "AI thinking mode disabled"
 	},
 	"ai": {
 		"notConfigured": "AI service not configured. Please check your API settings.",

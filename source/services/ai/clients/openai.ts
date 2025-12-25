@@ -15,6 +15,7 @@ import type {
 	StreamOptions,
 } from "../types.js";
 import { toOpenAIMessages, parseOpenAIToolCalls } from "../adapters/openai.js";
+import { isThinkingEnabled } from "../../../utils/config.js";
 
 /**
  * OpenAI API 响应类型
@@ -83,6 +84,11 @@ export class OpenAIClient implements IAIClient {
 		if (tools && tools.length > 0) {
 			body.tools = tools;
 			body.tool_choice = "auto";
+		}
+
+		// 如果启用思考模式，添加 enable_thinking 参数
+		if (isThinkingEnabled()) {
+			body.enable_thinking = true;
 		}
 
 		let lastError: Error | null = null;
@@ -204,6 +210,11 @@ export class OpenAIClient implements IAIClient {
 		if (tools && tools.length > 0) {
 			body.tools = tools;
 			body.tool_choice = "auto";
+		}
+
+		// 如果启用思考模式，添加 enable_thinking 参数
+		if (isThinkingEnabled()) {
+			body.enable_thinking = true;
 		}
 
 		// 创建内部 AbortController 用于超时

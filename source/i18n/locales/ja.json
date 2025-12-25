@@ -110,6 +110,12 @@
 			"onDesc": "AI提案を有効にする",
 			"offDesc": "AI提案を無効にする",
 			"modelDesc": "提案モデルを選択"
+		},
+		"thinking": {
+			"name": "thinking",
+			"description": "AI思考モードを切り替え",
+			"onDesc": "思考モードを有効にする",
+			"offDesc": "思考モードを無効にする"
 		}
 	},
 	"commandHandler": {
@@ -130,7 +136,9 @@
 		"toolsRefreshed": "✅ ツールを更新しました。{{count}}個のツールが見つかりました。",
 		"suggestionEnabled": "AI提案が有効になりました",
 		"suggestionDisabled": "AI提案が無効になりました",
-		"suggestionModelSwitched": "提案モデルを切り替えました: {{model}}"
+		"suggestionModelSwitched": "提案モデルを切り替えました: {{model}}",
+		"thinkingEnabled": "AI思考モードが有効になりました",
+		"thinkingDisabled": "AI思考モードが無効になりました"
 	},
 	"ai": {
 		"notConfigured": "AIサービスが設定されていません。API設定を確認してください。",

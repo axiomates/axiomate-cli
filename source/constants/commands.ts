@@ -122,6 +122,22 @@ export function getSlashCommands(): SlashCommand[] {
 			],
 		},
 		{
+			name: "thinking",
+			description: t("commands.thinking.description"),
+			children: [
+				{
+					name: "on",
+					description: t("commands.thinking.onDesc"),
+					action: { type: "internal", handler: "thinking_on" },
+				},
+				{
+					name: "off",
+					description: t("commands.thinking.offDesc"),
+					action: { type: "internal", handler: "thinking_off" },
+				},
+			],
+		},
+		{
 			name: "exit",
 			description: t("commands.exit.description"),
 			action: { type: "internal", handler: "exit" },

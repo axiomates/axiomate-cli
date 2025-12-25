@@ -110,6 +110,12 @@
 			"onDesc": "启用 AI 建议",
 			"offDesc": "禁用 AI 建议",
 			"modelDesc": "选择建议模型"
+		},
+		"thinking": {
+			"name": "thinking",
+			"description": "切换 AI 思考模式",
+			"onDesc": "启用思考模式",
+			"offDesc": "禁用思考模式"
 		}
 	},
 	"commandHandler": {
@@ -130,7 +136,9 @@
 		"toolsRefreshed": "✅ 工具已刷新。发现 {{count}} 个工具。",
 		"suggestionEnabled": "AI 建议已启用",
 		"suggestionDisabled": "AI 建议已禁用",
-		"suggestionModelSwitched": "建议模型已切换至：{{model}}"
+		"suggestionModelSwitched": "建议模型已切换至：{{model}}",
+		"thinkingEnabled": "AI 思考模式已启用",
+		"thinkingDisabled": "AI 思考模式已禁用"
 	},
 	"ai": {
 		"notConfigured": "AI 服务未配置，请检查 API 设置。",
