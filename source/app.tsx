@@ -213,6 +213,14 @@ export default function App({ initResult }: Props) {
 			onMessageStart: (id) => {
 				setIsLoading(true);
 				currentStreamingIdRef.current = id;
+				// 移除对应用户消息的 queued 标记
+				setMessages((prev) =>
+					prev.map((msg) =>
+						msg.queuedMessageId === id
+							? { ...msg, queued: false, queuedMessageId: undefined }
+							: msg,
+					),
+				);
 			},
 			onMessageComplete: (id) => {
 				// 流式模式下，内容已通过 onStreamEnd 更新，这里只需重置加载状态
@@ -228,15 +236,15 @@ export default function App({ initResult }: Props) {
 				}
 				currentStreamingIdRef.current = null;
 
-				// 错误时更新最后一条消息（如果是流式消息）或添加新消息
+				// 错误时查找并更新流式消息，或添加新消息
 				setMessages((prev) => {
-					const lastMsg = prev[prev.length - 1];
-					if (lastMsg?.streaming) {
+					const streamingIndex = prev.findIndex((msg) => msg.streaming);
+					if (streamingIndex !== -1) {
 						// 更新流式消息为错误状态
 						const newMessages = [...prev];
-						newMessages[newMessages.length - 1] = {
-							...lastMsg,
-							content: lastMsg.content + `\n\nError: ${error.message}`,
+						newMessages[streamingIndex] = {
+							...newMessages[streamingIndex],
+							content: newMessages[streamingIndex].content + `\n\nError: ${error.message}`,
 							streaming: false,
 						};
 						return newMessages;
@@ -257,13 +265,13 @@ export default function App({ initResult }: Props) {
 					queuedCount > 0
 						? t("commandHandler.stopSuccess", { count: queuedCount })
 						: t("commandHandler.stopNone");
-				// 如果有正在流式生成的消息，标记为结束
+				// 查找并标记流式消息为结束
 				setMessages((prev) => {
-					const lastMsg = prev[prev.length - 1];
-					if (lastMsg?.streaming) {
+					const streamingIndex = prev.findIndex((m) => m.streaming);
+					if (streamingIndex !== -1) {
 						const newMessages = [...prev];
-						newMessages[newMessages.length - 1] = {
-							...lastMsg,
+						newMessages[streamingIndex] = {
+							...newMessages[streamingIndex],
 							streaming: false,
 						};
 						return [
@@ -289,16 +297,17 @@ export default function App({ initResult }: Props) {
 				if (currentStreamingIdRef.current !== id) {
 					return;
 				}
-				// 更新最后一条消息的内容
+				// 查找并更新流式消息（可能不是最后一条，因为用户可能发送了新消息）
 				setMessages((prev) => {
-					const newMessages = [...prev];
-					const lastMsg = newMessages[newMessages.length - 1];
-					if (lastMsg?.streaming) {
-						newMessages[newMessages.length - 1] = {
-							...lastMsg,
-							content,
-						};
+					const streamingIndex = prev.findIndex((msg) => msg.streaming);
+					if (streamingIndex === -1) {
+						return prev;
 					}
+					const newMessages = [...prev];
+					newMessages[streamingIndex] = {
+						...newMessages[streamingIndex],
+						content,
+					};
 					return newMessages;
 				});
 			},
@@ -307,17 +316,18 @@ export default function App({ initResult }: Props) {
 				if (currentStreamingIdRef.current !== id) {
 					return;
 				}
-				// 标记流式结束
+				// 查找并标记流式结束（可能不是最后一条，因为用户可能发送了新消息）
 				setMessages((prev) => {
-					const newMessages = [...prev];
-					const lastMsg = newMessages[newMessages.length - 1];
-					if (lastMsg?.streaming) {
-						newMessages[newMessages.length - 1] = {
-							...lastMsg,
-							content: finalContent,
-							streaming: false,
-						};
+					const streamingIndex = prev.findIndex((msg) => msg.streaming);
+					if (streamingIndex === -1) {
+						return prev;
 					}
+					const newMessages = [...prev];
+					newMessages[streamingIndex] = {
+						...newMessages[streamingIndex],
+						content: finalContent,
+						streaming: false,
+					};
 					return newMessages;
 				});
 			},
@@ -370,13 +380,12 @@ export default function App({ initResult }: Props) {
 	// 发送消息给 AI（支持文件附件）
 	const sendToAI = useCallback(
 		(content: string, files: FileReference[] = [], isUserMessage = true) => {
-			// 显示用户消息
-			if (isUserMessage) {
-				setMessages((prev) => [...prev, { content, type: "user" }]);
-			}
-
 			// 检查 AI 服务是否可用
 			if (!aiServiceRef.current) {
+				// 显示用户消息
+				if (isUserMessage) {
+					setMessages((prev) => [...prev, { content, type: "user" }]);
+				}
 				setMessages((prev) => [
 					...prev,
 					{ content: t("ai.notConfigured"), markdown: false },
@@ -386,6 +395,10 @@ export default function App({ initResult }: Props) {
 
 			// 检查消息队列是否可用
 			if (!messageQueueRef.current) {
+				// 显示用户消息
+				if (isUserMessage) {
+					setMessages((prev) => [...prev, { content, type: "user" }]);
+				}
 				setMessages((prev) => [
 					...prev,
 					{ content: "Message queue not initialized", markdown: false },
@@ -394,7 +407,22 @@ export default function App({ initResult }: Props) {
 			}
 
 			// 加入消息队列（异步处理）
-			messageQueueRef.current.enqueue(content, files);
+			const messageId = messageQueueRef.current.enqueue(content, files);
+
+			// 显示用户消息
+			// 如果队列正在处理其他消息，标记为 queued 以显示等待指示器
+			if (isUserMessage) {
+				const isQueueProcessing = messageQueueRef.current.isProcessing();
+				setMessages((prev) => [
+					...prev,
+					{
+						content,
+						type: "user",
+						queued: isQueueProcessing,
+						queuedMessageId: isQueueProcessing ? messageId : undefined,
+					},
+				]);
+			}
 		},
 		[],
 	);

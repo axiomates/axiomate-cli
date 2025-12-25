@@ -366,6 +366,8 @@ export async function handleCommand(
 
 		case "callback":
 			if (result.callback === "new_session") {
+				// 先停止当前处理，再开始新会话
+				callbacks.stop();
 				callbacks.newSession();
 			} else if (result.callback === "compact") {
 				await callbacks.compact();

@@ -186,6 +186,7 @@
 		"directory": "Directory",
 		"installed": "Installed",
 		"notInstalled": "Not Installed",
-		"version": "Version"
+		"version": "Version",
+		"waiting": "waiting..."
 	}
 }

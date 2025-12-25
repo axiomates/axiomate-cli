@@ -186,6 +186,7 @@
 		"directory": "ディレクトリ",
 		"installed": "インストール済み",
 		"notInstalled": "未インストール",
-		"version": "バージョン"
+		"version": "バージョン",
+		"waiting": "待機中..."
 	}
 }

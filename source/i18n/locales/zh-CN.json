@@ -186,6 +186,7 @@
 		"directory": "目录",
 		"installed": "已安装",
 		"notInstalled": "未安装",
-		"version": "版本"
+		"version": "版本",
+		"waiting": "等待中..."
 	}
 }

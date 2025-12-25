@@ -14,6 +14,9 @@ export type Message = {
 	content: string;
 	type?: "user" | "system"; // user: 用户输入, system: 系统输出（默认）
 	streaming?: boolean; // true = 正在流式生成, false/undefined = 已完成
+	queued?: boolean; // true = 消息已入队等待处理（用户消息）
+	queuedMessageId?: string; // 队列中的消息 ID（用于匹配）
+	markdown?: boolean; // 是否渲染 Markdown（默认 true）
 };
 
 /**
@@ -118,17 +121,18 @@ export default function MessageOutput({
 	// 动画 spinner 状态
 	const [spinnerIndex, setSpinnerIndex] = useState(0);
 	const hasStreamingMessage = messages.some((m) => m.streaming);
+	const hasQueuedMessage = messages.some((m) => m.queued);
 
-	// Spinner 动画效果
+	// Spinner 动画效果（流式或等待中都需要动画）
 	useEffect(() => {
-		if (!hasStreamingMessage) return;
+		if (!hasStreamingMessage && !hasQueuedMessage) return;
 
 		const timer = setInterval(() => {
 			setSpinnerIndex((prev) => (prev + 1) % SPINNER_FRAMES.length);
 		}, 80); // 80ms 每帧，约 12.5 FPS
 
 		return () => clearInterval(timer);
-	}, [hasStreamingMessage]);
+	}, [hasStreamingMessage, hasQueuedMessage]);
 
 	// 预加载 marked
 	useEffect(() => {
@@ -138,7 +142,11 @@ export default function MessageOutput({
 	// 渲染单条消息（统一 Markdown 渲染）
 	const renderContent = useCallback(
 		(msg: Message, isLastMessage: boolean): string => {
-			let content = renderMarkdownSync(msg.content, width - 2);
+			// 如果明确设置不渲染 Markdown，直接返回内容
+			let content =
+				msg.markdown === false
+					? msg.content
+					: renderMarkdownSync(msg.content, width - 2);
 
 			// 如果是最后一条消息且正在流式生成，添加动画 spinner（带明黄色）
 			if (msg.streaming && isLastMessage) {
@@ -153,9 +161,21 @@ export default function MessageOutput({
 				}
 			}
 
+			// 如果消息正在队列中等待，添加等待 spinner（带灰色）
+			if (msg.queued) {
+				const spinnerChar = SPINNER_FRAMES[spinnerIndex] || SPINNER_FRAMES[0];
+				// 使用 ANSI 转义码添加灰色 (90 = bright black/gray)
+				const coloredSpinner = `\x1b[90m${spinnerChar} ${t("common.waiting")}\x1b[0m`;
+				if (content.endsWith("\n")) {
+					content = content.slice(0, -1) + " " + coloredSpinner;
+				} else {
+					content += " " + coloredSpinner;
+				}
+			}
+
 			return content;
 		},
-		[width, spinnerIndex],
+		[width, spinnerIndex, t],
 	);
 
 	// 去除 ANSI 转义码，计算可见字符宽度
