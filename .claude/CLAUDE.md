@@ -1462,11 +1462,17 @@ type MatchContext = {
 
 type ProjectType = "node" | "python" | "java" | "dotnet" | "rust" | "go" | "unknown";
 
+// Streaming content (for models with reasoning support)
+type StreamContent = {
+  reasoning: string;  // Accumulated thinking content (DeepSeek-R1, QwQ, etc.)
+  content: string;    // Accumulated response content
+};
+
 // Streaming callbacks
 type StreamCallbacks = {
-  onStart?: () => void;           // Called when streaming begins
-  onChunk?: (content: string) => void;  // Called with accumulated content
-  onEnd?: (finalContent: string) => void;  // Called when streaming ends
+  onStart?: () => void;                      // Called when streaming begins
+  onChunk?: (content: StreamContent) => void;  // Called with accumulated content
+  onEnd?: (finalContent: StreamContent) => void;  // Called when streaming ends
 };
 ```
 
@@ -2708,14 +2714,113 @@ type FinishReason = "stop" | "eos" | "tool_calls" | "length" | "error";
 - `length`: Token limit reached
 - `error`: Error occurred
 
-#### Special Model Support
+#### Reasoning Content Support (Thinking Mode)
 
-The streaming implementation supports model-specific features:
+Some models (DeepSeek-R1, QwQ, etc.) support a "thinking mode" where they output reasoning/thinking content separately from the final response. The streaming implementation fully supports this:
 
+**Key Types** (`services/ai/types.ts`):
 ```typescript
-// DeepSeek-R1, QwQ models use reasoning_content instead of content
-content: delta.content || delta.reasoning_content || ""
+// Stream delta with separate reasoning_content
+type StreamDelta = Partial<ChatMessage> & {
+  reasoning_content?: string;
+};
+
+// Accumulated stream content
+type StreamContent = {
+  reasoning: string;  // Accumulated thinking content
+  content: string;    // Accumulated response content
+};
+
+// Updated callbacks
+type StreamCallbacks = {
+  onStart?: () => void;
+  onChunk?: (content: StreamContent) => void;  // Now receives StreamContent
+  onEnd?: (finalContent: StreamContent) => void;
+};
 ```
+
+**Message Type** (`components/MessageOutput.tsx`):
+```typescript
+type Message = {
+  content: string;
+  reasoning?: string;           // Thinking content (DeepSeek-R1, QwQ, etc.)
+  reasoningCollapsed?: boolean; // Whether thinking section is collapsed
+  streaming?: boolean;
+  // ... other fields
+};
+```
+
+**Implementation Flow**:
+
+```
+OpenAI Client (streamChat)
+    ↓
+Yields chunk with { delta: { content, reasoning_content }, finish_reason }
+    ↓
+AIService (streamChatWithTools)
+    ↓
+Separately accumulates:
+  - reasoningContent += chunk.delta.reasoning_content
+  - fullContent += chunk.delta.content
+    ↓
+Calls onChunk({ reasoning: reasoningContent, content: fullContent })
+    ↓
+App.tsx updates message with both fields
+    ↓
+MessageOutput renders reasoning in dimColor, collapsible
+```
+
+**Rendering Behavior** (`MessageOutput.tsx`):
+- **Thinking header**: `▼ Thinking` (expanded) or `▶ Thinking (N lines)` (collapsed)
+- **Thinking content**: Displayed with `dimColor` for visual distinction
+- **Auto-collapse**: When streaming ends and `reasoning.length > 0`, auto-collapses
+- **Toggle**: In browse mode, press Enter on thinking header to toggle
+
+**App.tsx Callbacks**:
+```typescript
+onStreamChunk: (id, streamContent: StreamContent) => {
+  setMessages((prev) => {
+    // Find and update streaming message
+    newMessages[streamingIndex] = {
+      ...newMessages[streamingIndex],
+      content: streamContent.content,
+      reasoning: streamContent.reasoning,
+      reasoningCollapsed: false,  // Keep expanded during streaming
+    };
+    return newMessages;
+  });
+},
+
+onStreamEnd: (id, finalContent: StreamContent) => {
+  setMessages((prev) => {
+    newMessages[streamingIndex] = {
+      ...newMessages[streamingIndex],
+      content: finalContent.content,
+      reasoning: finalContent.reasoning,
+      streaming: false,
+      // Auto-collapse if there's reasoning content
+      reasoningCollapsed: finalContent.reasoning.length > 0,
+    };
+    return newMessages;
+  });
+},
+```
+
+**i18n Keys** (in `locales/en.json` and `zh-CN.json`):
+```json
+{
+  "message": {
+    "thinkingProcess": "Thinking",  // "思考过程" in zh-CN
+    "lines": "lines"                 // "行" in zh-CN
+  }
+}
+```
+
+**Browse Mode Controls**:
+| Key | Action |
+|-----|--------|
+| `Enter` on thinking header | Toggle thinking content collapse |
+| `↑/↓` | Navigate through all lines including thinking content |
 
 ### Future Enhancements
 
