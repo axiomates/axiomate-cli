@@ -20,15 +20,25 @@ export type QueuedMessage = {
 };
 
 /**
+ * 流式内容（分离思考和正式内容）
+ */
+export type StreamContent = {
+	/** 思考内容（累积） */
+	reasoning: string;
+	/** 正式内容（累积） */
+	content: string;
+};
+
+/**
  * 流式回调
  */
 export type StreamingCallbacks = {
 	/** 流式开始 */
 	onStreamStart?: (id: string) => void;
-	/** 流式内容更新 (content 是累积的完整内容) */
-	onStreamChunk?: (id: string, content: string) => void;
+	/** 流式内容更新 (content 是累积的完整内容，包含思考和正式内容) */
+	onStreamChunk?: (id: string, content: StreamContent) => void;
 	/** 流式结束 */
-	onStreamEnd?: (id: string, finalContent: string) => void;
+	onStreamEnd?: (id: string, finalContent: StreamContent) => void;
 };
 
 /**
@@ -52,8 +62,8 @@ export type MessageQueueCallbacks = {
  */
 export type ProcessorStreamCallbacks = {
 	onStart?: () => void;
-	onChunk?: (content: string) => void;
-	onEnd?: (finalContent: string) => void;
+	onChunk?: (content: StreamContent) => void;
+	onEnd?: (finalContent: StreamContent) => void;
 };
 
 /**
@@ -217,12 +227,12 @@ export class MessageQueue {
 					this.callbacks.onStreamStart?.(message.id);
 				}
 			},
-			onChunk: (content: string) => {
+			onChunk: (content: StreamContent) => {
 				if (!this.stopped) {
 					this.callbacks.onStreamChunk?.(message.id, content);
 				}
 			},
-			onEnd: (finalContent: string) => {
+			onEnd: (finalContent: StreamContent) => {
 				if (!this.stopped) {
 					this.callbacks.onStreamEnd?.(message.id, finalContent);
 				}

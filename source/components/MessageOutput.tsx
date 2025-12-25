@@ -12,6 +12,8 @@ import { useTranslation } from "../hooks/useTranslation.js";
 
 export type Message = {
 	content: string;
+	reasoning?: string; // 思考内容（DeepSeek-R1, QwQ 等模型）
+	reasoningCollapsed?: boolean; // 思考内容是否折叠
 	type?: "user" | "system"; // user: 用户输入, system: 系统输出（默认）
 	streaming?: boolean; // true = 正在流式生成, false/undefined = 已完成
 	queued?: boolean; // true = 消息已入队等待处理（用户消息）
@@ -30,11 +32,13 @@ type Props = {
 	messages: Message[];
 	height: number; // 可用高度（行数）
 	focusMode?: FocusMode; // 焦点模式（默认 input）
-	// 折叠相关
+	// 消息组折叠相关
 	collapsedGroups?: Set<string>; // 折叠的消息组 ID
 	onToggleCollapse?: (groupId: string) => void; // 切换折叠状态
 	onExpandAll?: () => void; // 展开所有
 	onCollapseAll?: () => void; // 折叠所有
+	// 思考内容折叠相关
+	onToggleReasoningCollapse?: (msgIndex: number) => void; // 切换思考折叠状态
 };
 
 // Braille 点阵旋转动画帧
@@ -80,11 +84,15 @@ type RenderedLine = {
 	msgIndex: number;
 	isUser: boolean; // 是否为用户输入
 	isFirstLine: boolean; // 是否为该消息的第一行（用于显示前缀）
-	// 折叠相关
+	// 消息组折叠相关
 	isGroupHeader?: boolean; // 是否是消息组头部行（带三角形）
 	isCollapsed?: boolean; // 头部行所属组是否处于折叠状态
 	groupId?: string; // 所属消息组 ID（用于展开操作）
 	headerParts?: GroupHeaderParts; // 头部行各部分（用于渲染）
+	// 思考内容相关
+	isReasoning?: boolean; // 是否为思考内容行
+	isReasoningHeader?: boolean; // 是否为思考块头部行（可点击折叠）
+	reasoningLineCount?: number; // 思考内容总行数（仅 header 有值）
 };
 
 export default function MessageOutput({
@@ -95,6 +103,7 @@ export default function MessageOutput({
 	onToggleCollapse,
 	onExpandAll,
 	onCollapseAll,
+	onToggleReasoningCollapse,
 }: Props) {
 	const { t } = useTranslation();
 	const width = useTerminalWidth();
@@ -295,22 +304,106 @@ export default function MessageOutput({
 				const msg = messages[i]!;
 				const isUser = msg.type === "user";
 				const isLastMessage = i === messages.length - 1;
-				const content = renderContent(msg, isLastMessage);
-				const msgLines = content.split("\n");
 
-				let isFirstLineOfMsg = true;
-				for (const line of msgLines) {
-					// 检查这行是否需要换行
-					const wrappedLines = wrapLine(line, effectiveWidth);
-					for (const wrappedLine of wrappedLines) {
+				// 1. 渲染思考内容（如果有）
+				if (msg.reasoning && msg.reasoning.length > 0) {
+					// 计算思考内容的总行数（用于折叠显示）
+					const reasoningLines = msg.reasoning.split("\n");
+					let totalReasoningLines = 0;
+					for (const line of reasoningLines) {
+						const wrappedLines = wrapLine(line, effectiveWidth - 2); // 缩进 2 空格
+						totalReasoningLines += wrappedLines.length;
+					}
+
+					// 思考块头部行
+					const isReasoningCollapsed = msg.reasoningCollapsed ?? false;
+					const headerSymbol = isReasoningCollapsed ? "▶" : "▼";
+					const headerText = isReasoningCollapsed
+						? `${headerSymbol} ${t("message.thinkingProcess")} (${totalReasoningLines} ${t("message.lines")})`
+						: `${headerSymbol} ${t("message.thinkingProcess")}`;
+
+					lines.push({
+						text: headerText,
+						msgIndex: i,
+						isUser: false,
+						isFirstLine: true,
+						groupId: group.id,
+						isReasoning: true,
+						isReasoningHeader: true,
+						reasoningLineCount: totalReasoningLines,
+						isCollapsed: isReasoningCollapsed,
+					});
+
+					// 如果思考内容未折叠，渲染思考内容行
+					if (!isReasoningCollapsed) {
+						for (const line of reasoningLines) {
+							const wrappedLines = wrapLine(line, effectiveWidth - 2);
+							for (const wrappedLine of wrappedLines) {
+								lines.push({
+									text: "  " + wrappedLine, // 缩进 2 空格
+									msgIndex: i,
+									isUser: false,
+									isFirstLine: false,
+									groupId: group.id,
+									isReasoning: true,
+								});
+							}
+						}
+					}
+
+					// 思考中的 spinner（最后一条消息且正在流式生成，且还没有正式内容）
+					if (msg.streaming && isLastMessage && !msg.content) {
+						const spinnerChar =
+							SPINNER_FRAMES[spinnerIndex] || SPINNER_FRAMES[0];
 						lines.push({
-							text: wrappedLine,
+							text: `  \x1b[93m${spinnerChar}\x1b[0m`,
 							msgIndex: i,
-							isUser,
-							isFirstLine: isFirstLineOfMsg,
+							isUser: false,
+							isFirstLine: false,
 							groupId: group.id,
+							isReasoning: true,
 						});
-						isFirstLineOfMsg = false;
+					}
+				}
+
+				// 2. 渲染正式内容
+				if (msg.content) {
+					const content = renderContent(msg, isLastMessage);
+					const msgLines = content.split("\n");
+
+					let isFirstLineOfMsg = !msg.reasoning; // 如果有思考内容，正式内容不是第一行
+					for (const line of msgLines) {
+						// 检查这行是否需要换行
+						const wrappedLines = wrapLine(line, effectiveWidth);
+						for (const wrappedLine of wrappedLines) {
+							lines.push({
+								text: wrappedLine,
+								msgIndex: i,
+								isUser,
+								isFirstLine: isFirstLineOfMsg,
+								groupId: group.id,
+							});
+							isFirstLineOfMsg = false;
+						}
+					}
+				} else if (!msg.reasoning) {
+					// 没有思考内容也没有正式内容（空消息）
+					const content = renderContent(msg, isLastMessage);
+					const msgLines = content.split("\n");
+
+					let isFirstLineOfMsg = true;
+					for (const line of msgLines) {
+						const wrappedLines = wrapLine(line, effectiveWidth);
+						for (const wrappedLine of wrappedLines) {
+							lines.push({
+								text: wrappedLine,
+								msgIndex: i,
+								isUser,
+								isFirstLine: isFirstLineOfMsg,
+								groupId: group.id,
+							});
+							isFirstLineOfMsg = false;
+						}
 					}
 				}
 			}
@@ -324,6 +417,8 @@ export default function MessageOutput({
 		renderContent,
 		width,
 		wrapLine,
+		t,
+		spinnerIndex,
 	]);
 
 	// 计算可见范围
@@ -671,9 +766,18 @@ export default function MessageOutput({
 					return;
 				}
 
-				// Enter: 展开/折叠光标所在的消息组
+				// Enter: 展开/折叠光标所在的消息组或思考块
 				if (key.return && cursorIndex >= 0) {
 					const cursorLine = renderedLines[cursorIndex];
+					// 思考块头部：切换思考内容的折叠状态
+					if (
+						cursorLine?.isReasoningHeader &&
+						onToggleReasoningCollapse
+					) {
+						onToggleReasoningCollapse(cursorLine.msgIndex);
+						return;
+					}
+					// 消息组头部：切换消息组的折叠状态
 					if (
 						cursorLine?.isGroupHeader &&
 						cursorLine.groupId &&
@@ -922,6 +1026,42 @@ export default function MessageOutput({
 						<Text dimColor> {parts.lineCount}</Text>
 					</Box>,
 				);
+			}
+			continue;
+		}
+
+		// 思考内容行的特殊渲染（暗色显示）
+		if (line.isReasoning) {
+			if (line.isReasoningHeader) {
+				// 思考块头部行（可点击折叠）
+				if (isCursorLine) {
+					contentRows.push(
+						<Box key={`reasoning-header-${line.msgIndex}-${i}`} height={1}>
+							{renderLineWithCursorBg(line.text, "gray")}
+						</Box>,
+					);
+				} else {
+					contentRows.push(
+						<Box key={`reasoning-header-${line.msgIndex}-${i}`} height={1}>
+							<Text dimColor>{line.text}</Text>
+						</Box>,
+					);
+				}
+			} else {
+				// 思考内容行（暗色）
+				if (isCursorLine) {
+					contentRows.push(
+						<Box key={`reasoning-${line.msgIndex}-${i}`} height={1}>
+							{renderLineWithCursorBg(line.text, "gray")}
+						</Box>,
+					);
+				} else {
+					contentRows.push(
+						<Box key={`reasoning-${line.msgIndex}-${i}`} height={1}>
+							<Text dimColor>{line.text || " "}</Text>
+						</Box>,
+					);
+				}
 			}
 			continue;
 		}

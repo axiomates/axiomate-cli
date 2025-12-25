@@ -230,10 +230,8 @@ export class AIService implements IAIService {
 
 		try {
 			// 使用流式 API
+			// 注意：streamChatWithTools 内部已经调用了 onEnd，这里不需要重复调用
 			const result = await this.streamChatWithTools(tools, callbacks, options);
-
-			// 通知流式结束
-			callbacks?.onEnd?.(result);
 
 			return result;
 		} catch (error) {
@@ -318,6 +316,8 @@ export class AIService implements IAIService {
 
 		const messages = this.session.getMessages();
 		let rounds = 0;
+		// 分离累积：思考内容和正式内容
+		let reasoningContent = "";
 		let fullContent = "";
 
 		while (rounds < this.maxToolCallRounds) {
@@ -326,6 +326,7 @@ export class AIService implements IAIService {
 				throw new DOMException("Request was aborted", "AbortError");
 			}
 
+			// 每轮重置正式内容（思考内容保留跨轮累积）
 			fullContent = "";
 			let brokeForToolCall = false;
 
@@ -335,10 +336,20 @@ export class AIService implements IAIService {
 				tools.length > 0 ? tools : undefined,
 				options,
 			)) {
-				// 累积内容
+				// 累积思考内容
+				if (chunk.delta.reasoning_content) {
+					reasoningContent += chunk.delta.reasoning_content;
+				}
+				// 累积正式内容
 				if (chunk.delta.content) {
 					fullContent += chunk.delta.content;
-					callbacks?.onChunk?.(fullContent);
+				}
+				// 任何内容更新都触发回调
+				if (chunk.delta.reasoning_content || chunk.delta.content) {
+					callbacks?.onChunk?.({
+						reasoning: reasoningContent,
+						content: fullContent,
+					});
 				}
 
 				// 检查是否需要执行工具
@@ -347,7 +358,7 @@ export class AIService implements IAIService {
 					chunk.delta.tool_calls &&
 					chunk.delta.tool_calls.length > 0
 				) {
-					// 添加 assistant 消息到 Session
+					// 添加 assistant 消息到 Session（只保存正式内容，思考内容不入 session）
 					const assistantMessage: ChatMessage = {
 						role: "assistant",
 						content: fullContent,
@@ -382,6 +393,10 @@ export class AIService implements IAIService {
 						role: "assistant",
 						content: fullContent,
 					});
+					callbacks?.onEnd?.({
+						reasoning: reasoningContent,
+						content: fullContent,
+					});
 					return fullContent;
 				}
 			}
@@ -392,19 +407,28 @@ export class AIService implements IAIService {
 			}
 
 			// 如果 for 循环正常结束（不是因为工具调用），说明流已经结束
-			if (fullContent) {
+			if (fullContent || reasoningContent) {
 				this.session.addAssistantMessage({
 					role: "assistant",
+					content: fullContent,
+				});
+				callbacks?.onEnd?.({
+					reasoning: reasoningContent,
 					content: fullContent,
 				});
 				return fullContent;
 			}
 
 			// 流正常结束但没有内容，返回空
+			callbacks?.onEnd?.({ reasoning: "", content: "" });
 			return "";
 		}
 
 		// 达到最大轮数
+		callbacks?.onEnd?.({
+			reasoning: reasoningContent,
+			content: fullContent || "已达到最大工具调用轮数限制。",
+		});
 		return fullContent || "已达到最大工具调用轮数限制。";
 	}
 

@@ -171,6 +171,10 @@
 		"database": "数据库",
 		"other": "其他"
 	},
+	"message": {
+		"thinkingProcess": "思考过程",
+		"lines": "行"
+	},
 	"common": {
 		"yes": "是",
 		"no": "否",

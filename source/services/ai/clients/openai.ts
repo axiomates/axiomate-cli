@@ -327,11 +327,11 @@ export class OpenAIClient implements IAIClient {
 							}
 						}
 
-						// 构建 AIStreamChunk
+						// 构建 AIStreamChunk（分离 reasoning_content 和 content）
 						const streamChunk: AIStreamChunk = {
 							delta: {
-								// 优先使用 content，其次使用 reasoning_content (DeepSeek-R1, QwQ)
-								content: delta.content || delta.reasoning_content || "",
+								content: delta.content || "",
+								reasoning_content: delta.reasoning_content || "",
 							},
 						};
 

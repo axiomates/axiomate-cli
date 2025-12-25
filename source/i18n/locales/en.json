@@ -171,6 +171,10 @@
 		"database": "Database",
 		"other": "Other"
 	},
+	"message": {
+		"thinkingProcess": "Thinking",
+		"lines": "lines"
+	},
 	"common": {
 		"yes": "Yes",
 		"no": "No",

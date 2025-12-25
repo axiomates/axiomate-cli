@@ -66,11 +66,29 @@ export type AIResponse = {
 };
 
 /**
+ * 流式响应块的 delta 内容
+ */
+export type StreamDelta = Partial<ChatMessage> & {
+	/** 思考内容（DeepSeek-R1, QwQ 等模型） */
+	reasoning_content?: string;
+};
+
+/**
  * 流式响应块
  */
 export type AIStreamChunk = {
-	delta: Partial<ChatMessage>;
+	delta: StreamDelta;
 	finish_reason?: FinishReason;
+};
+
+/**
+ * 流式内容（分离思考和正式内容）
+ */
+export type StreamContent = {
+	/** 思考内容（累积） */
+	reasoning: string;
+	/** 正式内容（累积） */
+	content: string;
 };
 
 /**
@@ -357,12 +375,12 @@ export type CompactCheckResult = {
  * 流式消息回调
  */
 export type StreamCallbacks = {
-	/** 流式内容更新 (content 是累积的完整内容) */
-	onChunk?: (content: string) => void;
+	/** 流式内容更新 (content 是累积的完整内容，包含思考和正式内容) */
+	onChunk?: (content: StreamContent) => void;
 	/** 流式开始 */
 	onStart?: () => void;
 	/** 流式结束 */
-	onEnd?: (finalContent: string) => void;
+	onEnd?: (finalContent: StreamContent) => void;
 };
 
 /**

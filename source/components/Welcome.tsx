@@ -116,6 +116,16 @@ const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
 	},
+	{
+		model: "Pro/deepseek-ai/DeepSeek-V3.2",
+		name: "DeepSeek-V3.2",
+		protocol: "openai",
+		description: "Reasoning model",
+		supportsTools: true,
+		contextWindow: 163840,
+		baseUrl: "https://api.siliconflow.cn/v1",
+		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
+	},
 ];
 
 /**

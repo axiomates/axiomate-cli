@@ -30,6 +30,7 @@ import {
 	MessageQueue,
 	type QueuedMessage,
 	type ProcessorOptions,
+	type StreamContent,
 } from "./services/ai/messageQueue.js";
 import type { InitResult } from "./utils/init.js";
 import { resumeInput } from "./utils/stdin.js";
@@ -123,6 +124,21 @@ export default function App({ initResult }: Props) {
 			.map((g) => g.id);
 		setCollapsedGroups(new Set(toCollapse));
 	}, [messageGroups]);
+
+	// 切换消息思考内容的折叠状态
+	const toggleReasoningCollapse = useCallback((msgIndex: number) => {
+		setMessages((prev) => {
+			const newMessages = [...prev];
+			const msg = newMessages[msgIndex];
+			if (msg) {
+				newMessages[msgIndex] = {
+					...msg,
+					reasoningCollapsed: !msg.reasoningCollapsed,
+				};
+			}
+			return newMessages;
+		});
+	}, []);
 
 	// AI 服务实例（从初始化结果获取）
 	const aiServiceRef = useRef<IAIService | null>(initResult.aiService);
@@ -290,9 +306,12 @@ export default function App({ initResult }: Props) {
 					return;
 				}
 				// 添加一条空的流式消息
-				setMessages((prev) => [...prev, { content: "", streaming: true }]);
+				setMessages((prev) => [
+					...prev,
+					{ content: "", reasoning: "", streaming: true },
+				]);
 			},
-			onStreamChunk: (id, content) => {
+			onStreamChunk: (id, streamContent: StreamContent) => {
 				// 只更新当前消息
 				if (currentStreamingIdRef.current !== id) {
 					return;
@@ -306,12 +325,14 @@ export default function App({ initResult }: Props) {
 					const newMessages = [...prev];
 					newMessages[streamingIndex] = {
 						...newMessages[streamingIndex],
-						content,
+						content: streamContent.content,
+						reasoning: streamContent.reasoning,
+						reasoningCollapsed: false, // 流式中不折叠
 					};
 					return newMessages;
 				});
 			},
-			onStreamEnd: (id, finalContent) => {
+			onStreamEnd: (id, finalContent: StreamContent) => {
 				// 只更新当前消息
 				if (currentStreamingIdRef.current !== id) {
 					return;
@@ -325,8 +346,11 @@ export default function App({ initResult }: Props) {
 					const newMessages = [...prev];
 					newMessages[streamingIndex] = {
 						...newMessages[streamingIndex],
-						content: finalContent,
+						content: finalContent.content,
+						reasoning: finalContent.reasoning,
 						streaming: false,
+						// 有思考内容时自动折叠
+						reasoningCollapsed: finalContent.reasoning.length > 0,
 					};
 					return newMessages;
 				});
@@ -630,6 +654,7 @@ export default function App({ initResult }: Props) {
 				onToggleCollapse={toggleCollapse}
 				onExpandAll={expandAll}
 				onCollapseAll={collapseAll}
+				onToggleReasoningCollapse={toggleReasoningCollapse}
 			/>
 
 			{/* 输出区域与输入框分隔线（仅输入模式显示） */}
