@@ -57,14 +57,34 @@ export type ProcessorStreamCallbacks = {
 };
 
 /**
+ * 消息处理器选项
+ */
+export type ProcessorOptions = {
+	/** 流式回调 */
+	streamCallbacks?: ProcessorStreamCallbacks;
+	/** 用于取消请求的 AbortSignal */
+	signal?: AbortSignal;
+};
+
+/**
  * 消息处理器类型
  * @param message 消息
- * @param streamCallbacks 流式回调（可选）
+ * @param options 处理器选项（包含流式回调和 AbortSignal）
  */
 export type MessageProcessor = (
 	message: QueuedMessage,
-	streamCallbacks?: ProcessorStreamCallbacks,
+	options?: ProcessorOptions,
 ) => Promise<string>;
+
+/**
+ * 正在处理的消息信息
+ */
+type ProcessingMessage = {
+	/** 队列消息 */
+	message: QueuedMessage;
+	/** 用于取消请求的 AbortController */
+	abortController: AbortController;
+};
 
 /**
  * 消息队列类
@@ -77,6 +97,8 @@ export class MessageQueue {
 	private callbacks: MessageQueueCallbacks;
 	private processor: MessageProcessor;
 	private idCounter: number = 0;
+	/** 当前正在处理的消息及其 AbortController */
+	private currentProcessing: ProcessingMessage | null = null;
 
 	constructor(processor: MessageProcessor, callbacks: MessageQueueCallbacks) {
 		this.processor = processor;
@@ -120,13 +142,18 @@ export class MessageQueue {
 
 	/**
 	 * 停止当前处理并清空队列
-	 * 当前正在执行的消息会完成，但结果会被丢弃
-	 * @returns 被清空的消息数量
+	 * 当前正在执行的请求会被中止
+	 * @returns 被清空的消息数量（不含当前正在处理的）
 	 */
 	stop(): number {
 		const queuedCount = this.queue.length;
 		this.stopped = true;
 		this.queue = [];
+
+		// 中止当前正在执行的请求
+		if (this.currentProcessing) {
+			this.currentProcessing.abortController.abort();
+		}
 
 		// 通知停止
 		this.callbacks.onStopped?.(queuedCount);
@@ -156,6 +183,14 @@ export class MessageQueue {
 	}
 
 	/**
+	 * 获取当前正在处理的消息 ID
+	 * @returns 消息 ID，如果没有正在处理的消息则返回 null
+	 */
+	getCurrentMessageId(): string | null {
+		return this.currentProcessing?.message.id ?? null;
+	}
+
+	/**
 	 * 处理下一条消息
 	 */
 	private async processNext(): Promise<void> {
@@ -168,6 +203,10 @@ export class MessageQueue {
 
 		this.processing = true;
 		const message = this.queue.shift()!;
+
+		// 创建 AbortController 用于取消请求
+		const abortController = new AbortController();
+		this.currentProcessing = { message, abortController };
 
 		this.callbacks.onMessageStart(message.id);
 
@@ -191,18 +230,29 @@ export class MessageQueue {
 		};
 
 		try {
-			const response = await this.processor(message, streamCallbacks);
+			const response = await this.processor(message, {
+				streamCallbacks,
+				signal: abortController.signal,
+			});
 			// 如果在处理过程中被停止，不调用完成回调
 			if (!this.stopped) {
 				this.callbacks.onMessageComplete(message.id, response);
 			}
 		} catch (error) {
+			// 如果是中止错误且已停止，忽略
+			const isAbortError =
+				error instanceof Error && error.name === "AbortError";
+			if (isAbortError && this.stopped) {
+				// 请求被主动中止，不报错
+				return;
+			}
 			// 如果在处理过程中被停止，不调用错误回调
 			if (!this.stopped) {
 				const err = error instanceof Error ? error : new Error(String(error));
 				this.callbacks.onMessageError(message.id, err);
 			}
 		} finally {
+			this.currentProcessing = null;
 			this.processing = false;
 			// 如果没有被停止，继续处理下一条
 			if (!this.stopped) {

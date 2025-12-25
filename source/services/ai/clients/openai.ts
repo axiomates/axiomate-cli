@@ -12,6 +12,7 @@ import type {
 	OpenAITool,
 	FinishReason,
 	ToolCall,
+	StreamOptions,
 } from "../types.js";
 import { toOpenAIMessages, parseOpenAIToolCalls } from "../adapters/openai.js";
 
@@ -181,10 +182,14 @@ export class OpenAIClient implements IAIClient {
 	/**
 	 * 流式聊天请求
 	 * 使用 SSE (Server-Sent Events) 格式解析流式响应
+	 * @param messages 消息列表
+	 * @param tools 工具列表（可选）
+	 * @param options 流式选项，包含可选的 AbortSignal 用于外部取消
 	 */
 	async *streamChat(
 		messages: ChatMessage[],
 		tools?: OpenAITool[],
+		options?: StreamOptions,
 	): AsyncGenerator<AIStreamChunk> {
 		const baseUrl =
 			this.config.baseUrl?.replace(/\/$/, "") || "https://api.openai.com/v1";
@@ -201,11 +206,27 @@ export class OpenAIClient implements IAIClient {
 			body.tool_choice = "auto";
 		}
 
-		const controller = new AbortController();
+		// 创建内部 AbortController 用于超时
+		const timeoutController = new AbortController();
 		const timeoutId = setTimeout(
-			() => controller.abort(),
+			() => timeoutController.abort(),
 			this.config.timeout || 120000, // 流式响应使用更长的超时
 		);
+
+		// 如果有外部 signal，监听它并联动中止
+		const externalSignal = options?.signal;
+		let externalAbortHandler: (() => void) | undefined;
+
+		if (externalSignal) {
+			// 如果外部 signal 已经 aborted，立即中止
+			if (externalSignal.aborted) {
+				clearTimeout(timeoutId);
+				throw new DOMException("Request was aborted", "AbortError");
+			}
+			// 监听外部 signal 的 abort 事件
+			externalAbortHandler = () => timeoutController.abort();
+			externalSignal.addEventListener("abort", externalAbortHandler);
+		}
 
 		try {
 			const response = await fetch(url, {
@@ -215,7 +236,7 @@ export class OpenAIClient implements IAIClient {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify(body),
-				signal: controller.signal,
+				signal: timeoutController.signal,
 			});
 
 			clearTimeout(timeoutId);
@@ -346,6 +367,10 @@ export class OpenAIClient implements IAIClient {
 			}
 		} finally {
 			clearTimeout(timeoutId);
+			// 清理外部 signal 监听器
+			if (externalSignal && externalAbortHandler) {
+				externalSignal.removeEventListener("abort", externalAbortHandler);
+			}
 		}
 	}
 }

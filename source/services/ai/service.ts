@@ -13,6 +13,7 @@ import type {
 	MatchContext,
 	OpenAITool,
 	StreamCallbacks,
+	StreamOptions,
 } from "./types.js";
 import type { IToolRegistry } from "../tools/types.js";
 import type { IToolMatcher } from "./types.js";
@@ -198,17 +199,25 @@ export class AIService implements IAIService {
 
 	/**
 	 * 流式发送消息（实时返回生成内容）
+	 * @param userMessage 用户消息
+	 * @param context 上下文信息
+	 * @param callbacks 流式回调
+	 * @param options 流式选项（包含 AbortSignal）
 	 */
 	async streamMessage(
 		userMessage: string,
 		context?: MatchContext,
 		callbacks?: StreamCallbacks,
+		options?: StreamOptions,
 	): Promise<string> {
 		// 增强上下文
 		const enhancedContext = this.enhanceContext(context);
 
 		// 确保上下文已注入到 System Prompt
 		this.ensureContextInSystemPrompt(enhancedContext);
+
+		// 创建检查点（在添加用户消息前）
+		const checkpoint = this.session.checkpoint();
 
 		// 添加用户消息到 Session
 		this.session.addUserMessage(userMessage);
@@ -219,13 +228,21 @@ export class AIService implements IAIService {
 		// 通知流式开始
 		callbacks?.onStart?.();
 
-		// 使用流式 API
-		const result = await this.streamChatWithTools(tools, callbacks);
+		try {
+			// 使用流式 API
+			const result = await this.streamChatWithTools(tools, callbacks, options);
 
-		// 通知流式结束
-		callbacks?.onEnd?.(result);
+			// 通知流式结束
+			callbacks?.onEnd?.(result);
 
-		return result;
+			return result;
+		} catch (error) {
+			// 如果是中止错误，回滚 session 状态
+			if (error instanceof Error && error.name === "AbortError") {
+				this.session.rollback(checkpoint);
+			}
+			throw error;
+		}
 	}
 
 	/**
@@ -280,10 +297,14 @@ export class AIService implements IAIService {
 
 	/**
 	 * 流式对话（支持工具调用）
+	 * @param tools 工具列表
+	 * @param callbacks 流式回调
+	 * @param options 流式选项（包含 AbortSignal）
 	 */
 	private async streamChatWithTools(
 		tools: OpenAITool[],
 		callbacks?: StreamCallbacks,
+		options?: StreamOptions,
 	): Promise<string> {
 		// 检查客户端是否支持流式
 		if (!this.client.streamChat) {
@@ -300,6 +321,11 @@ export class AIService implements IAIService {
 		let fullContent = "";
 
 		while (rounds < this.maxToolCallRounds) {
+			// 检查是否已被中止
+			if (options?.signal?.aborted) {
+				throw new DOMException("Request was aborted", "AbortError");
+			}
+
 			fullContent = "";
 			let brokeForToolCall = false;
 
@@ -307,6 +333,7 @@ export class AIService implements IAIService {
 			for await (const chunk of this.client.streamChat(
 				messages,
 				tools.length > 0 ? tools : undefined,
+				options,
 			)) {
 				// 累积内容
 				if (chunk.delta.content) {

@@ -73,6 +73,14 @@ export type AIStreamChunk = {
 	finish_reason?: FinishReason;
 };
 
+/**
+ * 流式请求选项
+ */
+export type StreamOptions = {
+	/** 用于取消请求的 AbortSignal */
+	signal?: AbortSignal;
+};
+
 // ============================================================================
 // Tool Format Types (用于 AI API)
 // ============================================================================
@@ -164,11 +172,13 @@ export type IAIClient = {
 	 * 流式聊天请求
 	 * @param messages 消息历史
 	 * @param tools 可用工具（可选）
+	 * @param options 流式选项（包含 AbortSignal）
 	 * @returns 流式响应迭代器
 	 */
 	streamChat?(
 		messages: ChatMessage[],
 		tools?: OpenAITool[],
+		options?: StreamOptions,
 	): AsyncIterable<AIStreamChunk>;
 
 	/**
@@ -372,12 +382,14 @@ export type IAIService = {
 	 * @param userMessage 用户消息
 	 * @param context 上下文信息
 	 * @param callbacks 流式回调
+	 * @param options 流式选项（包含 AbortSignal）
 	 * @returns 最终完整响应
 	 */
 	streamMessage(
 		userMessage: string,
 		context?: MatchContext,
 		callbacks?: StreamCallbacks,
+		options?: StreamOptions,
 	): Promise<string>;
 
 	/**

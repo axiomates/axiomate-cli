@@ -29,7 +29,7 @@ import { buildMessageContent } from "./services/ai/contentBuilder.js";
 import {
 	MessageQueue,
 	type QueuedMessage,
-	type ProcessorStreamCallbacks,
+	type ProcessorOptions,
 } from "./services/ai/messageQueue.js";
 import type { InitResult } from "./utils/init.js";
 import { resumeInput } from "./utils/stdin.js";
@@ -68,6 +68,9 @@ export default function App({ initResult }: Props) {
 
 	// AI 加载状态（将来用于显示加载指示器）
 	const [, setIsLoading] = useState(false);
+
+	// 当前正在流式输出的消息 ID（用于正确更新 UI）
+	const currentStreamingIdRef = useRef<string | null>(null);
 
 	// 折叠状态管理
 	const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
@@ -131,7 +134,7 @@ export default function App({ initResult }: Props) {
 	const processMessage = useCallback(
 		async (
 			queuedMessage: QueuedMessage,
-			streamCallbacks?: ProcessorStreamCallbacks,
+			options?: ProcessorOptions,
 		): Promise<string> => {
 			const aiService = aiServiceRef.current;
 			if (!aiService) {
@@ -187,11 +190,16 @@ export default function App({ initResult }: Props) {
 			};
 
 			// 使用流式 API 发送给 AI
-			return aiService.streamMessage(buildResult.content, context, {
-				onStart: streamCallbacks?.onStart,
-				onChunk: streamCallbacks?.onChunk,
-				onEnd: streamCallbacks?.onEnd,
-			});
+			return aiService.streamMessage(
+				buildResult.content,
+				context,
+				{
+					onStart: options?.streamCallbacks?.onStart,
+					onChunk: options?.streamCallbacks?.onChunk,
+					onEnd: options?.streamCallbacks?.onEnd,
+				},
+				{ signal: options?.signal },
+			);
 		},
 		[],
 	);
@@ -202,14 +210,24 @@ export default function App({ initResult }: Props) {
 	// 初始化消息队列
 	useEffect(() => {
 		messageQueueRef.current = new MessageQueue(processMessage, {
-			onMessageStart: () => {
+			onMessageStart: (id) => {
 				setIsLoading(true);
+				currentStreamingIdRef.current = id;
 			},
-			onMessageComplete: () => {
+			onMessageComplete: (id) => {
 				// 流式模式下，内容已通过 onStreamEnd 更新，这里只需重置加载状态
+				if (currentStreamingIdRef.current === id) {
+					currentStreamingIdRef.current = null;
+				}
 				setIsLoading(false);
 			},
-			onMessageError: (__, error) => {
+			onMessageError: (id, error) => {
+				// 只处理当前消息的错误
+				if (currentStreamingIdRef.current !== id) {
+					return;
+				}
+				currentStreamingIdRef.current = null;
+
 				// 错误时更新最后一条消息（如果是流式消息）或添加新消息
 				setMessages((prev) => {
 					const lastMsg = prev[prev.length - 1];
@@ -234,6 +252,7 @@ export default function App({ initResult }: Props) {
 				// 队列处理完毕
 			},
 			onStopped: (queuedCount) => {
+				currentStreamingIdRef.current = null;
 				const msg =
 					queuedCount > 0
 						? t("commandHandler.stopSuccess", { count: queuedCount })
@@ -257,11 +276,19 @@ export default function App({ initResult }: Props) {
 				setIsLoading(false);
 			},
 			// 流式回调
-			onStreamStart: () => {
+			onStreamStart: (id) => {
+				// 只处理当前消息
+				if (currentStreamingIdRef.current !== id) {
+					return;
+				}
 				// 添加一条空的流式消息
 				setMessages((prev) => [...prev, { content: "", streaming: true }]);
 			},
-			onStreamChunk: (__, content) => {
+			onStreamChunk: (id, content) => {
+				// 只更新当前消息
+				if (currentStreamingIdRef.current !== id) {
+					return;
+				}
 				// 更新最后一条消息的内容
 				setMessages((prev) => {
 					const newMessages = [...prev];
@@ -275,7 +302,11 @@ export default function App({ initResult }: Props) {
 					return newMessages;
 				});
 			},
-			onStreamEnd: (__, finalContent) => {
+			onStreamEnd: (id, finalContent) => {
+				// 只更新当前消息
+				if (currentStreamingIdRef.current !== id) {
+					return;
+				}
 				// 标记流式结束
 				setMessages((prev) => {
 					const newMessages = [...prev];

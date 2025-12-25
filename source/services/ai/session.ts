@@ -67,6 +67,18 @@ export type TrimResult = {
 };
 
 /**
+ * Session 检查点（用于回滚）
+ */
+export type SessionCheckpoint = {
+	/** 消息数组的长度（用于截断恢复） */
+	messageCount: number;
+	/** 实际 prompt tokens */
+	actualPromptTokens: number;
+	/** 实际 completion tokens */
+	actualCompletionTokens: number;
+};
+
+/**
  * Session 类
  * 管理单个对话会话的 token 追踪和历史管理
  */
@@ -411,6 +423,148 @@ export class Session {
 	 */
 	updateContextWindow(contextWindow: number): void {
 		this.config.contextWindow = contextWindow;
+	}
+
+	/**
+	 * 创建检查点（在发送请求前调用）
+	 * 用于在请求被中止时回滚到此状态
+	 */
+	checkpoint(): SessionCheckpoint {
+		return {
+			messageCount: this.messages.length,
+			actualPromptTokens: this.actualPromptTokens,
+			actualCompletionTokens: this.actualCompletionTokens,
+		};
+	}
+
+	/**
+	 * 回滚到检查点（在请求被中止时调用）
+	 * 移除检查点之后添加的所有消息
+	 */
+	rollback(checkpoint: SessionCheckpoint): void {
+		// 截断消息数组到检查点时的长度
+		if (this.messages.length > checkpoint.messageCount) {
+			this.messages.length = checkpoint.messageCount;
+		}
+		// 恢复 token 计数
+		this.actualPromptTokens = checkpoint.actualPromptTokens;
+		this.actualCompletionTokens = checkpoint.actualCompletionTokens;
+	}
+
+	/**
+	 * 验证消息序列的有效性
+	 * 检查 tool_calls 和 tool results 是否配对
+	 * @returns 验证结果，包含是否有效和错误信息
+	 */
+	validateMessages(): { valid: boolean; errors: string[] } {
+		const errors: string[] = [];
+		const pendingToolCalls = new Map<string, number>(); // tool_call_id -> message index
+
+		for (let i = 0; i < this.messages.length; i++) {
+			const msg = this.messages[i]!.message;
+
+			// 记录 tool_calls
+			if (msg.role === "assistant" && msg.tool_calls) {
+				for (const tc of msg.tool_calls) {
+					pendingToolCalls.set(tc.id, i);
+				}
+			}
+
+			// 匹配 tool results
+			if (msg.role === "tool" && msg.tool_call_id) {
+				if (pendingToolCalls.has(msg.tool_call_id)) {
+					pendingToolCalls.delete(msg.tool_call_id);
+				} else {
+					errors.push(
+						`Orphan tool result at index ${i}: tool_call_id=${msg.tool_call_id} has no matching tool_call`,
+					);
+				}
+			}
+		}
+
+		// 检查未匹配的 tool_calls
+		for (const [toolCallId, msgIndex] of pendingToolCalls) {
+			errors.push(
+				`Orphan tool_call at index ${msgIndex}: tool_call_id=${toolCallId} has no matching result`,
+			);
+		}
+
+		return {
+			valid: errors.length === 0,
+			errors,
+		};
+	}
+
+	/**
+	 * 修复消息序列
+	 * 移除未配对的 tool_calls 和 tool results
+	 * @returns 移除的消息数量
+	 */
+	repairMessages(): number {
+		const validation = this.validateMessages();
+		if (validation.valid) {
+			return 0;
+		}
+
+		// 找出所有有效的 tool_call_id 对
+		const validToolCallIds = new Set<string>();
+		const toolCallIdToIndex = new Map<string, number>();
+
+		// 第一遍：收集所有 tool_calls
+		for (let i = 0; i < this.messages.length; i++) {
+			const msg = this.messages[i]!.message;
+			if (msg.role === "assistant" && msg.tool_calls) {
+				for (const tc of msg.tool_calls) {
+					toolCallIdToIndex.set(tc.id, i);
+				}
+			}
+		}
+
+		// 第二遍：标记有匹配结果的 tool_call_id
+		for (const msg of this.messages) {
+			if (msg.message.role === "tool" && msg.message.tool_call_id) {
+				if (toolCallIdToIndex.has(msg.message.tool_call_id)) {
+					validToolCallIds.add(msg.message.tool_call_id);
+				}
+			}
+		}
+
+		// 过滤消息
+		const originalLength = this.messages.length;
+		this.messages = this.messages.filter((sessionMsg) => {
+			const msg = sessionMsg.message;
+
+			// 移除没有匹配结果的 tool_calls（清理 assistant 消息中的 tool_calls）
+			if (msg.role === "assistant" && msg.tool_calls) {
+				const validCalls = msg.tool_calls.filter((tc) =>
+					validToolCallIds.has(tc.id),
+				);
+				if (validCalls.length === 0) {
+					// 移除所有 tool_calls
+					delete msg.tool_calls;
+				} else if (validCalls.length < msg.tool_calls.length) {
+					// 只保留有效的 tool_calls
+					msg.tool_calls = validCalls;
+				}
+			}
+
+			// 移除没有匹配 tool_call 的 tool results
+			if (msg.role === "tool" && msg.tool_call_id) {
+				if (!validToolCallIds.has(msg.tool_call_id)) {
+					return false; // 移除这条消息
+				}
+			}
+
+			return true;
+		});
+
+		// 重置 token 计数（因为消息已改变）
+		if (this.messages.length !== originalLength) {
+			this.actualPromptTokens = 0;
+			this.actualCompletionTokens = 0;
+		}
+
+		return originalLength - this.messages.length;
 	}
 }
 
