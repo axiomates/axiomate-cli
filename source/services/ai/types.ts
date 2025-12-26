@@ -462,4 +462,10 @@ export type IAIService = {
 	 * @param session 已加载的 Session 实例
 	 */
 	restoreSession(session: import("./session.js").Session): void;
+
+	/**
+	 * 保存不完整的 assistant 消息到 session（用于 stop 时保存部分回复）
+	 * @param content 部分回复内容
+	 */
+	savePartialResponse(content: string): void;
 };

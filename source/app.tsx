@@ -313,12 +313,20 @@ export default function App({ initResult }: Props) {
 			onQueueEmpty: () => {
 				// 队列处理完毕
 			},
-			onStopped: (queuedCount) => {
+			onStopped: (queuedCount, currentContent) => {
 				currentStreamingIdRef.current = null;
 				const msg =
-					queuedCount > 0
+					queuedCount > 0 || currentContent?.content
 						? t("commandHandler.stopSuccess", { count: queuedCount })
 						: t("commandHandler.stopNone");
+
+				// 如果有部分内容，保存到 session 中
+				if (currentContent?.content && aiServiceRef.current) {
+					aiServiceRef.current.savePartialResponse(currentContent.content);
+					// 自动保存 session
+					saveSessionRef.current?.();
+				}
+
 				// 查找并标记流式消息为结束
 				setMessages((prev) => {
 					const streamingIndex = prev.findIndex((m) => m.streaming);
@@ -327,6 +335,9 @@ export default function App({ initResult }: Props) {
 						newMessages[streamingIndex] = {
 							...newMessages[streamingIndex],
 							streaming: false,
+							// 有思考内容时自动折叠
+							reasoningCollapsed:
+								(newMessages[streamingIndex]?.reasoning?.length ?? 0) > 0,
 						};
 						return [
 							...newMessages,

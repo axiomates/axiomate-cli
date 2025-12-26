@@ -53,8 +53,8 @@ export type MessageQueueCallbacks = {
 	onMessageError: (id: string, error: Error) => void;
 	/** 队列已空 */
 	onQueueEmpty: () => void;
-	/** 队列被停止（可选） */
-	onStopped?: (queuedCount: number) => void;
+	/** 队列被停止（可选），传递清空的消息数和当前流式内容（如果有） */
+	onStopped?: (queuedCount: number, currentContent?: StreamContent) => void;
 } & StreamingCallbacks;
 
 /**
@@ -94,6 +94,8 @@ type ProcessingMessage = {
 	message: QueuedMessage;
 	/** 用于取消请求的 AbortController */
 	abortController: AbortController;
+	/** 当前累积的流式内容 */
+	currentContent: StreamContent;
 };
 
 /**
@@ -160,13 +162,16 @@ export class MessageQueue {
 		this.stopped = true;
 		this.queue = [];
 
+		// 获取当前流式内容（如果有）
+		const currentContent = this.currentProcessing?.currentContent;
+
 		// 中止当前正在执行的请求
 		if (this.currentProcessing) {
 			this.currentProcessing.abortController.abort();
 		}
 
-		// 通知停止
-		this.callbacks.onStopped?.(queuedCount);
+		// 通知停止，传递当前流式内容
+		this.callbacks.onStopped?.(queuedCount, currentContent);
 
 		return queuedCount;
 	}
@@ -216,11 +221,15 @@ export class MessageQueue {
 
 		// 创建 AbortController 用于取消请求
 		const abortController = new AbortController();
-		this.currentProcessing = { message, abortController };
+		this.currentProcessing = {
+			message,
+			abortController,
+			currentContent: { reasoning: "", content: "" },
+		};
 
 		this.callbacks.onMessageStart(message.id);
 
-		// 构建流式回调（转发到队列回调）
+		// 构建流式回调（转发到队列回调，并跟踪当前内容）
 		const streamCallbacks: ProcessorStreamCallbacks = {
 			onStart: () => {
 				if (!this.stopped) {
@@ -228,6 +237,10 @@ export class MessageQueue {
 				}
 			},
 			onChunk: (content: StreamContent) => {
+				// 更新当前处理的内容（用于 stop 时获取）
+				if (this.currentProcessing) {
+					this.currentProcessing.currentContent = content;
+				}
 				if (!this.stopped) {
 					this.callbacks.onStreamChunk?.(message.id, content);
 				}

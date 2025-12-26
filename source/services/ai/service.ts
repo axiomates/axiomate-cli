@@ -157,6 +157,21 @@ export class AIService implements IAIService {
 	}
 
 	/**
+	 * 保存不完整的 assistant 消息到 session（用于 stop 时保存部分回复）
+	 * @param content 部分回复内容
+	 */
+	savePartialResponse(content: string): void {
+		if (!content || content.trim() === "") {
+			return; // 不保存空内容
+		}
+		// 添加不完整的 assistant 消息（添加标记说明是被中断的）
+		this.session.addAssistantMessage({
+			role: "assistant",
+			content: content + "\n\n[Response interrupted]",
+		});
+	}
+
+	/**
 	 * 发送消息并获取响应
 	 * 注意：不再自动裁剪历史，改为在 app.tsx 中检查 shouldCompact 并触发 compact
 	 */
@@ -252,10 +267,14 @@ export class AIService implements IAIService {
 
 			return result;
 		} catch (error) {
-			// 如果是中止错误，回滚 session 状态
+			// 如果是中止错误（用户执行了 /stop），不回滚 session
+			// 保留用户消息，让 onStopped 回调添加部分 AI 回复
 			if (error instanceof Error && error.name === "AbortError") {
-				this.session.rollback(checkpoint);
+				// 不回滚，直接抛出错误让上层处理
+				throw error;
 			}
+			// 其他错误回滚 session 状态
+			this.session.rollback(checkpoint);
 			throw error;
 		}
 	}
