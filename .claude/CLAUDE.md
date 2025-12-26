@@ -124,7 +124,8 @@ source/
 │   ├── index.ts               # i18n core (detectSystemLocale, initI18n, t)
 │   └── locales/               # Translation files
 │       ├── en.json            # English translations
-│       └── zh-CN.json         # Simplified Chinese translations
+│       ├── zh-CN.json         # Simplified Chinese translations
+│       └── ja.json            # Japanese translations
 ├── hooks/
 │   ├── useTerminalWidth.ts    # Terminal width hook
 │   ├── useTerminalHeight.ts   # Terminal height hook
@@ -185,6 +186,7 @@ Defined in `utils/config.ts`. Returns `true` if any of these conditions are met:
 2. Config file is not valid JSON or not an object
 3. `models` is missing, not an object, or empty
 4. `currentModel` is missing, empty, or **not found in models**
+5. `suggestionModel` is missing, empty, or **not found in models**
 
 ```typescript
 export function isFirstTimeUser(): boolean {
@@ -202,13 +204,14 @@ export function isFirstTimeUser(): boolean {
   // Check currentModel exists AND is in models
   if (!parsed.currentModel || !(parsed.currentModel in models)) return true;
 
-  // Note: suggestionModel and suggestionEnabled are optional, not checked here
+  // Check suggestionModel exists AND is in models
+  if (!parsed.suggestionModel || !(parsed.suggestionModel in models)) return true;
 
   return false;
 }
 ```
 
-**Key Design**: Missing required fields (`models`, `currentModel`) triggers first-time setup. Optional fields (`suggestionModel`, `suggestionEnabled`) are not checked and have sensible defaults.
+**Key Design**: Missing required fields (`models`, `currentModel`, `suggestionModel`) triggers first-time setup. Optional fields (`suggestionEnabled`, `thinkingEnabled`) are not checked and have sensible defaults.
 
 ### Welcome Component
 
@@ -252,6 +255,7 @@ const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
     name: "Qwen3 8B",
     protocol: "openai",
     supportsTools: true,
+    supportsThinking: true,
     contextWindow: 131072,
     baseUrl: "https://api.siliconflow.cn/v1",
     apiKey: "sk-xxx...",
@@ -653,24 +657,31 @@ type CommandAction =
 Current command tree:
 ```
 /model
-  /glm-4-9b (internal: model_select)
-  /glm-z1-9b (internal: model_select)
-  /qwen3-8b (internal: model_select) - Default model
-  /qwen2-7b (internal: model_select)
-  /qwen2.5-7b (internal: model_select)
-  /deepseek-r1-qwen-7b (internal: model_select)
-/tools
-  /list (internal: tools_list, async)
-  /refresh (internal: tools_refresh, async)
-  /stats (internal: tools_stats, async)
+  /<model-id> (internal: model_select) - Dynamically generated from config
+/thinking
+  /on (internal: thinking_on) - Enable AI thinking mode
+  /off (internal: thinking_off) - Disable AI thinking mode
 /compact (internal: compact) - Summarize and compress conversation context
 /new (internal: new_session) - Start a new session (discard current context)
 /clear (internal: clear) - Clear screen only (keeps session context)
 /stop (internal: stop) - Stop current AI processing and clear message queue
+/tools
+  /list (internal: tools_list, async)
+  /refresh (internal: tools_refresh, async)
+  /stats (internal: tools_stats, async)
+/suggestion
+  /on (internal: suggestion_on) - Enable AI suggestions
+  /off (internal: suggestion_off) - Disable AI suggestions
+  /model - Select suggestion model
+    /<model-id> (internal: suggestion_model_select)
+/language
+  /en (internal: language_en) - Switch to English
+  /zh-CN (internal: language_zh-CN) - Switch to Simplified Chinese
+  /ja (internal: language_ja) - Switch to Japanese
 /exit (internal: exit)
 ```
 
-Model commands are dynamically generated from `MODEL_PRESETS` in `constants/models.ts`.
+Model commands are dynamically generated from user's config file (`~/.axiomate.json`).
 
 ### Command Handler Service
 
@@ -683,7 +694,8 @@ type CommandResult =
   | { type: "config"; key: string; value: string }
   | { type: "action"; action: "clear" | "exit" }
   | { type: "async"; handler: () => Promise<string> }  // Async commands
-  | { type: "callback"; callback: "new_session" | "compact" | "stop" }  // App callbacks
+  | { type: "callback"; callback: "new_session" | "compact" | "stop" | "recreate_ai_service" }
+  | { type: "callback_with_message"; callback: "recreate_ai_service"; content: string }
   | { type: "error"; message: string };
 
 type CommandCallbacks = {
@@ -694,6 +706,7 @@ type CommandCallbacks = {
   newSession: () => void;      // Start new session (clears AI context)
   compact: () => Promise<void>; // Summarize and compress context
   stop: () => void;            // Stop current processing and clear queue
+  recreateAIService: () => void; // Rebuild AI service (after model switch)
   exit: () => void;
 };
 ```
@@ -807,6 +820,8 @@ npm run test:watch # Watch mode
   - `models` - Per-model configurations (Record<string, ModelConfig>)
   - `currentModel` - Selected model ID (e.g., `Qwen/Qwen3-8B`)
   - `suggestionModel` - Model for AI suggestion (e.g., `THUDM/GLM-Z1-9B-0414`)
+  - `suggestionEnabled` - Whether AI suggestions are enabled (optional, default true)
+  - `thinkingEnabled` - Whether AI thinking mode is enabled (optional, default false)
 - `~/.axiomate/` - App data directory
   - `logs/` - Log files with daily rotation
   - `history/` - Command history
@@ -822,6 +837,10 @@ type Config = {
   currentModel: string;
   /** Model ID for suggestion */
   suggestionModel: string;
+  /** Whether AI suggestions are enabled (optional, default true) */
+  suggestionEnabled?: boolean;
+  /** Whether AI thinking mode is enabled (optional, default false) */
+  thinkingEnabled?: boolean;
 };
 
 type ModelConfig = {
@@ -830,6 +849,7 @@ type ModelConfig = {
   protocol: ApiProtocol;   // "openai" | "anthropic"
   description?: string;    // Short description
   supportsTools: boolean;  // Function calling support
+  supportsThinking: boolean; // Whether model supports reasoning_content
   contextWindow: number;   // Context size in tokens
   baseUrl: string;         // API endpoint
   apiKey: string;          // API key
@@ -1374,6 +1394,7 @@ type ModelConfig = {
   protocol: ApiProtocol;      // "openai" | "anthropic"
   description?: string;       // Short description
   supportsTools: boolean;     // Function calling support
+  supportsThinking: boolean;  // Whether model supports reasoning_content
   contextWindow: number;      // Context window size in tokens
   baseUrl: string;            // API Base URL (per-model)
   apiKey: string;             // API Key (per-model)
@@ -1735,6 +1756,7 @@ type ModelConfig = {
   protocol: ApiProtocol;      // "openai" | "anthropic"
   description?: string;       // Short description
   supportsTools: boolean;     // Function calling support
+  supportsThinking: boolean;  // Whether model supports reasoning_content
   contextWindow: number;      // Context window size
   baseUrl: string;            // API Base URL (per-model)
   apiKey: string;             // API Key (per-model)
@@ -1745,13 +1767,17 @@ type ModelConfig = {
 ```json
 {
   "currentModel": "Qwen/Qwen3-8B",
+  "suggestionModel": "THUDM/GLM-Z1-9B-0414",
+  "suggestionEnabled": true,
+  "thinkingEnabled": false,
   "models": {
     "Qwen/Qwen3-8B": {
       "model": "Qwen/Qwen3-8B",
       "name": "Qwen3 8B",
       "protocol": "openai",
       "supportsTools": true,
-      "contextWindow": 32768,
+      "supportsThinking": true,
+      "contextWindow": 131072,
       "baseUrl": "https://api.siliconflow.cn/v1",
       "apiKey": "sk-xxx"
     }
@@ -1764,17 +1790,26 @@ type ModelConfig = {
 ```typescript
 function getConfig(): Config;                           // Get current config
 function updateConfig(updates: Partial<Config>): Config; // Update and save
-function isFirstTimeUser(): boolean;                    // Check if config file exists
+function isFirstTimeUser(): boolean;                    // Check if config needs setup
 function getCurrentModelId(): string;                   // Get current model ID
 function setCurrentModelId(modelId: string): void;      // Set current model
 function getAllModels(): ModelConfig[];                 // Get all model configs
 function getModelById(modelId: string): ModelConfig | undefined;
 function getModelApiConfig(modelId: string): { baseUrl, apiKey, model, protocol } | null;
 function isApiConfigValid(): boolean;                   // Check if current model has valid API config
+function getSuggestionModelId(): string;                // Get suggestion model ID
+function setSuggestionModelId(modelId: string): void;   // Set suggestion model
+function isSuggestionEnabled(): boolean;                // Check if suggestions enabled (default true)
+function setSuggestionEnabled(enabled: boolean): void;  // Enable/disable suggestions
+function isThinkingEnabled(): boolean;                  // Check if thinking mode enabled (default false)
+function setThinkingEnabled(enabled: boolean): void;    // Enable/disable thinking mode
+function currentModelSupportsThinking(): boolean;       // Check if current model supports thinking
 ```
 
 **Commands**:
 - `/model <model-id>` - Switch to a specific model (e.g., `/model Qwen/Qwen3-8B`)
+- `/thinking on|off` - Enable/disable AI thinking mode (requires model support)
+- `/suggestion on|off|model` - Enable/disable AI suggestions, or select suggestion model
 
 ### Protocol Adapters
 
@@ -2781,7 +2816,27 @@ type FinishReason = "stop" | "eos" | "tool_calls" | "length" | "error";
 
 #### Reasoning Content Support (Thinking Mode)
 
-Some models (DeepSeek-R1, QwQ, etc.) support a "thinking mode" where they output reasoning/thinking content separately from the final response. The streaming implementation fully supports this:
+Some models (DeepSeek-R1, QwQ, Qwen3, GLM-Z1, etc.) support a "thinking mode" where they output reasoning/thinking content separately from the final response. The streaming implementation fully supports this.
+
+**Thinking Mode Toggle**:
+
+Users can enable/disable thinking mode via the `/thinking` command:
+- `/thinking on` - Enable thinking mode (model must support it via `supportsThinking: true`)
+- `/thinking off` - Disable thinking mode
+
+When thinking mode is enabled AND the current model supports it, the AI will output its reasoning process in a collapsible section before the final response.
+
+**Configuration** (`utils/config.ts`):
+```typescript
+// Check if thinking mode is enabled (user preference)
+function isThinkingEnabled(): boolean;
+
+// Check if current model supports thinking
+function currentModelSupportsThinking(): boolean;
+
+// Both must be true for thinking to be active
+const thinkingActive = isThinkingEnabled() && currentModelSupportsThinking();
+```
 
 **Key Types** (`services/ai/types.ts`):
 ```typescript
@@ -2917,6 +2972,19 @@ export const SUGGESTION_DEBOUNCE_MS = 400;  // Wait 400ms after typing stops
 export const MIN_INPUT_LENGTH = 3;             // Minimum chars to trigger
 ```
 
+**Suggestion Toggle Commands**:
+- `/suggestion on` - Enable AI suggestions
+- `/suggestion off` - Disable AI suggestions
+- `/suggestion model <model-id>` - Select which model to use for suggestions
+
+**Configuration Functions** (`utils/config.ts`):
+```typescript
+function isSuggestionEnabled(): boolean;          // Default: true
+function setSuggestionEnabled(enabled: boolean): void;
+function getSuggestionModelId(): string;
+function setSuggestionModelId(modelId: string): void;
+```
+
 ### Trigger Conditions
 
 AI suggestion triggers when ALL conditions are met:
@@ -2967,11 +3035,12 @@ The application supports multiple languages with automatic system locale detecti
 
 - **English** (`en`) - Default fallback
 - **Simplified Chinese** (`zh-CN`)
+- **Japanese** (`ja`)
 
 ### Architecture
 
 The i18n system uses a **zero-dependency** implementation with:
-- System locale auto-detection via environment variables (`LANG`, `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`)
+- System locale auto-detection via `Intl.DateTimeFormat().resolvedOptions().locale` (cross-platform)
 - **Reactive language switching** - All UI updates instantly when language changes
 - **Listener pattern** - Components subscribe to locale changes via event listeners
 - Nested key path support (e.g., `"app.inputMode"`)
@@ -3013,7 +3082,8 @@ source/i18n/
 ├── index.ts          # Core i18n implementation
 └── locales/
     ├── en.json       # English translations
-    └── zh-CN.json    # Simplified Chinese translations
+    ├── zh-CN.json    # Simplified Chinese translations
+    └── ja.json       # Japanese translations
 ```
 
 ### Core API
@@ -3021,7 +3091,7 @@ source/i18n/
 **Initialization** (`source/i18n/index.ts`):
 ```typescript
 // Detect and initialize with system locale
-const locale = initI18n();  // Returns "en" or "zh-CN"
+const locale = initI18n();  // Returns "en", "zh-CN", or "ja"
 
 // Get current locale
 const current = getCurrentLocale();
@@ -3169,7 +3239,8 @@ Uses `Intl.DateTimeFormat().resolvedOptions().locale` for cross-platform locale 
 - System locale `zh-CN` → `"zh-CN"`
 - System locale `zh-TW` → `"zh-CN"`
 - System locale `en-US` → `"en"`
-- System locale `ja-JP` → `"en"` (fallback, Japanese not supported yet)
+- System locale `ja-JP` → `"ja"`
+- System locale `ko-KR` → `"en"` (fallback, Korean not supported yet)
 
 ### Translated Components
 
@@ -3201,7 +3272,7 @@ All user-facing text is translated:
 
 2. **Update Locale type** (`source/i18n/types.ts`):
    ```typescript
-   export type Locale = "en" | "zh-CN" | "fr";
+   export type Locale = "en" | "zh-CN" | "ja" | "fr";
    ```
 
 3. **Import and register** (`source/i18n/index.ts`):
@@ -3211,6 +3282,7 @@ All user-facing text is translated:
    const translations: Record<Locale, Translations> = {
      en: enTranslations as Translations,
      "zh-CN": zhCNTranslations as Translations,
+     ja: jaTranslations as Translations,
      fr: frTranslations as Translations,
    };
    ```
@@ -3218,12 +3290,15 @@ All user-facing text is translated:
 4. **Update detection logic** (if needed):
    ```typescript
    export function detectSystemLocale(): Locale {
-     const lang = process.env.LANG || "";
-     if (lang.startsWith("zh")) return "zh-CN";
-     if (lang.startsWith("fr")) return "fr";
+     const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+     if (locale.startsWith("zh")) return "zh-CN";
+     if (locale.startsWith("ja")) return "ja";
+     if (locale.startsWith("fr")) return "fr";
      return "en";  // Default
    }
    ```
+
+5. **Add language command** (`constants/commands.ts` and `services/commandHandler.ts`)
 
 ### JSON Import Note
 
@@ -3262,9 +3337,10 @@ Users can manually switch languages at runtime using the `/language` slash comma
 /language
   /en        - Switch to English
   /zh-CN     - Switch to Simplified Chinese (切换到简体中文)
+  /ja        - Switch to Japanese (日本語に切り替え)
 ```
 
-**Implementation** ([constants/commands.ts](source/constants/commands.ts#L51-L66)):
+**Implementation** (`constants/commands.ts`):
 ```typescript
 {
   name: "language",
@@ -3280,19 +3356,22 @@ Users can manually switch languages at runtime using the `/language` slash comma
       description: t("commands.language.zhCNDesc"),
       action: { type: "internal", handler: "language_zh-CN" },
     },
+    {
+      name: "ja",
+      description: t("commands.language.jaDesc"),
+      action: { type: "internal", handler: "language_ja" },
+    },
   ],
 }
 ```
 
-**Command Handlers** ([commandHandler.ts](source/services/commandHandler.ts#L169-L188)):
+**Command Handlers** (`services/commandHandler.ts`):
 ```typescript
 "language_en": () => {
   setLocale("en");
   return {
     type: "message" as const,
-    content:
-      t("commandHandler.languageSwitched", { language: "English" }) +
-      `\n${t("commandHandler.languageReloadHint")}`,
+    content: t("commandHandler.languageSwitched", { language: "English" }),
   };
 },
 
@@ -3300,9 +3379,15 @@ Users can manually switch languages at runtime using the `/language` slash comma
   setLocale("zh-CN");
   return {
     type: "message" as const,
-    content:
-      t("commandHandler.languageSwitched", { language: "简体中文" }) +
-      `\n${t("commandHandler.languageReloadHint")}`,
+    content: t("commandHandler.languageSwitched", { language: "简体中文" }),
+  };
+},
+
+"language_ja": () => {
+  setLocale("ja");
+  return {
+    type: "message" as const,
+    content: t("commandHandler.languageSwitched", { language: "日本語" }),
   };
 },
 ```
@@ -3319,21 +3404,20 @@ Users can manually switch languages at runtime using the `/language` slash comma
   5. Success message is displayed in the NEW language
   6. Next slash command menu will show translated commands
 
-**Translation Keys** (in both `en.json` and `zh-CN.json`):
+**Translation Keys** (in `en.json`, `zh-CN.json`, and `ja.json`):
 ```json
 {
   "commands": {
     "language": {
       "name": "language",
-      "description": "Switch interface language" / "切换界面语言",
-      "en": "en",
-      "enDesc": "English" / "English（英文）",
-      "zhCN": "zh-CN",
-      "zhCNDesc": "简体中文 (Simplified Chinese)" / "简体中文"
+      "description": "Switch interface language",
+      "enDesc": "English",
+      "zhCNDesc": "简体中文 (Simplified Chinese)",
+      "jaDesc": "日本語 (Japanese)"
     }
   },
   "commandHandler": {
-    "languageSwitched": "Language switched to: {{language}}" / "已切换语言至：{{language}}"
+    "languageSwitched": "Language switched to: {{language}}"
   }
 }
 ```
@@ -3352,6 +3436,11 @@ LANG=en_US.UTF-8 npm start
 LANG=zh_CN.UTF-8 npm start
 ```
 
+**Test Japanese**:
+```bash
+LANG=ja_JP.UTF-8 npm start
+```
+
 **Test Runtime Language Switching**:
 ```bash
 # Start in any language
@@ -3360,6 +3449,7 @@ npm start
 # Type in the app:
 /language zh-CN   # Instantly switches all UI to Chinese
 /language en      # Instantly switches all UI to English
+/language ja      # Instantly switches all UI to Japanese
 
 # Verify instant updates:
 # - Header mode indicator changes immediately
