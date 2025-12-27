@@ -115,11 +115,12 @@ const internalHandlers: Record<string, InternalHandler> = {
 
 			for (const session of sessions) {
 				const isActive = session.id === activeId;
-				const marker = isActive ? "▶ " : "  ";
+				// 使用 ▶ 和 ○ 作为标记，两者都是宽字符，视觉对齐
+				const marker = isActive ? "▶" : "○";
 				const activeLabel = isActive ? ` (${t("session.active")})` : "";
 				const date = new Date(session.updatedAt).toLocaleString();
 				lines.push(
-					`${marker}**${session.name}**${activeLabel}`,
+					`${marker} **${session.name}**${activeLabel}`,
 					`  ID: \`${session.id.substring(0, 8)}\` | ${session.messageCount} msgs | ${date}`,
 					"",
 				);
