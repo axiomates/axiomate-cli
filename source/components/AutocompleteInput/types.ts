@@ -62,6 +62,8 @@ export type SlashCommand = {
 	children?: SlashCommand[];
 	/** 命令动作，叶子节点需要指定，分支节点可省略 */
 	action?: CommandAction;
+	/** 可选的前缀指示器（如 ▶ 表示当前选中项） */
+	prefix?: string;
 };
 
 /**

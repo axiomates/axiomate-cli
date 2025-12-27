@@ -81,7 +81,8 @@ export function SlashMenu({
 							color={actualIndex === selectedIndex ? "white" : undefined}
 						>
 							{promptIndent}
-							{path.length === 0 ? "/" : "  "}
+							{/* 显示前缀指示器或默认的 / 或空格 */}
+							{cmd.prefix ?? (path.length === 0 ? "/" : "  ")}
 							{cmd.name}
 						</Text>
 						{cmd.description && <Text color="gray"> - {cmd.description}</Text>}

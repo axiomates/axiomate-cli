@@ -13,11 +13,16 @@ import { getSessionStore } from "../services/ai/sessionStore.js";
  * 根据模型配置生成模型选择命令
  */
 function generateModelCommands(): SlashCommand[] {
-	return getAllModels().map((model) => ({
-		name: model.model,
-		description: `${model.name}${model.description ? ` - ${model.description}` : ""}`,
-		action: { type: "internal" as const, handler: "model_select" },
-	}));
+	const currentModelId = getCurrentModelId();
+	return getAllModels().map((model) => {
+		const isCurrentModel = model.model === currentModelId;
+		return {
+			name: model.model,
+			description: `${model.name}${model.description ? ` - ${model.description}` : ""}`,
+			action: { type: "internal" as const, handler: "model_select" },
+			prefix: isCurrentModel ? "▶ " : "  ",
+		};
+	});
 }
 
 /**
