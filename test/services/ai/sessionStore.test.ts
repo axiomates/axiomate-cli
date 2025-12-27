@@ -640,4 +640,64 @@ describe("SessionStore", () => {
 			expect(getSessionStore()).toBeNull();
 		});
 	});
+
+	describe("error handling in saveSession", () => {
+		it("should handle write error gracefully", async () => {
+			vi.mocked(fs.existsSync).mockReturnValue(false);
+
+			const store = new SessionStore(4096);
+			await store.initialize();
+
+			const mockSession = {
+				getInternalState: vi.fn(() => ({
+					messages: [{ role: "user", content: "hello" }],
+					systemPrompt: null,
+					actualPromptTokens: 10,
+					actualCompletionTokens: 20,
+				})),
+				getStatus: vi.fn(() => ({
+					usedTokens: 30,
+					messageCount: 1,
+				})),
+			};
+
+			// Mock writeFileSync to throw error
+			vi.mocked(fs.writeFileSync).mockImplementation(() => {
+				throw new Error("Disk full");
+			});
+
+			// Should not throw
+			expect(() => {
+				store.saveSession(mockSession as any, "test-uuid-1234");
+			}).not.toThrow();
+		});
+	});
+
+	describe("error handling in clearAllSessions", () => {
+		it("should handle file deletion error gracefully", async () => {
+			vi.mocked(fs.existsSync).mockReturnValue(false);
+
+			const store = new SessionStore(4096);
+			await store.initialize();
+
+			// Create second session
+			mockRandomUUID.mockReturnValue("second-session-id");
+			store.createSession("Second");
+
+			// Mock file exists and deletion fails
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.unlinkSync).mockImplementation(() => {
+				throw new Error("Permission denied");
+			});
+
+			// Should not throw
+			expect(() => {
+				store.clearAllSessions();
+			}).not.toThrow();
+
+			// Should have created new session
+			const sessions = store.listSessions();
+			expect(sessions.length).toBe(1);
+		});
+	});
 });

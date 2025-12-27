@@ -7,8 +7,10 @@ import {
 	executeToolAction,
 	getToolAction,
 	paramsToJsonSchema,
+	executeScript,
 } from "../../../source/services/tools/executor.js";
 import type { ToolAction, DiscoveredTool } from "../../../source/services/tools/types.js";
+import * as scriptWriter from "../../../source/services/tools/scriptWriter.js";
 
 // Mock config module
 vi.mock("../../../source/utils/config.js", () => ({
@@ -616,6 +618,422 @@ describe("Tool Executor", () => {
 			expect(result.type).toBe("object");
 			expect(result.properties).toEqual({});
 			expect(result.required).toEqual([]);
+		});
+	});
+
+	describe("executeScript", () => {
+		beforeEach(() => {
+			vi.spyOn(scriptWriter, "writeScript").mockReturnValue("/tmp/script.sh");
+			vi.spyOn(scriptWriter, "buildScriptCommand").mockReturnValue('echo "test"');
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it("should execute a script and include path info", async () => {
+			const result = await executeScript("bash", "echo test", { timeout: 5000 });
+
+			expect(scriptWriter.writeScript).toHaveBeenCalled();
+			expect(result.stdout).toContain("[Script:");
+		});
+
+		it("should use custom cwd", async () => {
+			await executeScript("bash", "echo test", { cwd: "/custom/dir", timeout: 5000 });
+
+			expect(scriptWriter.writeScript).toHaveBeenCalledWith(
+				"/custom/dir",
+				"bash",
+				"echo test",
+				expect.any(Object)
+			);
+		});
+
+		it("should pass prefix to writeScript", async () => {
+			await executeScript("bash", "echo test", { prefix: "myprefix", timeout: 5000 });
+
+			expect(scriptWriter.writeScript).toHaveBeenCalledWith(
+				expect.any(String),
+				"bash",
+				"echo test",
+				{ prefix: "myprefix" }
+			);
+		});
+
+		it("should handle writeScript error", async () => {
+			vi.spyOn(scriptWriter, "writeScript").mockImplementation(() => {
+				throw new Error("Permission denied");
+			});
+
+			const result = await executeScript("bash", "echo test");
+
+			expect(result.success).toBe(false);
+			expect(result.error).toContain("Failed to create script file");
+			expect(result.error).toContain("Permission denied");
+		});
+	});
+
+	describe("executeToolAction - web fetch", () => {
+		beforeEach(() => {
+			vi.stubGlobal("fetch", vi.fn());
+		});
+
+		afterEach(() => {
+			vi.unstubAllGlobals();
+		});
+
+		it("should execute web fetch for web tool", async () => {
+			const mockResponse = {
+				ok: true,
+				status: 200,
+				headers: new Map([["content-type", "text/plain"]]),
+				text: vi.fn().mockResolvedValue("Hello World"),
+			};
+			(mockResponse.headers as any).get = (key: string) =>
+				key === "content-type" ? "text/plain" : null;
+			vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.stdout).toContain("Hello World");
+			expect(result.stdout).toContain("[URL: https://example.com]");
+		});
+
+		it("should handle invalid URL", async () => {
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "not-a-valid-url",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error).toContain("Invalid URL");
+		});
+
+		it("should reject non-http protocols", async () => {
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "file:///etc/passwd",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error).toContain("Unsupported protocol");
+		});
+
+		it("should handle HTTP error responses", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 404,
+				statusText: "Not Found",
+				headers: new Map(),
+			};
+			(mockResponse.headers as any).get = () => null;
+			vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com/notfound",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error).toContain("404");
+			expect(result.exitCode).toBe(404);
+		});
+
+		it("should convert HTML to text", async () => {
+			const htmlContent = `
+				<html>
+				<head><script>alert('test')</script></head>
+				<body>
+					<h1>Title</h1>
+					<p>Paragraph with &amp; entity</p>
+					<ul>
+						<li>Item 1</li>
+						<li>Item 2</li>
+					</ul>
+					<a href="https://link.com">Link text</a>
+				</body>
+				</html>
+			`;
+			const mockResponse = {
+				ok: true,
+				status: 200,
+				headers: new Map([["content-type", "text/html"]]),
+				text: vi.fn().mockResolvedValue(htmlContent),
+			};
+			(mockResponse.headers as any).get = (key: string) =>
+				key === "content-type" ? "text/html" : null;
+			vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.stdout).toContain("Title");
+			expect(result.stdout).toContain("Paragraph with & entity");
+			expect(result.stdout).toContain("Item 1");
+			expect(result.stdout).not.toContain("<script>");
+			expect(result.stdout).not.toContain("alert");
+		});
+
+		it("should handle fetch abort error", async () => {
+			const abortError = new Error("Aborted");
+			abortError.name = "AbortError";
+			vi.mocked(global.fetch).mockRejectedValue(abortError);
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error).toContain("timed out");
+		});
+
+		it("should handle generic fetch error", async () => {
+			vi.mocked(global.fetch).mockRejectedValue(new Error("Network error"));
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error).toContain("Network error");
+		});
+
+		it("should truncate content exceeding context window", async () => {
+			const longContent = "A".repeat(100000);
+			const mockResponse = {
+				ok: true,
+				status: 200,
+				headers: new Map([["content-type", "text/plain"]]),
+				text: vi.fn().mockResolvedValue(longContent),
+			};
+			(mockResponse.headers as any).get = (key: string) =>
+				key === "content-type" ? "text/plain" : null;
+			vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.stdout).toContain("[Content truncated");
+		});
+
+		it("should decode HTML numeric entities", async () => {
+			const htmlContent = "<p>&#65;&#66;&#67; &#x41;&#x42;&#x43;</p>";
+			const mockResponse = {
+				ok: true,
+				status: 200,
+				headers: new Map([["content-type", "text/html"]]),
+				text: vi.fn().mockResolvedValue(htmlContent),
+			};
+			(mockResponse.headers as any).get = (key: string) =>
+				key === "content-type" ? "text/html" : null;
+			vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.stdout).toContain("ABC ABC");
+		});
+
+		it("should handle named HTML entities", async () => {
+			const htmlContent =
+				"<p>&lt;tag&gt; &amp; &quot;quoted&quot; &copy; &trade; &hellip;</p>";
+			const mockResponse = {
+				ok: true,
+				status: 200,
+				headers: new Map([["content-type", "text/html"]]),
+				text: vi.fn().mockResolvedValue(htmlContent),
+			};
+			(mockResponse.headers as any).get = (key: string) =>
+				key === "content-type" ? "text/html" : null;
+			vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
+
+			const tool: DiscoveredTool = {
+				id: "web",
+				name: "Web Fetch",
+				description: "Fetch web content",
+				category: "shell",
+				installed: true,
+				actions: [],
+			};
+			const action: ToolAction = {
+				name: "fetch",
+				description: "Fetch URL",
+				commandTemplate: "",
+				parameters: [
+					{ name: "url", type: "string", description: "URL", required: true },
+				],
+			};
+
+			const result = await executeToolAction(tool, action, {
+				url: "https://example.com",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.stdout).toContain("<tag>");
+			expect(result.stdout).toContain("&");
+			expect(result.stdout).toContain('"quoted"');
+			expect(result.stdout).toContain("©");
+			expect(result.stdout).toContain("™");
+			expect(result.stdout).toContain("…");
 		});
 	});
 });

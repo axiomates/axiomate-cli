@@ -159,6 +159,11 @@ vi.mock("../../source/constants/commands.js", () => ({
 			action: { type: "unknown" as any },
 		},
 		{
+			name: "unknown-handler",
+			description: "Command with unknown internal handler",
+			action: { type: "internal", handler: "nonexistent_handler" },
+		},
+		{
 			name: "prompt-cmd",
 			description: "Prompt command",
 			action: { type: "prompt", template: "Test prompt" },
@@ -539,6 +544,18 @@ describe("commandHandler", () => {
 
 			expect(callbacks.showMessage).toHaveBeenCalledWith(
 				expect.stringContaining("Error"),
+			);
+		});
+
+		it("should handle unknown internal handler", async () => {
+			const callbacks = createMockCallbacks();
+			await handleCommand(["unknown-handler"], context, callbacks);
+
+			expect(callbacks.showMessage).toHaveBeenCalledWith(
+				expect.stringContaining("Error"),
+			);
+			expect(callbacks.showMessage).toHaveBeenCalledWith(
+				expect.stringContaining("Unknown internal handler"),
 			);
 		});
 	});

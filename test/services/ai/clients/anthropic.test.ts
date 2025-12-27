@@ -611,5 +611,98 @@ describe("AnthropicClient", () => {
 			const lastChunk = results[results.length - 1];
 			expect(lastChunk.finish_reason).toBe("stop");
 		});
+
+		it("should skip invalid JSON lines and continue processing", async () => {
+			const encoder = new TextEncoder();
+			const events = [
+				'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n',
+				'event: content_block_delta\ndata: {invalid json}\n\n',
+				'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Valid"}}\n\n',
+				'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}\n\n',
+				'event: message_stop\ndata: {"type":"message_stop"}\n\n',
+			];
+
+			let eventIndex = 0;
+			const mockReader = {
+				read: vi.fn(async () => {
+					if (eventIndex < events.length) {
+						const value = encoder.encode(events[eventIndex]!);
+						eventIndex++;
+						return { done: false, value };
+					}
+					return { done: true, value: undefined };
+				}),
+			};
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				body: { getReader: () => mockReader },
+			});
+
+			const client = new AnthropicClient({
+				apiKey: "test-key",
+				model: "claude-3-opus",
+				baseUrl: "https://api.anthropic.com/v1",
+			});
+
+			const results: string[] = [];
+			for await (const chunk of client.streamChat([
+				{ role: "user", content: "Hi" },
+			])) {
+				if (chunk.delta.content) {
+					results.push(chunk.delta.content);
+				}
+			}
+
+			// Should have processed the valid line after invalid one
+			expect(results).toContain("Valid");
+		});
+
+		it("should cleanup external abort signal listener in finally", async () => {
+			const encoder = new TextEncoder();
+			const events = [
+				'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n',
+				'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n',
+				'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}\n\n',
+				'event: message_stop\ndata: {"type":"message_stop"}\n\n',
+			];
+
+			let eventIndex = 0;
+			const mockReader = {
+				read: vi.fn(async () => {
+					if (eventIndex < events.length) {
+						const value = encoder.encode(events[eventIndex]!);
+						eventIndex++;
+						return { done: false, value };
+					}
+					return { done: true, value: undefined };
+				}),
+			};
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				body: { getReader: () => mockReader },
+			});
+
+			const controller = new AbortController();
+			const removeEventListenerSpy = vi.spyOn(controller.signal, "removeEventListener");
+
+			const client = new AnthropicClient({
+				apiKey: "test-key",
+				model: "claude-3-opus",
+				baseUrl: "https://api.anthropic.com/v1",
+			});
+
+			for await (const _ of client.streamChat(
+				[{ role: "user", content: "Hi" }],
+				undefined,
+				{ signal: controller.signal },
+			)) {
+				// consume
+			}
+
+			// Verify that removeEventListener was called in the finally block
+			expect(removeEventListenerSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+		});
 	});
 });

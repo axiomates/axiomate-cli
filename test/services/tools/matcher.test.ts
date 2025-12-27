@@ -41,7 +41,7 @@ describe("matcher", () => {
 
 	const createMockRegistry = (): IToolRegistry => {
 		const tools = new Map<string, DiscoveredTool>();
-		["git", "node", "python", "java", "bash", "powershell", "pwsh", "cmd", "docker", "cmake", "web"].forEach(id => {
+		["git", "node", "python", "java", "bash", "powershell", "pwsh", "cmd", "docker", "cmake", "web", "dotnet", "sqlite3", "vs2022", "msbuild"].forEach(id => {
 			tools.set(id, createMockTool(id));
 		});
 
@@ -328,6 +328,55 @@ describe("matcher", () => {
 
 				const toolIds = results.map(t => t.id);
 				expect(toolIds).toContain("node");
+			});
+
+			it("should detect tools from glob pattern files (*.csproj)", () => {
+				// Mock readdirSync to return .csproj file for glob matching
+				vi.mocked(fs.readdirSync).mockReturnValue(["MyApp.csproj"] as any);
+				vi.mocked(fs.existsSync).mockReturnValue(false);
+
+				const results = matcher.autoSelect({ cwd: "/project" });
+
+				const toolIds = results.map(t => t.id);
+				expect(toolIds).toContain("dotnet");
+			});
+
+			it("should detect tools from glob pattern files (*.sln)", () => {
+				vi.mocked(fs.readdirSync).mockReturnValue(["Solution.sln"] as any);
+				vi.mocked(fs.existsSync).mockReturnValue(false);
+
+				const results = matcher.autoSelect({ cwd: "/project" });
+
+				const toolIds = results.map(t => t.id);
+				expect(toolIds).toContain("dotnet");
+			});
+
+			it("should detect tools from glob pattern files (*.db)", () => {
+				vi.mocked(fs.readdirSync).mockReturnValue(["data.db"] as any);
+				vi.mocked(fs.existsSync).mockReturnValue(false);
+
+				const results = matcher.autoSelect({ cwd: "/project" });
+
+				const toolIds = results.map(t => t.id);
+				expect(toolIds).toContain("sqlite3");
+			});
+
+			it("should handle read errors gracefully", () => {
+				// Mock readdirSync to throw error for glob pattern matching
+				vi.mocked(fs.readdirSync).mockImplementation(() => {
+					throw new Error("Permission denied");
+				});
+				// existsSync returns false, but statSync throws if called
+				vi.mocked(fs.existsSync).mockReturnValue(false);
+				vi.mocked(fs.statSync).mockImplementation(() => {
+					throw new Error("Access denied");
+				});
+
+				// Should not throw, errors are silently ignored
+				const results = matcher.autoSelect({ cwd: "/project" });
+
+				// Should still return shell tools at minimum
+				expect(results.length).toBeGreaterThan(0);
 			});
 		});
 	});

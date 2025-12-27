@@ -599,5 +599,94 @@ describe("OpenAIClient", () => {
 			const lastChunk = results[results.length - 1];
 			expect(lastChunk.finish_reason).toBe("stop");
 		});
+
+		it("should skip invalid JSON lines and continue processing", async () => {
+			const encoder = new TextEncoder();
+			const chunks = [
+				'data: {invalid json}\n\n',
+				'data: {"choices":[{"delta":{"content":"Valid"},"finish_reason":null}]}\n\n',
+				'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n',
+			];
+
+			let chunkIndex = 0;
+			const mockReader = {
+				read: vi.fn(async () => {
+					if (chunkIndex < chunks.length) {
+						const value = encoder.encode(chunks[chunkIndex]!);
+						chunkIndex++;
+						return { done: false, value };
+					}
+					return { done: true, value: undefined };
+				}),
+			};
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				body: { getReader: () => mockReader },
+			});
+
+			const client = new OpenAIClient({
+				apiKey: "test-key",
+				model: "gpt-4",
+				baseUrl: "https://api.openai.com/v1",
+			});
+
+			const results: string[] = [];
+			for await (const chunk of client.streamChat([
+				{ role: "user", content: "Hi" },
+			])) {
+				if (chunk.delta.content) {
+					results.push(chunk.delta.content);
+				}
+			}
+
+			// Should have processed the valid line after invalid one
+			expect(results).toContain("Valid");
+		});
+
+		it("should cleanup external abort signal listener in finally", async () => {
+			const encoder = new TextEncoder();
+			const chunks = [
+				'data: {"choices":[{"delta":{"content":"Hello"},"finish_reason":null}]}\n\n',
+				'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n',
+			];
+
+			let chunkIndex = 0;
+			const mockReader = {
+				read: vi.fn(async () => {
+					if (chunkIndex < chunks.length) {
+						const value = encoder.encode(chunks[chunkIndex]!);
+						chunkIndex++;
+						return { done: false, value };
+					}
+					return { done: true, value: undefined };
+				}),
+			};
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				body: { getReader: () => mockReader },
+			});
+
+			const controller = new AbortController();
+			const removeEventListenerSpy = vi.spyOn(controller.signal, "removeEventListener");
+
+			const client = new OpenAIClient({
+				apiKey: "test-key",
+				model: "gpt-4",
+				baseUrl: "https://api.openai.com/v1",
+			});
+
+			for await (const _ of client.streamChat(
+				[{ role: "user", content: "Hi" }],
+				undefined,
+				{ signal: controller.signal },
+			)) {
+				// consume
+			}
+
+			// Verify that removeEventListener was called in the finally block
+			expect(removeEventListenerSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+		});
 	});
 });
