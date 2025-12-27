@@ -159,7 +159,38 @@ Commands are defined in `constants/commands.ts` with dynamic generation:
 - `SessionStore` manages multiple sessions with persistence
 - `/session list` displays sessions with `▶` for active, `○` for inactive
 - Session switch/delete commands use **session name** (not ID) as identifier
-- Auto-compact at 85% context usage
+
+### Context Window Management
+
+**Two Independent Mechanisms**:
+
+| Mechanism | Trigger | Purpose |
+|-----------|---------|---------|
+| **File Truncation** | Single file > available space | Fit large files into context |
+| **Auto-Compact** | History + new message > 85% | Free up space by summarizing history |
+
+**Truncation**: When a file exceeds available context space, it's truncated proportionally. This happens regardless of session state - even an empty session can't fit a 70k token file into a 32k context window.
+
+**Auto-Compact**: When projected usage exceeds 85% AND there are ≥2 real messages in history, the system summarizes the conversation to free space. Only compacts history, not the current message's file attachments.
+
+**Example Flow**:
+```
+Message 1: @readme.md (70k tokens) + "帮我看看"
+  → Session empty, no compact needed
+  → But 70k > 32k context, so file truncated to ~31k tokens
+  → AI responds, session now has history
+
+Message 2: @tsconfig.json (small file) + "看看配置"
+  → Session has history from message 1
+  → History + new message > 85% threshold
+  → Auto-compact triggers: summarize history
+  → Then send tsconfig.json with summary as context
+```
+
+**Key Design Decisions**:
+- `reserveRatio` = 0 (compact threshold provides buffer, no double-reservation)
+- Compact check happens BEFORE file truncation (maximize available space)
+- `realMessageCount >= 2` prevents compact on first message or right after compact
 
 ## AI Service
 
