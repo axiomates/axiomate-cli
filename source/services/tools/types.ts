@@ -13,6 +13,7 @@ export type ToolCategory =
 	| "package" // 包管理 (npm, nvm, nuget, pip)
 	| "container" // 容器 (docker, podman)
 	| "database" // 数据库工具 (mysql, psql, sqlite3)
+	| "web" // 网络工具 (web fetch)
 	| "other";
 
 // 工具能力

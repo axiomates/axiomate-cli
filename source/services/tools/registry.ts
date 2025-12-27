@@ -135,6 +135,7 @@ export class ToolRegistry implements IToolRegistry {
 			package: "包管理",
 			container: "容器",
 			database: "数据库",
+			web: "网络工具",
 			other: "其他",
 		};
 

@@ -19,6 +19,7 @@ import { detectBeyondCompare } from "./beyondcompare.js";
 import { detectDocker, detectDockerCompose } from "./docker.js";
 import { detectCmake, detectGradle, detectMaven } from "./build.js";
 import { detectMysql, detectPsql, detectSqlite } from "./database.js";
+import { detectWebFetch } from "./web.js";
 
 // 导出基础工具函数
 export * from "./base.js";
@@ -60,6 +61,8 @@ export const allDiscoverers: DiscoverFunction[] = [
 	detectMysql,
 	detectPsql,
 	detectSqlite,
+	// Web
+	detectWebFetch,
 ];
 
 /**

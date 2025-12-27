@@ -74,6 +74,20 @@ const KEYWORD_MAP: Record<string, string[]> = {
 	mysql: ["mysql", "mariadb"],
 	postgresql: ["postgresql", "postgres", "psql"],
 	sqlite3: ["sqlite", "sqlite3"],
+
+	// Web
+	web: [
+		"web",
+		"webpage",
+		"website",
+		"url",
+		"http",
+		"https",
+		"fetch",
+		"网页",
+		"网站",
+		"链接",
+	],
 };
 
 /**
