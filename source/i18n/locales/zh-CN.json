@@ -153,6 +153,7 @@
 	"ai": {
 		"notConfigured": "AI 服务未配置，请检查 API 设置。",
 		"contextWarning": "⚠️ 上下文使用率达 {{percent}}%，自动压缩中...",
+		"contextFull": "❌ 上下文窗口已满 ({{percent}}%)，请使用 /session new 开始新会话。",
 		"autoCompacting": "自动压缩对话上下文中...",
 		"fileTruncated": "文件内容已截断。{{message}}",
 		"streamError": "流式传输出错：{{error}}",

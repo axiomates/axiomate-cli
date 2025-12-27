@@ -38,10 +38,8 @@ export type BuildContentOptions = {
 	files: FileReference[];
 	/** 当前工作目录 */
 	cwd: string;
-	/** 可用的 token 数（来自 Session） */
+	/** 可用的 token 数（来自 Session.getAvailableTokens()，已预留响应空间） */
 	availableTokens: number;
-	/** 预留给响应的 token 数（默认 4096） */
-	reserveForResponse?: number;
 };
 
 /**
@@ -59,49 +57,9 @@ export type BuildContentOptions = {
  */
 export async function buildMessageContent(
 	options: BuildContentOptions,
-): Promise<ContentBuildResult>;
-
-/**
- * 构建消息内容（兼容旧接口）
- * @deprecated 请使用 options 对象形式
- */
-export async function buildMessageContent(
-	userMessage: string,
-	files: FileReference[],
-	contextWindow: number,
-	cwd: string,
-): Promise<ContentBuildResult>;
-
-export async function buildMessageContent(
-	optionsOrUserMessage: BuildContentOptions | string,
-	files?: FileReference[],
-	contextWindow?: number,
-	cwd?: string,
 ): Promise<ContentBuildResult> {
-	// 处理重载
-	let options: BuildContentOptions;
-
-	if (typeof optionsOrUserMessage === "string") {
-		// 旧接口兼容
-		options = {
-			userMessage: optionsOrUserMessage,
-			files: files ?? [],
-			cwd: cwd ?? process.cwd(),
-			// 旧接口使用 contextWindow 计算可用空间
-			availableTokens: (contextWindow ?? 32768) * 0.75 - 500,
-			reserveForResponse: Math.floor((contextWindow ?? 32768) * 0.25),
-		};
-	} else {
-		options = optionsOrUserMessage;
-	}
-
-	const {
-		userMessage,
-		files: fileRefs,
-		cwd: workingDir,
-		availableTokens,
-		reserveForResponse = 4096,
-	} = options;
+	const { userMessage, files: fileRefs, cwd: workingDir, availableTokens } =
+		options;
 
 	// 如果没有文件，直接返回用户消息
 	if (fileRefs.length === 0) {
@@ -125,9 +83,9 @@ export async function buildMessageContent(
 	// 3. 估算用户消息的 token
 	const messageTokens = estimateTokens(transformedMessage);
 
-	// 文件可用的 token = 可用空间 - 消息 token - 预留响应 - 缓冲
-	const availableForFiles =
-		availableTokens - messageTokens - reserveForResponse - 500;
+	// 文件可用的 token = 可用空间 - 消息 token - 缓冲
+	// 注意：availableTokens 已经预留了响应空间（25%），不需要再减去 reserveForResponse
+	const availableForFiles = availableTokens - messageTokens - 500;
 
 	// 4. 检查是否需要截断
 	let wasTruncated = false;

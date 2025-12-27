@@ -194,10 +194,33 @@ export default function App({ initResult }: Props) {
 
 			const cwd = process.cwd();
 
-			// 获取当前可用的 token 空间
-			const availableTokens = aiService.getAvailableTokens();
+			// 先粗略估算新消息大小，检查是否需要 compact
+			// 这样可以在 compact 后获得更多空间，减少文件截断
+			const roughEstimate = await buildMessageContent({
+				userMessage: queuedMessage.content,
+				files: queuedMessage.files,
+				cwd,
+				availableTokens: Infinity, // 不限制，获取完整大小估算
+			});
 
-			// 构建消息内容（包含文件），使用 Session 的可用空间
+			let compactCheck = aiService.shouldCompact(roughEstimate.estimatedTokens);
+			if (compactCheck.shouldCompact && compactRef.current) {
+				setMessages((prev) => [
+					...prev,
+					{
+						content: t("ai.contextWarning", {
+							percent: compactCheck.usagePercent.toFixed(0),
+						}),
+						type: "system" as const,
+						markdown: false,
+					},
+				]);
+				// 执行自动 compact，释放空间
+				await compactRef.current();
+			}
+
+			// compact 后重新获取可用空间，构建消息内容
+			const availableTokens = aiService.getAvailableTokens();
 			const buildResult = await buildMessageContent({
 				userMessage: queuedMessage.content,
 				files: queuedMessage.files,
@@ -217,21 +240,14 @@ export default function App({ initResult }: Props) {
 				]);
 			}
 
-			// 检查是否需要自动 compact（在发送消息之前）
-			const compactCheck = aiService.shouldCompact(buildResult.estimatedTokens);
-			if (compactCheck.shouldCompact && compactRef.current) {
-				setMessages((prev) => [
-					...prev,
-					{
-						content: t("ai.contextWarning", {
-							percent: compactCheck.usagePercent.toFixed(0),
-						}),
-						type: "system" as const,
-						markdown: false,
-					},
-				]);
-				// 执行自动 compact
-				await compactRef.current();
+			// 再次检查上下文是否已满（消息太大无法发送）
+			compactCheck = aiService.shouldCompact(buildResult.estimatedTokens);
+			if (compactCheck.isContextFull) {
+				throw new Error(
+					t("ai.contextFull", {
+						percent: compactCheck.projectedPercent.toFixed(0),
+					}),
+				);
 			}
 
 			// 构建上下文

@@ -153,6 +153,7 @@
 	"ai": {
 		"notConfigured": "AI service not configured. Please check your API settings.",
 		"contextWarning": "⚠️ Context usage at {{percent}}%, auto-compacting...",
+		"contextFull": "❌ Context window full ({{percent}}%). Please use /session new to start a new session.",
 		"autoCompacting": "Auto-compacting conversation context...",
 		"fileTruncated": "File content truncated. {{message}}",
 		"streamError": "Error during streaming: {{error}}",

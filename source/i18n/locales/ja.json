@@ -153,6 +153,7 @@
 	"ai": {
 		"notConfigured": "AIサービスが設定されていません。API設定を確認してください。",
 		"contextWarning": "⚠️ コンテキスト使用率が{{percent}}%に達しました。自動圧縮中...",
+		"contextFull": "❌ コンテキストウィンドウがいっぱいです ({{percent}}%)。/session new で新しいセッションを開始してください。",
 		"autoCompacting": "会話コンテキストを自動圧縮中...",
 		"fileTruncated": "ファイル内容が切り詰められました。{{message}}",
 		"streamError": "ストリーミング中にエラーが発生: {{error}}",

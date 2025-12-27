@@ -369,6 +369,8 @@ export type CompactCheckResult = {
 	messageCount: number;
 	/** 真实消息数量（排除 compact summary） */
 	realMessageCount: number;
+	/** 上下文是否已满（预计使用量超过 100%） */
+	isContextFull: boolean;
 };
 
 /**

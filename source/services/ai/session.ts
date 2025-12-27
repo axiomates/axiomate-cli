@@ -9,6 +9,7 @@ import type {
 	CompactCheckResult,
 } from "./types.js";
 import { estimateTokens } from "./tokenEstimator.js";
+import { logger } from "../../utils/logger.js";
 
 // 重新导出类型以便其他模块使用
 export type { SessionStatus, CompactCheckResult } from "./types.js";
@@ -104,7 +105,9 @@ export class Session {
 	constructor(config: SessionConfig) {
 		this.config = {
 			contextWindow: config.contextWindow,
-			reserveRatio: config.reserveRatio ?? 0.25,
+			// reserveRatio 设为 0，因为 compact 阈值（85%）已经提供了缓冲空间
+			// 不需要在 getAvailableTokens 中额外预留
+			reserveRatio: config.reserveRatio ?? 0,
 			nearLimitThreshold: config.nearLimitThreshold ?? 0.8,
 			fullThreshold: config.fullThreshold ?? 0.95,
 			minMessagesToKeep: config.minMessagesToKeep ?? 4,
@@ -180,11 +183,12 @@ export class Session {
 		const estimatedTotal = this.getEstimatedTotalTokens();
 		const actualTotal = usage.prompt_tokens;
 
-		// 如果估算值偏差超过 20%，记录警告（可用于调试）
 		const deviation = Math.abs(estimatedTotal - actualTotal) / actualTotal;
 		if (deviation > 0.2) {
-			// 可以在这里记录日志用于调试估算算法
-			// console.debug(`Token estimation deviation: ${(deviation * 100).toFixed(1)}%`);
+			logger.warn(
+				`[Session] Token estimation deviation: ${(deviation * 100).toFixed(1)}% ` +
+					`(estimated=${estimatedTotal}, actual=${actualTotal})`,
+			);
 		}
 	}
 
@@ -210,13 +214,15 @@ export class Session {
 	 * 优先使用 API 返回的实际值
 	 */
 	getUsedTokens(): number {
+		const estimatedTotal = this.getEstimatedTotalTokens();
+
 		// 如果有实际值，使用实际值
 		if (this.actualPromptTokens > 0) {
 			return this.actualPromptTokens + this.actualCompletionTokens;
 		}
 
 		// 否则使用估算值
-		return this.getEstimatedTotalTokens();
+		return estimatedTotal;
 	}
 
 	/**
@@ -387,12 +393,16 @@ export class Session {
 		const shouldCompact =
 			projectedPercent >= compactThreshold * 100 && realMessageCount >= 2;
 
+		// 上下文已满：预计使用量超过 100%
+		const isContextFull = projectedPercent >= 100;
+
 		return {
 			shouldCompact,
 			usagePercent,
 			projectedPercent,
 			messageCount: this.messages.length,
 			realMessageCount,
+			isContextFull,
 		};
 	}
 
