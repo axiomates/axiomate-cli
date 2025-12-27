@@ -180,7 +180,7 @@ export default function Welcome({ onComplete }: Props) {
 			updateConfig({
 				models: generateModelConfigs(),
 				currentModel: DEFAULT_MODEL_ID,
-				suggestionModel: "THUDM/GLM-Z1-9B-0414",
+				suggestionModel: "THUDM/glm-4-9b-chat",
 			});
 
 			setStatus("done");
