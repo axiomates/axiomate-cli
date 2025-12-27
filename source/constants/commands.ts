@@ -21,7 +21,7 @@ function generateModelCommands(): SlashCommand[] {
 			name: model.model,
 			description: `${model.name}${model.description ? ` - ${model.description}` : ""}`,
 			action: { type: "internal" as const, handler: "model_select" },
-			prefix: isCurrentModel ? "▶ " : "  ",
+			prefix: isCurrentModel ? "▸ " : "  ",
 		};
 	});
 }
@@ -37,7 +37,7 @@ function generateSuggestionModelCommands(): SlashCommand[] {
 			name: model.model,
 			description: `${model.name}${model.description ? ` - ${model.description}` : ""}`,
 			action: { type: "internal" as const, handler: "suggestion_model_select" },
-			prefix: isCurrentModel ? "▶ " : "  ",
+			prefix: isCurrentModel ? "▸ " : "  ",
 		};
 	});
 }
@@ -141,13 +141,13 @@ export function getSlashCommands(): SlashCommand[] {
 					name: "on",
 					description: t("commands.thinking.onDesc"),
 					action: { type: "internal", handler: "thinking_on" },
-					prefix: isThinkingEnabled() ? "▶ " : "  ",
+					prefix: isThinkingEnabled() ? "▸ " : "  ",
 				},
 				{
 					name: "off",
 					description: t("commands.thinking.offDesc"),
 					action: { type: "internal", handler: "thinking_off" },
-					prefix: isThinkingEnabled() ? "  " : "▶ ",
+					prefix: isThinkingEnabled() ? "  " : "▸ ",
 				},
 			],
 		},
@@ -227,13 +227,13 @@ export function getSlashCommands(): SlashCommand[] {
 					name: "on",
 					description: t("commands.suggestion.onDesc"),
 					action: { type: "internal", handler: "suggestion_on" },
-					prefix: isSuggestionEnabled() ? "▶ " : "  ",
+					prefix: isSuggestionEnabled() ? "▸ " : "  ",
 				},
 				{
 					name: "off",
 					description: t("commands.suggestion.offDesc"),
 					action: { type: "internal", handler: "suggestion_off" },
-					prefix: isSuggestionEnabled() ? "  " : "▶ ",
+					prefix: isSuggestionEnabled() ? "  " : "▸ ",
 				},
 				{
 					name: "model",

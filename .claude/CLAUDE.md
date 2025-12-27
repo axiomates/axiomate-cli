@@ -94,7 +94,7 @@ Commands are defined in `constants/commands.ts` with dynamic generation:
 ```
 
 **Dynamic Command Features**:
-- Model commands show current selection with `▶` prefix
+- Model commands show current selection with `▸` prefix
 - `/model` description shows `[ModelName]` suffix
 - `/suggestion model` description shows `[ModelName]` suffix
 - Session switch/delete use session name as command name, ID in description
@@ -157,7 +157,7 @@ Commands are defined in `constants/commands.ts` with dynamic generation:
 ### Session Management
 
 - `SessionStore` manages multiple sessions with persistence
-- `/session list` displays sessions with `▶` for active, `○` for inactive
+- `/session list` displays sessions with `▸` for active, `○` for inactive
 - Session switch/delete commands use **session name** (not ID) as identifier
 
 ### Context Window Management

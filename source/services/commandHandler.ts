@@ -115,8 +115,8 @@ const internalHandlers: Record<string, InternalHandler> = {
 
 			for (const session of sessions) {
 				const isActive = session.id === activeId;
-				// 使用 ▶ 和 ○ 作为标记，两者都是宽字符，视觉对齐
-				const marker = isActive ? "▶" : "○";
+				// 使用 ▸ 和 ○ 作为标记，视觉对齐
+				const marker = isActive ? "▸" : "○";
 				const activeLabel = isActive ? ` (${t("session.active")})` : "";
 				const date = new Date(session.updatedAt).toLocaleString();
 				lines.push(
