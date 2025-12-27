@@ -221,7 +221,7 @@ export class OpenAIClient implements IAIClient {
 		const timeoutController = new AbortController();
 		const timeoutId = setTimeout(
 			() => timeoutController.abort(),
-			this.config.timeout || 120000, // 流式响应使用更长的超时
+			this.config.timeout || 600000, // 流式响应使用10分钟超时
 		);
 
 		// 如果有外部 signal，监听它并联动中止
@@ -238,6 +238,26 @@ export class OpenAIClient implements IAIClient {
 			externalAbortHandler = () => timeoutController.abort();
 			externalSignal.addEventListener("abort", externalAbortHandler);
 		}
+
+		// 活动超时：每次收到数据时重置（默认10分钟）
+		const streamTimeout = this.config.timeout || 600000;
+		let activityTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+		const resetActivityTimeout = () => {
+			if (activityTimeoutId) {
+				clearTimeout(activityTimeoutId);
+			}
+			activityTimeoutId = setTimeout(() => {
+				timeoutController.abort();
+			}, streamTimeout);
+		};
+
+		const clearActivityTimeout = () => {
+			if (activityTimeoutId) {
+				clearTimeout(activityTimeoutId);
+				activityTimeoutId = null;
+			}
+		};
 
 		try {
 			const response = await fetch(url, {
@@ -280,8 +300,16 @@ export class OpenAIClient implements IAIClient {
 			// 跟踪是否已经 yield 过带 finish_reason 的 chunk
 			let hasYieldedFinish = false;
 
+			// 开始流式读取，启动活动超时
+			resetActivityTimeout();
+
 			while (true) {
 				const { done, value } = await reader.read();
+
+				// 每次收到数据时重置活动超时
+				if (!done) {
+					resetActivityTimeout();
+				}
 				if (done) break;
 
 				buffer += decoder.decode(value, { stream: true });
@@ -399,6 +427,7 @@ export class OpenAIClient implements IAIClient {
 			}
 		} finally {
 			clearTimeout(timeoutId);
+			clearActivityTimeout();
 			// 清理外部 signal 监听器
 			if (externalSignal && externalAbortHandler) {
 				externalSignal.removeEventListener("abort", externalAbortHandler);
