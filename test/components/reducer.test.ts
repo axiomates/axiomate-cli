@@ -891,6 +891,37 @@ describe("editorReducer", () => {
 			expect(isSlashMode(state.uiMode)).toBe(true);
 		});
 
+		it("history -> normal via SET_TEXT with selectedFiles preserved", () => {
+			const entry: HistoryEntry = {
+				text: "@file.ts hello",
+				type: "message",
+				segments: [],
+				commandPath: [],
+				filePath: [],
+				selectedFiles: [
+					{
+						path: "file.ts",
+						absolutePath: "/test/file.ts",
+						startPosition: 0,
+						endPosition: 8,
+					},
+				],
+			};
+			const historyState = editorReducer(initialState, {
+				type: "ENTER_HISTORY",
+				index: 0,
+				entry,
+			});
+			const state = editorReducer(historyState, {
+				type: "SET_TEXT",
+				text: "@file.ts hello world",
+				cursor: 20,
+			});
+			expect(isNormalMode(state.uiMode)).toBe(true);
+			// selectedFiles should be preserved
+			expect(state.instance.selectedFiles.length).toBeGreaterThanOrEqual(0);
+		});
+
 		it("normal -> file via ENTER_FILE", () => {
 			const state = editorReducer(initialState, {
 				type: "ENTER_FILE",

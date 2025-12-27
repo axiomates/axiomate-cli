@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as childProcess from "child_process";
 
 // Mock dependencies
 vi.mock("child_process", () => ({
@@ -25,7 +26,7 @@ vi.mock("os", () => ({
 
 import * as fs from "fs";
 import * as os from "os";
-import { initPlatform } from "../../source/utils/platform.js";
+import { initPlatform, restartApp } from "../../source/utils/platform.js";
 
 describe("platform", () => {
 	const originalExecPath = process.execPath;
@@ -183,6 +184,130 @@ describe("platform", () => {
 			const result = initPlatform();
 
 			expect(result).toBe(false);
+		});
+
+		it("should handle profiles with null list", () => {
+			vi.mocked(os.platform).mockReturnValue("win32");
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					profiles: {},
+				}),
+			);
+
+			const result = initPlatform();
+
+			expect(result).toBe(true);
+		});
+
+		it("should handle multi-line comments in JSON", () => {
+			vi.mocked(os.platform).mockReturnValue("win32");
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(`{
+				/* Multi-line
+				   comment */
+				"profiles": {
+					"list": []
+				}
+			}`);
+
+			const result = initPlatform();
+
+			expect(result).toBe(true);
+		});
+
+		it("should handle trailing commas in JSON", () => {
+			vi.mocked(os.platform).mockReturnValue("win32");
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(`{
+				"profiles": {
+					"list": [],
+				},
+			}`);
+
+			const result = initPlatform();
+
+			expect(result).toBe(true);
+		});
+
+		it("should update existing profile found by name", () => {
+			vi.mocked(os.platform).mockReturnValue("win32");
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					profiles: {
+						list: [
+							{
+								guid: "{some-other-guid}",
+								name: "axiomate",
+								commandline: "old-path",
+								icon: "old-icon",
+							},
+						],
+					},
+				}),
+			);
+
+			const result = initPlatform();
+
+			expect(result).toBe(true);
+			expect(fs.writeFileSync).toHaveBeenCalled();
+		});
+	});
+
+	describe("restartApp", () => {
+		const originalExit = process.exit;
+		let exitMock: ReturnType<typeof vi.fn>;
+
+		beforeEach(() => {
+			exitMock = vi.fn();
+			process.exit = exitMock as unknown as typeof process.exit;
+		});
+
+		afterEach(() => {
+			process.exit = originalExit;
+		});
+
+		it("should spawn wt.exe on Windows when available", async () => {
+			vi.mocked(os.platform).mockReturnValue("win32");
+			vi.mocked(childProcess.execSync).mockImplementation((cmd) => {
+				if (cmd.includes("wt.exe")) return Buffer.from("");
+				throw new Error("not found");
+			});
+
+			const promise = restartApp();
+
+			// Allow spawn callback to execute
+			await new Promise((r) => setTimeout(r, 10));
+
+			expect(childProcess.spawn).toHaveBeenCalledWith(
+				"wt.exe",
+				expect.arrayContaining(["-d"]),
+				expect.any(Object),
+			);
+		});
+
+		it("should spawn powershell on Windows when wt not available", async () => {
+			vi.resetModules();
+			vi.mocked(os.platform).mockReturnValue("win32");
+			vi.mocked(childProcess.execSync).mockImplementation((cmd) => {
+				if (cmd.includes("powershell.exe")) return Buffer.from("");
+				throw new Error("not found");
+			});
+
+			// Import fresh to reset restartPromise
+			const { restartApp: freshRestartApp } = await import(
+				"../../source/utils/platform.js"
+			);
+
+			const promise = freshRestartApp();
+			await new Promise((r) => setTimeout(r, 10));
+
+			expect(childProcess.spawn).toHaveBeenCalledWith(
+				"powershell.exe",
+				expect.arrayContaining(["-Command"]),
+				expect.any(Object),
+			);
 		});
 	});
 });

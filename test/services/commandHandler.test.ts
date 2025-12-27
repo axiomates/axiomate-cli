@@ -32,6 +32,11 @@ vi.mock("../../source/constants/commands.js", () => ({
 					description: "Chinese",
 					action: { type: "internal", handler: "language_zh-CN" },
 				},
+				{
+					name: "ja",
+					description: "Japanese",
+					action: { type: "internal", handler: "language_ja" },
+				},
 			],
 		},
 		{
@@ -56,6 +61,16 @@ vi.mock("../../source/constants/commands.js", () => ({
 					name: "off",
 					description: "Disable",
 					action: { type: "internal", handler: "suggestion_off" },
+				},
+				{
+					name: "model",
+					children: [
+						{
+							name: "test-model",
+							description: "Test model",
+							action: { type: "internal", handler: "suggestion_model_select" },
+						},
+					],
 				},
 			],
 		},
@@ -92,6 +107,26 @@ vi.mock("../../source/constants/commands.js", () => ({
 					description: "Clear",
 					action: { type: "internal", handler: "session_clear" },
 				},
+				{
+					name: "switch",
+					children: [
+						{
+							name: "Session 1",
+							description: "session-1",
+							action: { type: "internal", handler: "session_switch" },
+						},
+					],
+				},
+				{
+					name: "delete",
+					children: [
+						{
+							name: "Session 2",
+							description: "session-2",
+							action: { type: "internal", handler: "session_delete" },
+						},
+					],
+				},
 			],
 		},
 		{
@@ -102,11 +137,26 @@ vi.mock("../../source/constants/commands.js", () => ({
 					description: "List tools",
 					action: { type: "internal", handler: "tools_list" },
 				},
+				{
+					name: "refresh",
+					description: "Refresh tools",
+					action: { type: "internal", handler: "tools_refresh" },
+				},
+				{
+					name: "stats",
+					description: "Tool stats",
+					action: { type: "internal", handler: "tools_stats" },
+				},
 			],
 		},
 		{
 			name: "no-action",
 			description: "Command without action",
+		},
+		{
+			name: "unknown-action-type",
+			description: "Command with unknown action type",
+			action: { type: "unknown" as any },
 		},
 		{
 			name: "prompt-cmd",
@@ -170,6 +220,12 @@ vi.mock("../../source/services/ai/sessionStore.js", () => ({
 				name: "Session 1",
 				updatedAt: Date.now(),
 				messageCount: 5,
+			},
+			{
+				id: "session-2",
+				name: "Session 2",
+				updatedAt: Date.now(),
+				messageCount: 3,
 			},
 		]),
 		getActiveSessionId: vi.fn(() => "session-1"),
@@ -406,6 +462,80 @@ describe("commandHandler", () => {
 
 			const callbacks = createMockCallbacks();
 			await handleCommand(["tools", "list"], context, callbacks);
+
+			expect(callbacks.showMessage).toHaveBeenCalledWith(
+				expect.stringContaining("Error"),
+			);
+		});
+
+		it("should handle session switch command", async () => {
+			const callbacks = createMockCallbacks();
+			await handleCommand(["session", "switch", "Session 1"], context, callbacks);
+
+			expect(callbacks.stop).toHaveBeenCalled();
+			expect(callbacks.sessionSwitch).toHaveBeenCalledWith("session-1");
+		});
+
+		it("should handle session delete command", async () => {
+			const callbacks = createMockCallbacks();
+			await handleCommand(["session", "delete", "Session 2"], context, callbacks);
+
+			expect(callbacks.sessionDelete).toHaveBeenCalledWith("session-2");
+		});
+
+		it("should handle suggestion model selection", async () => {
+			const callbacks = createMockCallbacks();
+			// path 需要是完整的命令路径，最后一个元素是 model id
+			await handleCommand(["suggestion", "model", "test-model"], context, callbacks);
+
+			// 验证 showMessage 被调用，说明命令执行成功
+			expect(callbacks.showMessage).toHaveBeenCalled();
+		});
+
+		it("should handle Japanese language switch", async () => {
+			const callbacks = createMockCallbacks();
+			await handleCommand(["language", "ja"], context, callbacks);
+
+			expect(callbacks.showMessage).toHaveBeenCalled();
+		});
+
+		it("should handle tools refresh command", async () => {
+			const { getToolRegistry } = await import(
+				"../../source/services/tools/registry.js"
+			);
+			vi.mocked(getToolRegistry).mockReturnValue({
+				isDiscovered: true,
+				discover: vi.fn().mockResolvedValue(undefined),
+				formatToolList: vi.fn(),
+				getStats: vi.fn(() => ({ installed: 5, notInstalled: 2, byCategory: {} })),
+			} as any);
+
+			const callbacks = createMockCallbacks();
+			await handleCommand(["tools", "refresh"], context, callbacks);
+
+			expect(callbacks.showMessage).toHaveBeenCalled();
+		});
+
+		it("should handle tools stats command", async () => {
+			const { getToolRegistry } = await import(
+				"../../source/services/tools/registry.js"
+			);
+			vi.mocked(getToolRegistry).mockReturnValue({
+				isDiscovered: true,
+				discover: vi.fn(),
+				formatToolList: vi.fn(),
+				getStats: vi.fn(() => ({ installed: 5, notInstalled: 2, byCategory: { shell: 2 } })),
+			} as any);
+
+			const callbacks = createMockCallbacks();
+			await handleCommand(["tools", "stats"], context, callbacks);
+
+			expect(callbacks.showMessage).toHaveBeenCalled();
+		});
+
+		it("should handle unknown action type", async () => {
+			const callbacks = createMockCallbacks();
+			await handleCommand(["unknown-action-type"], context, callbacks);
 
 			expect(callbacks.showMessage).toHaveBeenCalledWith(
 				expect.stringContaining("Error"),
