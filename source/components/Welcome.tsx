@@ -37,7 +37,7 @@ const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		name: "GLM-4 9B",
 		protocol: "openai",
 		description: "Chat model",
-		supportsTools: true,
+		supportsTools: false,
 		supportsThinking: false,
 		contextWindow: 131072,
 		baseUrl: "https://api.siliconflow.cn/v1",
