@@ -44,6 +44,7 @@ source/
 │   │   ├── hooks/             # useAutocomplete, useInputHandler, useFileSelect
 │   │   └── components/        # InputLine, SlashMenu, FileMenu, HelpPanel
 │   ├── MessageOutput.tsx      # Message display (Markdown, scrolling, collapse)
+│   ├── StatusBar.tsx          # Bottom status bar (mode indicator, hints)
 │   ├── Splash.tsx             # Startup splash screen
 │   └── Welcome.tsx            # First-time user setup
 ├── models/

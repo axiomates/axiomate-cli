@@ -954,8 +954,8 @@ export default function App({ initResult }: Props) {
 	const isOutputMode = focusMode === "output";
 
 	// 计算 MessageOutput 的可用高度
-	// 输入模式: MessageOutput + Divider(1) + InputArea(动态) + Divider(1) + Header(1)
-	// 浏览模式: MessageOutput + Divider(1) + Header(1) = 2 行固定
+	// 输入模式: MessageOutput + Divider(1) + InputArea(动态) + Divider(1) + StatusBar(1)
+	// 浏览模式: MessageOutput + Divider(1) + StatusBar(1) = 2 行固定
 	const fixedHeight = isOutputMode ? 2 : 3 + inputAreaHeight;
 	const messageOutputHeight = Math.max(1, terminalHeight - fixedHeight);
 
@@ -999,7 +999,7 @@ export default function App({ initResult }: Props) {
 				</Box>
 			)}
 
-			{/* Header 上方分隔线 */}
+			{/* 状态栏上方分隔线 */}
 			<Box flexShrink={0}>
 				<Divider />
 			</Box>

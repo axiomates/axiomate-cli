@@ -11,9 +11,9 @@ const mockInitResult: InitResult = {
 };
 
 describe("App", () => {
-	it("renders the header with app title", () => {
+	it("renders the status bar with app title", () => {
 		const { lastFrame } = render(<App initResult={mockInitResult} />);
-		// Header shows app name
+		// StatusBar shows app name
 		expect(lastFrame()).toContain("axiomate");
 	});
 
@@ -23,9 +23,9 @@ describe("App", () => {
 		expect(lastFrame()).toContain("[Input]");
 	});
 
-	it("shows command hints in header", () => {
+	it("shows command hints in status bar", () => {
 		const { lastFrame } = render(<App initResult={mockInitResult} />);
-		// Header shows command hints
+		// StatusBar shows command hints
 		expect(lastFrame()).toContain("for commands");
 		expect(lastFrame()).toContain("for shortcuts");
 	});
