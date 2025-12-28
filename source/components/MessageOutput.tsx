@@ -14,7 +14,7 @@ export type Message = {
 	content: string;
 	reasoning?: string; // 思考内容（DeepSeek-R1, QwQ 等模型）
 	reasoningCollapsed?: boolean; // 思考内容是否折叠
-	type?: "user" | "system"; // user: 用户输入, system: 系统输出（默认）
+	type?: "user" | "system" | "welcome"; // user: 用户输入, system: 系统输出（默认）, welcome: 欢迎消息
 	streaming?: boolean; // true = 正在流式生成, false/undefined = 已完成
 	queued?: boolean; // true = 消息已入队等待处理（用户消息）
 	queuedMessageId?: string; // 队列中的消息 ID（用于匹配）
@@ -93,6 +93,17 @@ type RenderedLine = {
 	isReasoning?: boolean; // 是否为思考内容行
 	isReasoningHeader?: boolean; // 是否为思考块头部行（可点击折叠）
 	reasoningLineCount?: number; // 思考内容总行数（仅 header 有值）
+	// 欢迎消息相关
+	isWelcome?: boolean; // 是否为欢迎消息行
+	welcomeSegments?: WelcomeSegment[]; // 欢迎消息的彩色段落
+};
+
+/**
+ * 欢迎消息的彩色段落
+ */
+type WelcomeSegment = {
+	text: string;
+	color?: string; // 颜色（可选，默认白色）
 };
 
 export default function MessageOutput({
@@ -303,7 +314,52 @@ export default function MessageOutput({
 			for (let i = group.startIndex; i < group.endIndex; i++) {
 				const msg = messages[i]!;
 				const isUser = msg.type === "user";
+				const isWelcome = msg.type === "welcome";
 				const isLastMessage = i === messages.length - 1;
+
+				// 0. 欢迎消息：特殊渲染（带彩色段落，无 > 前缀）
+				if (isWelcome && msg.content) {
+					// 解析欢迎消息内容，提取彩色段落
+					// 格式: "普通文本{{color:文本}}普通文本" -> 颜色段落
+					const segments: WelcomeSegment[] = [];
+					const regex = /\{\{(\w+):([^}]+)\}\}/g;
+					let lastIndex = 0;
+					let match;
+					const content = msg.content;
+
+					while ((match = regex.exec(content)) !== null) {
+						// 添加匹配之前的普通文本
+						if (match.index > lastIndex) {
+							segments.push({ text: content.slice(lastIndex, match.index) });
+						}
+						// 添加彩色文本
+						const colorKey = match[1];
+						const text = match[2];
+						let color: string | undefined;
+						if (colorKey === "pink") {
+							color = THEME_PINK;
+						} else if (colorKey === "yellow") {
+							color = THEME_LIGHT_YELLOW;
+						}
+						segments.push({ text: text!, color });
+						lastIndex = match.index + match[0].length;
+					}
+					// 添加剩余的普通文本
+					if (lastIndex < content.length) {
+						segments.push({ text: content.slice(lastIndex) });
+					}
+
+					lines.push({
+						text: "", // 实际渲染由 welcomeSegments 控制
+						msgIndex: i,
+						isUser: false,
+						isFirstLine: true,
+						groupId: group.id,
+						isWelcome: true,
+						welcomeSegments: segments,
+					});
+					continue;
+				}
 
 				// 1. 渲染思考内容（如果有）
 				if (msg.reasoning && msg.reasoning.length > 0) {
@@ -1067,6 +1123,24 @@ export default function MessageOutput({
 					);
 				}
 			}
+			continue;
+		}
+
+		// 欢迎消息行的特殊渲染（彩色段落，无 > 前缀）
+		if (line.isWelcome && line.welcomeSegments) {
+			contentRows.push(
+				<Box key={`welcome-${line.msgIndex}-${i}`} height={1}>
+					{line.welcomeSegments.map((seg, idx) =>
+						seg.color ? (
+							<Text key={idx} color={seg.color}>
+								{seg.text}
+							</Text>
+						) : (
+							<Text key={idx}>{seg.text}</Text>
+						),
+					)}
+				</Box>,
+			);
 			continue;
 		}
 

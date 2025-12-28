@@ -152,6 +152,9 @@ export default function App({ initResult }: Props) {
 	// SessionStore 引用
 	const sessionStoreRef = useRef<SessionStore | null>(null);
 
+	// 是否已显示过欢迎消息（app 生命周期内只显示一次）
+	const hasShownWelcomeRef = useRef(false);
+
 	// Auto-compact 引用（需要在 compact 定义后设置）
 	const compactRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -168,12 +171,43 @@ export default function App({ initResult }: Props) {
 
 			// 加载活跃 session
 			const activeId = store.getActiveSessionId();
+			let sessionIsEmpty = true;
+
 			if (activeId && aiServiceRef.current) {
 				const session = await store.loadSession(activeId);
 				if (session) {
 					// 恢复 session 状态到 AI 服务
 					aiServiceRef.current.restoreSession(session);
+
+					// 将 session 历史转换为 UI 消息
+					const history = session.getHistory();
+					sessionIsEmpty = history.length === 0;
+
+					if (!sessionIsEmpty) {
+						const uiMessages: Message[] = [];
+						for (const msg of history) {
+							if (msg.role === "user") {
+								uiMessages.push({ content: msg.content, type: "user" });
+							} else if (msg.role === "assistant" && msg.content) {
+								uiMessages.push({ content: msg.content });
+							}
+						}
+						setMessages(uiMessages);
+					}
 				}
+			}
+
+			// 如果 session 为空且尚未显示过欢迎消息，显示欢迎消息
+			if (sessionIsEmpty && !hasShownWelcomeRef.current) {
+				hasShownWelcomeRef.current = true;
+				setMessages([
+					{
+						content:
+							"{{pink:axiomate}} - 输入 {{yellow:/}} 打开命令，{{yellow:?}} 显示快捷键。",
+						type: "welcome",
+						markdown: false,
+					},
+				]);
 			}
 		};
 		initStore();

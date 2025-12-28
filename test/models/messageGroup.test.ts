@@ -798,5 +798,36 @@ describe("messageGroup", () => {
 
 			expect(canCollapse(group)).toBe(false);
 		});
+
+		it("应返回 false 对于包含欢迎消息的组", () => {
+			const group: MessageGroup = {
+				id: "test",
+				startIndex: 0,
+				endIndex: 1,
+				userMessage: null,
+				responses: [{ content: "欢迎消息", type: "welcome" }],
+				isLast: true,
+				hasStreaming: false,
+			};
+
+			expect(canCollapse(group)).toBe(false);
+		});
+
+		it("应返回 false 对于欢迎消息与其他消息混合的组", () => {
+			const group: MessageGroup = {
+				id: "test",
+				startIndex: 0,
+				endIndex: 2,
+				userMessage: null,
+				responses: [
+					{ content: "欢迎消息", type: "welcome" },
+					{ content: "系统消息", type: "system" },
+				],
+				isLast: true,
+				hasStreaming: false,
+			};
+
+			expect(canCollapse(group)).toBe(false);
+		});
 	});
 });

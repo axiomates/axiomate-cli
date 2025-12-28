@@ -171,9 +171,12 @@ export function generateGroupHeaderParts(
  *
  * 不可折叠的情况：
  * - 包含流式消息（正在生成中）
+ * - 包含欢迎消息
  *
  * 注意：最后一组也可以折叠（只要不是流式生成中）
  */
 export function canCollapse(group: MessageGroup): boolean {
-	return !group.hasStreaming;
+	// 检查是否包含欢迎消息
+	const hasWelcome = group.responses.some((msg) => msg.type === "welcome");
+	return !group.hasStreaming && !hasWelcome;
 }
