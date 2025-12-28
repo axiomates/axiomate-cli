@@ -37,11 +37,9 @@ import { resumeInput } from "./utils/stdin.js";
 import { t } from "./i18n/index.js";
 import { isThinkingEnabled, currentModelSupportsThinking } from "./utils/config.js";
 import {
-	getSessionStore,
 	initSessionStore,
 	SessionStore,
 } from "./services/ai/sessionStore.js";
-import { Session, createSession } from "./services/ai/session.js";
 import { clearCommandCache } from "./constants/commands.js";
 
 /**
