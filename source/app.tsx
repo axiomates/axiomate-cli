@@ -423,6 +423,9 @@ export default function App({ initResult }: Props) {
 					return [...prev, { content: msg, type: "system", markdown: false }];
 				});
 				setIsLoading(false);
+
+				// Stop 后更新 usage 状态（使用估算值，下次完整回复时会被精确值覆盖）
+				updateUsageStatus();
 			},
 			// 流式回调
 			onStreamStart: (id) => {
@@ -811,7 +814,10 @@ export default function App({ initResult }: Props) {
 
 		// 清除命令缓存以更新 session 列表
 		clearCommandCache();
-	}, [saveCurrentSession]);
+
+		// 新 session 创建后更新 usage 状态
+		updateUsageStatus();
+	}, [saveCurrentSession, updateUsageStatus]);
 
 	// Session 命令回调：切换 session
 	const sessionSwitch = useCallback(
@@ -954,7 +960,10 @@ export default function App({ initResult }: Props) {
 
 		// 清除命令缓存以更新 session 列表
 		clearCommandCache();
-	}, []);
+
+		// 清除 session 后更新 usage 状态
+		updateUsageStatus();
+	}, [updateUsageStatus]);
 
 	// 命令回调集合
 	const commandCallbacks: CommandCallbacks = useMemo(

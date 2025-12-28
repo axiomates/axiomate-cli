@@ -153,7 +153,9 @@ export class AIService implements IAIService {
 	 */
 	restoreSession(session: Session): void {
 		this.session = session;
-		// 重置上下文注入标志，因为加载的 session 可能有不同的 system prompt
+		// 恢复 session 后重新设置 system prompt，确保 token 计算一致
+		this.session.setSystemPrompt(SYSTEM_PROMPT);
+		// 重置上下文注入标志
 		this.contextInjected = false;
 	}
 

@@ -169,6 +169,18 @@ Commands are defined in `constants/commands.ts` with dynamic generation:
 - `/session list` displays sessions with `▸` for active, `○` for inactive
 - Session switch/delete commands use **session name** (not ID) as identifier
 
+**Session Restoration**:
+- `restoreSession()` in `service.ts` re-sets `SYSTEM_PROMPT` after loading persisted session
+- This ensures consistent token calculation between app startup and `/session new`
+- Without this, restored sessions would show 0 tokens while new sessions show ~350 (SYSTEM_PROMPT size)
+
+### StatusBar Usage Display
+
+- Shows token usage in format: `1.5k/32k (5%)`
+- Updates on: AI response, session new/switch/clear, `/stop`
+- Color coding: gray (normal), yellow (>80%), red (>95%)
+- `updateUsageStatus()` callback refreshes display from `AIService.getSessionStatus()`
+
 ### Context Window Management
 
 **Two Independent Mechanisms**:
