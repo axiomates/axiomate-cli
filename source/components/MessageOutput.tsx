@@ -886,18 +886,21 @@ export default function MessageOutput({
 	 */
 	const convertFgToBgAnsi = (ansiCodes: string): string | null => {
 		// 真彩色：ESC[38;2;R;G;Bm -> ESC[48;2;R;G;Bm
+		// eslint-disable-next-line no-control-regex
 		const trueColorMatch = ansiCodes.match(/\x1b\[38;2;(\d+);(\d+);(\d+)m/);
 		if (trueColorMatch) {
 			return `\x1b[48;2;${trueColorMatch[1]};${trueColorMatch[2]};${trueColorMatch[3]}m`;
 		}
 
 		// 256色：ESC[38;5;Nm -> ESC[48;5;Nm
+		// eslint-disable-next-line no-control-regex
 		const color256Match = ansiCodes.match(/\x1b\[38;5;(\d+)m/);
 		if (color256Match) {
 			return `\x1b[48;5;${color256Match[1]}m`;
 		}
 
 		// 基本色：ESC[3Xm -> ESC[4Xm, ESC[9Xm -> ESC[10Xm
+		// eslint-disable-next-line no-control-regex
 		const basicColorMatch = ansiCodes.match(/\x1b\[(3[0-7])m/);
 		if (basicColorMatch) {
 			const fgCode = parseInt(basicColorMatch[1]!, 10);
@@ -906,6 +909,7 @@ export default function MessageOutput({
 		}
 
 		// 亮色：ESC[9Xm -> ESC[10Xm
+		// eslint-disable-next-line no-control-regex
 		const brightColorMatch = ansiCodes.match(/\x1b\[(9[0-7])m/);
 		if (brightColorMatch) {
 			const fgCode = parseInt(brightColorMatch[1]!, 10);
