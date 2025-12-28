@@ -8,9 +8,6 @@ vi.mock("../../source/hooks/useTranslation.js", () => ({
 	useTranslation: () => ({
 		t: (key: string) => {
 			const translations: Record<string, string> = {
-				"app.headerHintType": "Type",
-				"app.headerHintForCommands": "for commands",
-				"app.headerHintForShortcuts": "for shortcuts",
 				"app.browseMode": "Browse",
 				"app.inputMode": "Input",
 				"app.modeSwitchHint": "Shift+Up/Down",
@@ -21,20 +18,6 @@ vi.mock("../../source/hooks/useTranslation.js", () => ({
 }));
 
 describe("StatusBar", () => {
-	it("should render app name", () => {
-		const { lastFrame } = render(<StatusBar />);
-		expect(lastFrame()).toContain("axiomate");
-	});
-
-	it("should render hint text", () => {
-		const { lastFrame } = render(<StatusBar />);
-		expect(lastFrame()).toContain("Type");
-		expect(lastFrame()).toContain("/");
-		expect(lastFrame()).toContain("for commands");
-		expect(lastFrame()).toContain("?");
-		expect(lastFrame()).toContain("for shortcuts");
-	});
-
 	it("should show input mode by default", () => {
 		const { lastFrame } = render(<StatusBar />);
 		expect(lastFrame()).toContain("[Input]");

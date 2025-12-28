@@ -11,22 +11,15 @@ const mockInitResult: InitResult = {
 };
 
 describe("App", () => {
-	it("renders the status bar with app title", () => {
-		const { lastFrame } = render(<App initResult={mockInitResult} />);
-		// StatusBar shows app name
-		expect(lastFrame()).toContain("axiomate");
-	});
-
 	it("shows input mode indicator by default", () => {
 		const { lastFrame } = render(<App initResult={mockInitResult} />);
 		// Default mode is input mode
 		expect(lastFrame()).toContain("[Input]");
 	});
 
-	it("shows command hints in status bar", () => {
+	it("shows mode switch hint in status bar", () => {
 		const { lastFrame } = render(<App initResult={mockInitResult} />);
-		// StatusBar shows command hints
-		expect(lastFrame()).toContain("for commands");
-		expect(lastFrame()).toContain("for shortcuts");
+		// StatusBar shows mode switch hint
+		expect(lastFrame()).toContain("Shift+↑↓");
 	});
 });
