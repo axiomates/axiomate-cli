@@ -7,7 +7,6 @@ const APPDATA_DIRNAME = ".axiomate";
 // 子目录名称
 const SUBDIRS = {
 	logs: "logs",
-	history: "history",
 	sessions: "sessions",
 } as const;
 
@@ -25,13 +24,6 @@ export function getAppDataPath(): string {
  */
 export function getLogsPath(): string {
 	return path.join(getAppDataPath(), SUBDIRS.logs);
-}
-
-/**
- * 获取历史记录目录路径
- */
-export function getHistoryPath(): string {
-	return path.join(getAppDataPath(), SUBDIRS.history);
 }
 
 /**
