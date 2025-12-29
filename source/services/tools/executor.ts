@@ -165,7 +165,7 @@ export async function executeCommand(
 		let stderr = "";
 		let timedOut = false;
 
-		const timeout = options?.timeout ?? 30000;
+		const timeout = options?.timeout ?? 180000; // 3 minutes default
 		const timer = setTimeout(() => {
 			timedOut = true;
 			proc.kill("SIGTERM");
@@ -582,7 +582,7 @@ async function executeWebFetch(
 
 		// Fetch with timeout
 		const controller = new AbortController();
-		const timeoutMs = timeout ?? 30000;
+		const timeoutMs = timeout ?? 60000; // 1 minute default
 		const timer = setTimeout(() => controller.abort(), timeoutMs);
 
 		const response = await fetch(url, {
