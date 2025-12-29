@@ -123,6 +123,38 @@ export class SessionStore {
 			}
 		}
 
+		// 清理空的 session（之前创建但未使用的）
+		this.cleanupEmptySessions();
+
+		// 如果活跃 session 为空，切换到最近有内容的 session
+		if (this.activeSessionId) {
+			const activeInfo = this.sessions.get(this.activeSessionId);
+			if (activeInfo && activeInfo.messageCount === 0) {
+				// 找到最近有内容的 session（按 updatedAt 降序排列）
+				const nonEmptySessions = this.listSessions().filter(
+					(s) => s.messageCount > 0,
+				);
+				if (nonEmptySessions.length > 0) {
+					// 删除当前空的活跃 session
+					this.sessions.delete(this.activeSessionId);
+					const filePath = path.join(
+						this.sessionsDir,
+						`${this.activeSessionId}.json`,
+					);
+					if (fs.existsSync(filePath)) {
+						try {
+							fs.unlinkSync(filePath);
+						} catch {
+							// 忽略删除失败
+						}
+					}
+					// 切换到最近有内容的 session
+					this.activeSessionId = nonEmptySessions[0]!.id;
+					this.saveIndex();
+				}
+			}
+		}
+
 		// 如果没有 session，创建初始 session
 		if (this.sessions.size === 0) {
 			const initialSession = this.createSession();
@@ -255,6 +287,44 @@ export class SessionStore {
 	private generateDefaultName(): string {
 		// 使用简短的临时名称
 		return "New Session";
+	}
+
+	/**
+	 * 清理空的 session（messageCount 为 0）
+	 * 在应用启动时调用，清理之前创建但未使用的 session
+	 * @returns 清理的 session 数量
+	 */
+	private cleanupEmptySessions(): number {
+		const emptySessionIds: string[] = [];
+
+		for (const [id, info] of this.sessions) {
+			// 跳过当前活跃的 session（即使为空也保留）
+			if (id === this.activeSessionId) continue;
+
+			if (info.messageCount === 0) {
+				emptySessionIds.push(id);
+			}
+		}
+
+		// 删除空 session
+		for (const id of emptySessionIds) {
+			this.sessions.delete(id);
+			// 删除 session 文件
+			const filePath = path.join(this.sessionsDir, `${id}.json`);
+			if (fs.existsSync(filePath)) {
+				try {
+					fs.unlinkSync(filePath);
+				} catch {
+					// 忽略删除失败
+				}
+			}
+		}
+
+		if (emptySessionIds.length > 0) {
+			this.saveIndex();
+		}
+
+		return emptySessionIds.length;
 	}
 
 	/**
