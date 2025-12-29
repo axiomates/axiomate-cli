@@ -6,7 +6,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getSessionsPath } from "../../utils/appdata.js";
-import { getCurrentModelId } from "../../utils/config.js";
 import { logger } from "../../utils/logger.js";
 import {
 	Session,
@@ -32,8 +31,6 @@ export type SessionInfo = {
 	tokenUsage: number;
 	/** 消息数量 */
 	messageCount: number;
-	/** 使用的模型 ID */
-	modelId: string;
 	/** 是否为当前活跃 session */
 	isActive: boolean;
 };
@@ -235,7 +232,6 @@ export class SessionStore {
 			updatedAt: now,
 			tokenUsage: 0,
 			messageCount: 0,
-			modelId: getCurrentModelId(),
 			isActive: false,
 		};
 
