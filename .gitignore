@@ -6,6 +6,7 @@ package-lock.json
 
 # Generated files
 source/constants/meta.ts
+source/constants/modelPresets.ts
 
 # IDEs
 .vscode/*

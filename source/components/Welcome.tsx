@@ -4,138 +4,21 @@
  * 用户首次使用时显示，创建默认配置后重启应用
  * 测试期间：自动配置硅基流动 API 和测试密钥
  *
- * 注意：DEFAULT_MODEL_PRESETS 定义在此文件中，因为：
- * 1. 这是临时的测试预设
- * 2. 正式版本会根据用户账号派发可用的模型配置
- * 3. 将来会被用户注册/登录流程替代
+ * 注意：DEFAULT_MODEL_PRESETS 从 modelPresets.ts 导入，该文件由构建脚本生成
+ * API keys 存储在 .env.local 中（已 gitignore）
  */
 
 import { Box, Text, useInput } from "ink";
 import { useEffect, useRef, useState } from "react";
 import { THEME_LIGHT_YELLOW, THEME_PINK } from "../constants/colors.js";
 import { APP_NAME, VERSION } from "../constants/meta.js";
+import { DEFAULT_MODEL_PRESETS } from "../constants/modelPresets.js";
 import { DEFAULT_MODEL_ID, DEFAULT_SUGGESTION_MODEL_ID } from "../constants/models.js";
 import useTerminalHeight from "../hooks/useTerminalHeight.js";
 import { updateConfig, type ModelConfig } from "../utils/config.js";
 import { resumeInput } from "../utils/stdin.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 import Divider from "./Divider.js";
-
-/**
- * 默认模型预设列表（测试期间使用）
- *
- * 包含完整的模型配置，包括 baseUrl 和 apiKey
- * 每个模型可以有不同的 API 端点和密钥
- * 正式版本会根据用户账号派发可用的模型配置
- *
- * TODO: 正式发布时移除或改为用户注册流程
- */
-const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
-	// GLM 系列（智谱）- 使用 SiliconFlow
-	{
-		model: "THUDM/glm-4-9b-chat",
-		name: "GLM-4 9B",
-		protocol: "openai",
-		description: "Chat model",
-		supportsTools: false,
-		supportsThinking: false,
-		contextWindow: 131072,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-	{
-		model: "THUDM/GLM-Z1-9B-0414",
-		name: "GLM-Z1 9B",
-		protocol: "openai",
-		description: "Latest GLM",
-		supportsTools: true,
-		supportsThinking: false,
-		contextWindow: 32768,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-
-	// Qwen 系列 - 使用 SiliconFlow
-	{
-		model: "Qwen/Qwen3-8B",
-		name: "Qwen3 8B",
-		protocol: "openai",
-		description: "Latest Qwen3",
-		supportsTools: true,
-		supportsThinking: true,
-		contextWindow: 131072,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-	{
-		model: "Qwen/Qwen2-7B-Instruct",
-		name: "Qwen2 7B",
-		protocol: "openai",
-		description: "Instruct model",
-		supportsTools: false,
-		supportsThinking: true,
-		contextWindow: 32768,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-	{
-		model: "Qwen/Qwen2.5-7B-Instruct",
-		name: "Qwen2.5 7B",
-		protocol: "openai",
-		description: "Instruct model",
-		supportsTools: true,
-		supportsThinking: false,
-		contextWindow: 32768,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-	{
-		model: "Qwen/Qwen3-Coder-480B-A35B-Instruct",
-		name: "Qwen3 Coder 480B",
-		protocol: "openai",
-		description: "Instruct model",
-		supportsTools: true,
-		supportsThinking: false,
-		contextWindow: 262144,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-	{
-		model: "qwen3-coder-plus",
-		name: "Qwen3 Coder Plus",
-		protocol: "openai",
-		description: "Super coder model",
-		supportsTools: true,
-		supportsThinking: true,
-		contextWindow: 1048576,
-		baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-		apiKey: "sk-170cc96e16174ba9aea4785036230167",
-	},
-
-	// DeepSeek 系列 - 使用 SiliconFlow
-	{
-		model: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
-		name: "DeepSeek R1 Qwen 7B",
-		protocol: "openai",
-		description: "Reasoning distill",
-		supportsTools: true,
-		supportsThinking: true,
-		contextWindow: 131072,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-	{
-		model: "Pro/deepseek-ai/DeepSeek-V3.2",
-		name: "DeepSeek-V3.2",
-		protocol: "openai",
-		description: "Reasoning model",
-		supportsTools: true,
-		supportsThinking: true,
-		contextWindow: 163840,
-		baseUrl: "https://api.siliconflow.cn/v1",
-		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",
-	},
-];
 
 /**
  * 将预设列表转换为配置对象
