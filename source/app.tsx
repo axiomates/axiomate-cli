@@ -75,6 +75,7 @@ export default function App({ initResult }: Props) {
 		onResolve: (answer: string) => void;
 	} | null>(null);
 	const [isAskUserCustomInput, setIsAskUserCustomInput] = useState(false);
+	const [askUserInputLineCount, setAskUserInputLineCount] = useState(1);
 	const [inputAreaHeight, setInputAreaHeight] = useState(1);
 
 	// AI 加载状态（将来用于显示加载指示器）
@@ -543,6 +544,15 @@ export default function App({ initResult }: Props) {
 	// ask_user 自定义输入模式变化
 	const handleAskUserCustomInputModeChange = useCallback((isCustomInput: boolean) => {
 		setIsAskUserCustomInput(isCustomInput);
+		// 重置行数
+		if (!isCustomInput) {
+			setAskUserInputLineCount(1);
+		}
+	}, []);
+
+	// ask_user 输入行数变化
+	const handleAskUserInputLineCountChange = useCallback((lineCount: number) => {
+		setAskUserInputLineCount(lineCount);
 	}, []);
 
 	// 输入区域高度变化回调
@@ -1085,11 +1095,11 @@ export default function App({ initResult }: Props) {
 			// AskUserMenu 高度计算:
 			// - divider: 1
 			// - question: 1
-			// - content: options list OR custom input (1 line)
+			// - content: options list OR custom input (动态行数)
 			// - hints: 1
 			if (isAskUserCustomInput) {
-				// Custom input mode: divider + question + input + hints
-				const askUserHeight = 1 + 1 + 1 + 1;
+				// Custom input mode: divider + question + input lines + hints
+				const askUserHeight = 1 + 1 + askUserInputLineCount + 1;
 				return askUserHeight + 2; // + bottom divider + statusbar
 			}
 			// Options mode: divider + question + options + hints
@@ -1133,6 +1143,7 @@ export default function App({ initResult }: Props) {
 						onCancel={handleAskUserCancel}
 						columns={terminalWidth}
 						onCustomInputModeChange={handleAskUserCustomInputModeChange}
+						onInputLineCountChange={handleAskUserInputLineCountChange}
 					/>
 				</Box>
 			)}

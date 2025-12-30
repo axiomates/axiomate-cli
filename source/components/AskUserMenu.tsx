@@ -7,7 +7,7 @@
  * 自定义输入模式支持多行编辑（Ctrl+Enter 换行，上下键导航行）
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import { t } from "../i18n/index.js";
 
@@ -24,6 +24,10 @@ type AskUserMenuProps = {
 	columns: number;
 	/** Callback when custom input mode changes */
 	onCustomInputModeChange?: (isCustomInput: boolean) => void;
+	/** Callback when input line count changes (for height calculation) */
+	onInputLineCountChange?: (lineCount: number) => void;
+	/** Maximum allLines for custom input (default: 10) */
+	maxInputLines?: number;
 };
 
 export function AskUserMenu({
@@ -33,6 +37,8 @@ export function AskUserMenu({
 	onCancel,
 	columns,
 	onCustomInputModeChange,
+	onInputLineCountChange,
+	maxInputLines = 10,
 }: AskUserMenuProps) {
 	// Limit to max 3 options + custom input
 	const limitedOptions = options.slice(0, 3);
@@ -74,14 +80,15 @@ export function AskUserMenu({
 	}, [onCustomInputModeChange]);
 
 	// 计算多行信息（行数组、当前行索引、行内光标位置）
+	// 当行数超过 maxInputLines 时，只显示光标所在行附近的行
 	const lineInfo = useMemo(() => {
-		const lines = customInputValue.split("\n");
+		const allLines = customInputValue.split("\n");
 		let charCount = 0;
 		let currentLineIndex = 0;
 		let cursorCol = cursor;
 
-		for (let i = 0; i < lines.length; i++) {
-			const lineLength = lines[i]!.length;
+		for (let i = 0; i < allLines.length; i++) {
+			const lineLength = allLines[i]!.length;
 			if (cursor <= charCount + lineLength) {
 				currentLineIndex = i;
 				cursorCol = cursor - charCount;
@@ -90,14 +97,50 @@ export function AskUserMenu({
 			charCount += lineLength + 1; // +1 for newline
 		}
 
-		return { lines, currentLineIndex, cursorCol };
-	}, [customInputValue, cursor]);
+		// 如果总行数超过限制，计算可见窗口
+		let visibleLines = allLines;
+		let visibleStartIndex = 0;
+		if (allLines.length > maxInputLines) {
+			// 以光标所在行为中心，显示 maxInputLines 行
+			const halfWindow = Math.floor(maxInputLines / 2);
+			visibleStartIndex = Math.max(0, currentLineIndex - halfWindow);
+			const visibleEndIndex = Math.min(allLines.length, visibleStartIndex + maxInputLines);
+			// 调整起始位置，确保显示完整的 maxInputLines 行
+			if (visibleEndIndex - visibleStartIndex < maxInputLines) {
+				visibleStartIndex = Math.max(0, visibleEndIndex - maxInputLines);
+			}
+			visibleLines = allLines.slice(visibleStartIndex, visibleStartIndex + maxInputLines);
+		}
+
+		return {
+			allLines,
+			visibleLines,
+			visibleStartIndex,
+			currentLineIndex,
+			cursorCol,
+			totalLineCount: allLines.length,
+		};
+	}, [customInputValue, cursor, maxInputLines]);
+
+	// 通知父组件行数变化（包括省略指示器）
+	useEffect(() => {
+		let displayLineCount = lineInfo.visibleLines.length;
+		// 如果有上方省略指示器
+		if (lineInfo.visibleStartIndex > 0) {
+			displayLineCount += 1;
+		}
+		// 如果有下方省略指示器
+		if (lineInfo.visibleStartIndex + lineInfo.visibleLines.length < lineInfo.totalLineCount) {
+			displayLineCount += 1;
+		}
+		onInputLineCountChange?.(displayLineCount);
+	}, [lineInfo.visibleLines.length, lineInfo.visibleStartIndex, lineInfo.totalLineCount, onInputLineCountChange]);
 
 	// 计算给定行索引的起始字符位置
-	const getLineStartPosition = useCallback((lineIndex: number, lines: string[]) => {
+	const getLineStartPosition = useCallback((lineIndex: number, allLines: string[]) => {
 		let pos = 0;
 		for (let i = 0; i < lineIndex; i++) {
-			pos += lines[i]!.length + 1; // +1 for newline
+			pos += allLines[i]!.length + 1; // +1 for newline
 		}
 		return pos;
 	}, []);
@@ -106,7 +149,7 @@ export function AskUserMenu({
 	useInput(
 		(input, key) => {
 			if (isCustomInputMode) {
-				const { lines, currentLineIndex, cursorCol } = lineInfo;
+				const { allLines, currentLineIndex, cursorCol } = lineInfo;
 
 				// Escape - 返回选项列表
 				if (key.escape) {
@@ -132,10 +175,10 @@ export function AskUserMenu({
 				if (key.upArrow) {
 					if (currentLineIndex > 0) {
 						const prevLineIndex = currentLineIndex - 1;
-						const prevLine = lines[prevLineIndex]!;
+						const prevLine = allLines[prevLineIndex]!;
 						// 尝试保持相同的列位置，但不超过上一行的长度
 						const newCol = Math.min(cursorCol, prevLine.length);
-						const newCursor = getLineStartPosition(prevLineIndex, lines) + newCol;
+						const newCursor = getLineStartPosition(prevLineIndex, allLines) + newCol;
 						setCursor(newCursor);
 					}
 					return;
@@ -143,12 +186,12 @@ export function AskUserMenu({
 
 				// 下箭头 - 移动到下一行
 				if (key.downArrow) {
-					if (currentLineIndex < lines.length - 1) {
+					if (currentLineIndex < allLines.length - 1) {
 						const nextLineIndex = currentLineIndex + 1;
-						const nextLine = lines[nextLineIndex]!;
+						const nextLine = allLines[nextLineIndex]!;
 						// 尝试保持相同的列位置，但不超过下一行的长度
 						const newCol = Math.min(cursorCol, nextLine.length);
-						const newCursor = getLineStartPosition(nextLineIndex, lines) + newCol;
+						const newCursor = getLineStartPosition(nextLineIndex, allLines) + newCol;
 						setCursor(newCursor);
 					}
 					return;
@@ -188,15 +231,15 @@ export function AskUserMenu({
 
 				// Ctrl+A - 移动到行首
 				if (key.ctrl && input === "a") {
-					const lineStart = getLineStartPosition(currentLineIndex, lines);
+					const lineStart = getLineStartPosition(currentLineIndex, allLines);
 					setCursor(lineStart);
 					return;
 				}
 
 				// Ctrl+E - 移动到行尾
 				if (key.ctrl && input === "e") {
-					const lineStart = getLineStartPosition(currentLineIndex, lines);
-					const lineEnd = lineStart + lines[currentLineIndex]!.length;
+					const lineStart = getLineStartPosition(currentLineIndex, allLines);
+					const lineEnd = lineStart + allLines[currentLineIndex]!.length;
 					setCursor(lineEnd);
 					return;
 				}
@@ -239,13 +282,21 @@ export function AskUserMenu({
 			</Box>
 
 			{isCustomInputMode ? (
-				/* Custom input mode - 支持多行 */
+				/* Custom input mode - 支持多行，使用 visibleLines 限制显示行数 */
 				<Box flexDirection="column">
-					{lineInfo.lines.map((line, lineIndex) => {
-						const isCursorLine = lineIndex === lineInfo.currentLineIndex;
+					{/* 显示上方省略指示器 */}
+					{lineInfo.visibleStartIndex > 0 && (
+						<Box>
+							<Text color="gray">    ↑ {lineInfo.visibleStartIndex} more line(s)</Text>
+						</Box>
+					)}
+					{lineInfo.visibleLines.map((line, visibleIdx) => {
+						const actualLineIndex = lineInfo.visibleStartIndex + visibleIdx;
+						const isCursorLine = actualLineIndex === lineInfo.currentLineIndex;
+						const isFirstLine = actualLineIndex === 0;
 						return (
-							<Box key={lineIndex}>
-								<Text color="gray">{lineIndex === 0 ? "  > " : "    "}</Text>
+							<Box key={actualLineIndex}>
+								<Text color="gray">{isFirstLine ? "  > " : "    "}</Text>
 								{isCursorLine ? (
 									<>
 										<Text>{line.slice(0, lineInfo.cursorCol)}</Text>
@@ -258,6 +309,12 @@ export function AskUserMenu({
 							</Box>
 						);
 					})}
+					{/* 显示下方省略指示器 */}
+					{lineInfo.visibleStartIndex + lineInfo.visibleLines.length < lineInfo.totalLineCount && (
+						<Box>
+							<Text color="gray">    ↓ {lineInfo.totalLineCount - lineInfo.visibleStartIndex - lineInfo.visibleLines.length} more line(s)</Text>
+						</Box>
+					)}
 				</Box>
 			) : (
 				/* Options list (max 4: 3 options + custom input) */
