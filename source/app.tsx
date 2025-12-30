@@ -1070,13 +1070,17 @@ export default function App({ initResult }: Props) {
 	// 计算 MessageOutput 的可用高度
 	// 输入模式: MessageOutput + Divider(1) + InputArea(动态) + Divider(1) + StatusBar(1)
 	// 浏览模式: MessageOutput + Divider(1) + StatusBar(1) = 2 行固定
-	// AskUser 模式: MessageOutput + AskUserMenu(问题1行 + 选项数 + 提示1行 + divider1行) + Divider(1) + StatusBar(1)
+	// AskUser 模式: MessageOutput + AskUserMenu(...) + Divider(1) + StatusBar(1)
 	const getFixedHeight = () => {
 		if (isOutputMode) return 2;
 		if (pendingAskUser) {
-			// AskUserMenu 高度: divider(1) + question(1) + options + customInput(1) + hints(1)
-			const optionsCount = pendingAskUser.options.length + 1; // +1 for custom input option
-			const askUserHeight = 1 + 1 + Math.min(optionsCount, 9) + 1; // divider + question + options (max 9) + hints
+			// AskUserMenu 高度计算:
+			// - divider: 1
+			// - question: 1
+			// - options: max 3 + 1 custom input = 4
+			// - hints: 1
+			const optionsCount = Math.min(pendingAskUser.options.length, 3) + 1; // max 3 options + custom input
+			const askUserHeight = 1 + 1 + optionsCount + 1; // divider + question + options + hints
 			return askUserHeight + 2; // + bottom divider + statusbar
 		}
 		return 3 + inputAreaHeight;

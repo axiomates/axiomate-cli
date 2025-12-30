@@ -30,10 +30,11 @@ export function AskUserMenu({
 	onCancel,
 	columns,
 }: AskUserMenuProps) {
-	// Add custom input option at the end
+	// Limit to max 3 options + custom input
+	const limitedOptions = options.slice(0, 3);
 	const customInputLabel = t("askUser.customInput");
-	const allOptions = options.length > 0
-		? [...options, customInputLabel]
+	const allOptions = limitedOptions.length > 0
+		? [...limitedOptions, customInputLabel]
 		: [customInputLabel];
 
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -47,9 +48,9 @@ export function AskUserMenu({
 			setIsCustomInputMode(true);
 		} else {
 			// User selected a predefined option
-			onSelect(options[selectedIndex] ?? "");
+			onSelect(limitedOptions[selectedIndex] ?? "");
 		}
-	}, [selectedIndex, allOptions.length, options, onSelect]);
+	}, [selectedIndex, allOptions.length, limitedOptions, onSelect]);
 
 	// Handle custom input submit
 	const handleCustomInputSubmit = useCallback(() => {
@@ -100,17 +101,6 @@ export function AskUserMenu({
 		{ isActive: true },
 	);
 
-	// Window logic: show at most 9 options
-	const maxVisible = 9;
-	let startIndex = 0;
-	if (selectedIndex >= maxVisible) {
-		startIndex = selectedIndex - maxVisible + 1;
-	}
-	const endIndex = Math.min(allOptions.length, startIndex + maxVisible);
-	const visibleOptions = allOptions.slice(startIndex, endIndex);
-	const hasMoreBefore = startIndex > 0;
-	const hasMoreAfter = endIndex < allOptions.length;
-
 	return (
 		<Box flexDirection="column">
 			{/* Divider */}
@@ -129,23 +119,14 @@ export function AskUserMenu({
 					<Text color="gray">█</Text>
 				</Box>
 			) : (
-				/* Options list - following SlashMenu pattern */
+				/* Options list (max 4: 3 options + custom input) */
 				<>
-					{/* More before indicator */}
-					{hasMoreBefore && (
-						<Box>
-							<Text dimColor>{"  "}↑ {startIndex} more</Text>
-						</Box>
-					)}
-
-					{/* Options */}
-					{visibleOptions.map((option, visibleIndex) => {
-						const actualIndex = startIndex + visibleIndex;
-						const isSelected = actualIndex === selectedIndex;
-						const isCustomOption = actualIndex === allOptions.length - 1;
+					{allOptions.map((option, index) => {
+						const isSelected = index === selectedIndex;
+						const isCustomOption = index === allOptions.length - 1;
 
 						return (
-							<Box key={actualIndex}>
+							<Box key={index}>
 								<Text
 									backgroundColor={isSelected ? "blue" : undefined}
 									color={isSelected ? "white" : isCustomOption ? "gray" : undefined}
@@ -157,13 +138,6 @@ export function AskUserMenu({
 							</Box>
 						);
 					})}
-
-					{/* More after indicator */}
-					{hasMoreAfter && (
-						<Box>
-							<Text dimColor>{"  "}↓ {allOptions.length - endIndex} more</Text>
-						</Box>
-					)}
 				</>
 			)}
 

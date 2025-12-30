@@ -11,27 +11,35 @@ import { createInstalledTool } from "./base.js";
 const askUserDefinition: ToolDefinition = {
 	id: "askuser",
 	name: "Ask User",
-	description: "Ask user a question and wait for response",
+	description:
+		"Ask user a question when clarification is needed. " +
+		"Always provide 2-3 thoughtful options representing different approaches to help user decide quickly.",
 	category: "utility",
 	capabilities: ["execute"],
 	actions: [
 		{
 			name: "ask",
 			description:
-				"Ask user a question with optional predefined options. User can select from options or provide custom input.",
+				"Ask the user a question to gather preferences, clarify requirements, or get a decision. " +
+				"You MUST provide 2-3 options that represent your best suggestions for different approaches or directions. " +
+				"Think about what the user might want and offer distinct alternatives. " +
+				"User can select from your suggestions or provide custom input if none fit.",
 			parameters: [
 				{
 					name: "question",
-					description: "The question to ask the user",
+					description:
+						"A clear, specific question ending with a question mark.",
 					type: "string",
 					required: true,
 				},
 				{
 					name: "options",
 					description:
-						'JSON array of predefined options (e.g., \'["Yes", "No", "Maybe"]\'), optional',
+						'JSON array of 2-3 options representing different approaches YOU think are best suited for the situation. ' +
+						'Example: \'["Use TypeScript for type safety", "Use JavaScript for simplicity", "Use both with gradual migration"]\'. ' +
+						"Each option should be a distinct direction, not variations of the same thing. Maximum 3 options.",
 					type: "string",
-					required: false,
+					required: true,
 				},
 			],
 			commandTemplate: "__ASK_USER__",
