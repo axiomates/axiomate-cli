@@ -49,7 +49,7 @@ const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		protocol: "openai",
 		description: "Latest GLM",
 		supportsTools: true,
-		supportsThinking: true,
+		supportsThinking: false,
 		contextWindow: 32768,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "sk-rksqraohycnhvaeosxokhrfpbzhevnykpykulhndkgbxhrqk",

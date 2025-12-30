@@ -79,48 +79,54 @@ export function AskUserMenu({
 		onCustomInputModeChange?.(false);
 	}, [onCustomInputModeChange]);
 
-	// 计算多行信息（行数组、当前行索引、行内光标位置）
-	// 当行数超过 maxInputLines 时，只显示光标所在行附近的行
-	const lineInfo = useMemo(() => {
-		const allLines = customInputValue.split("\n");
+	// 计算光标所在行和列（用于键盘导航）
+	const getCursorLineInfo = useCallback((text: string, cursorPos: number) => {
+		const lines = text.split("\n");
 		let charCount = 0;
-		let currentLineIndex = 0;
-		let cursorCol = cursor;
+		let lineIndex = 0;
+		let col = cursorPos;
 
-		for (let i = 0; i < allLines.length; i++) {
-			const lineLength = allLines[i]!.length;
-			if (cursor <= charCount + lineLength) {
-				currentLineIndex = i;
-				cursorCol = cursor - charCount;
+		for (let i = 0; i < lines.length; i++) {
+			const lineLength = lines[i]!.length;
+			if (cursorPos <= charCount + lineLength) {
+				lineIndex = i;
+				col = cursorPos - charCount;
 				break;
 			}
-			charCount += lineLength + 1; // +1 for newline
+			charCount += lineLength + 1;
 		}
 
+		return { lines, lineIndex, col };
+	}, []);
+
+	// 计算渲染用的可见行信息
+	const lineInfo = useMemo(() => {
+		const { lines, lineIndex, col } = getCursorLineInfo(customInputValue, cursor);
+		const totalLineCount = lines.length;
+
 		// 如果总行数超过限制，计算可见窗口
-		let visibleLines = allLines;
+		let visibleLines = lines;
 		let visibleStartIndex = 0;
-		if (allLines.length > maxInputLines) {
+		if (totalLineCount > maxInputLines) {
 			// 以光标所在行为中心，显示 maxInputLines 行
 			const halfWindow = Math.floor(maxInputLines / 2);
-			visibleStartIndex = Math.max(0, currentLineIndex - halfWindow);
-			const visibleEndIndex = Math.min(allLines.length, visibleStartIndex + maxInputLines);
+			visibleStartIndex = Math.max(0, lineIndex - halfWindow);
+			const visibleEndIndex = Math.min(totalLineCount, visibleStartIndex + maxInputLines);
 			// 调整起始位置，确保显示完整的 maxInputLines 行
 			if (visibleEndIndex - visibleStartIndex < maxInputLines) {
 				visibleStartIndex = Math.max(0, visibleEndIndex - maxInputLines);
 			}
-			visibleLines = allLines.slice(visibleStartIndex, visibleStartIndex + maxInputLines);
+			visibleLines = lines.slice(visibleStartIndex, visibleStartIndex + maxInputLines);
 		}
 
 		return {
-			allLines,
 			visibleLines,
 			visibleStartIndex,
-			currentLineIndex,
-			cursorCol,
-			totalLineCount: allLines.length,
+			currentLineIndex: lineIndex,
+			cursorCol: col,
+			totalLineCount,
 		};
-	}, [customInputValue, cursor, maxInputLines]);
+	}, [customInputValue, cursor, maxInputLines, getCursorLineInfo]);
 
 	// 通知父组件行数变化（包括省略指示器）
 	useEffect(() => {
@@ -149,8 +155,6 @@ export function AskUserMenu({
 	useInput(
 		(input, key) => {
 			if (isCustomInputMode) {
-				const { allLines, currentLineIndex, cursorCol } = lineInfo;
-
 				// Escape - 返回选项列表
 				if (key.escape) {
 					handleCustomInputCancel();
@@ -173,12 +177,12 @@ export function AskUserMenu({
 
 				// 上箭头 - 移动到上一行
 				if (key.upArrow) {
-					if (currentLineIndex > 0) {
-						const prevLineIndex = currentLineIndex - 1;
-						const prevLine = allLines[prevLineIndex]!;
-						// 尝试保持相同的列位置，但不超过上一行的长度
-						const newCol = Math.min(cursorCol, prevLine.length);
-						const newCursor = getLineStartPosition(prevLineIndex, allLines) + newCol;
+					const { lines, lineIndex, col } = getCursorLineInfo(customInputValue, cursor);
+					if (lineIndex > 0) {
+						const prevLineIndex = lineIndex - 1;
+						const prevLine = lines[prevLineIndex]!;
+						const newCol = Math.min(col, prevLine.length);
+						const newCursor = getLineStartPosition(prevLineIndex, lines) + newCol;
 						setCursor(newCursor);
 					}
 					return;
@@ -186,12 +190,12 @@ export function AskUserMenu({
 
 				// 下箭头 - 移动到下一行
 				if (key.downArrow) {
-					if (currentLineIndex < allLines.length - 1) {
-						const nextLineIndex = currentLineIndex + 1;
-						const nextLine = allLines[nextLineIndex]!;
-						// 尝试保持相同的列位置，但不超过下一行的长度
-						const newCol = Math.min(cursorCol, nextLine.length);
-						const newCursor = getLineStartPosition(nextLineIndex, allLines) + newCol;
+					const { lines, lineIndex, col } = getCursorLineInfo(customInputValue, cursor);
+					if (lineIndex < lines.length - 1) {
+						const nextLineIndex = lineIndex + 1;
+						const nextLine = lines[nextLineIndex]!;
+						const newCol = Math.min(col, nextLine.length);
+						const newCursor = getLineStartPosition(nextLineIndex, lines) + newCol;
 						setCursor(newCursor);
 					}
 					return;
@@ -231,15 +235,17 @@ export function AskUserMenu({
 
 				// Ctrl+A - 移动到行首
 				if (key.ctrl && input === "a") {
-					const lineStart = getLineStartPosition(currentLineIndex, allLines);
+					const { lines, lineIndex } = getCursorLineInfo(customInputValue, cursor);
+					const lineStart = getLineStartPosition(lineIndex, lines);
 					setCursor(lineStart);
 					return;
 				}
 
 				// Ctrl+E - 移动到行尾
 				if (key.ctrl && input === "e") {
-					const lineStart = getLineStartPosition(currentLineIndex, allLines);
-					const lineEnd = lineStart + allLines[currentLineIndex]!.length;
+					const { lines, lineIndex } = getCursorLineInfo(customInputValue, cursor);
+					const lineStart = getLineStartPosition(lineIndex, lines);
+					const lineEnd = lineStart + lines[lineIndex]!.length;
 					setCursor(lineEnd);
 					return;
 				}
