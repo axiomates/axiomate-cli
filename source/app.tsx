@@ -328,11 +328,31 @@ export default function App({ initResult }: Props) {
 				question: string,
 				askOptions: string[],
 			): Promise<string> => {
+				// 添加 AI 的问题到消息历史
+				setMessages((prev) => {
+					// 移除空的流式消息（如果有的话）
+					const newMessages = prev.filter((msg) => !(msg.streaming && !msg.content));
+					// 添加 AI 的问题
+					return [
+						...newMessages,
+						{ content: question, type: "system" as const, markdown: false },
+					];
+				});
+
 				return new Promise((resolve) => {
 					setPendingAskUser({
 						question,
 						options: askOptions,
-						onResolve: resolve,
+						onResolve: (answer: string) => {
+							// 用户回答后，添加回答到消息历史，然后恢复流式
+							setMessages((prev) => [
+								...prev,
+								{ content: answer, type: "user-answer" as const },
+								// 添加新的流式消息占位
+								{ content: "", reasoning: "", streaming: true },
+							]);
+							resolve(answer);
+						},
 					});
 				});
 			};
@@ -526,6 +546,7 @@ export default function App({ initResult }: Props) {
 	// ask_user 选择处理
 	const handleAskUserSelect = useCallback((answer: string) => {
 		if (pendingAskUser) {
+			// onResolve 内部已经处理了消息添加，这里只需调用它
 			pendingAskUser.onResolve(answer);
 			setPendingAskUser(null);
 			setIsAskUserCustomInput(false);

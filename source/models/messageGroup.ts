@@ -24,6 +24,7 @@ export type MessageGroup = {
  * 将消息数组分组为问答对
  *
  * 规则：每个 user 类型消息开始一个新组，后续非 user 消息归入该组
+ * 注意：user-answer 类型（用户对 ask_user 的回答）不开始新组，归入当前组的 responses
  */
 export function groupMessages(messages: Message[]): MessageGroup[] {
 	const groups: MessageGroup[] = [];
@@ -47,7 +48,7 @@ export function groupMessages(messages: Message[]): MessageGroup[] {
 				hasStreaming: false,
 			};
 		} else {
-			// 非用户消息
+			// 非用户消息（包括 user-answer）
 			if (!currentGroup) {
 				// 没有前置用户消息（如启动时的系统消息）
 				currentGroup = {

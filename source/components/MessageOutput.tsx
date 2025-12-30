@@ -14,7 +14,7 @@ export type Message = {
 	content: string;
 	reasoning?: string; // 思考内容（DeepSeek-R1, QwQ 等模型）
 	reasoningCollapsed?: boolean; // 思考内容是否折叠
-	type?: "user" | "system" | "welcome"; // user: 用户输入, system: 系统输出（默认）, welcome: 欢迎消息
+	type?: "user" | "system" | "welcome" | "user-answer"; // user: 用户输入, system: 系统输出（默认）, welcome: 欢迎消息, user-answer: 用户对 ask_user 的回答
 	streaming?: boolean; // true = 正在流式生成, false/undefined = 已完成
 	queued?: boolean; // true = 消息已入队等待处理（用户消息）
 	queuedMessageId?: string; // 队列中的消息 ID（用于匹配）
@@ -313,7 +313,7 @@ export default function MessageOutput({
 			// 展开状态或不可折叠：正常渲染所有消息
 			for (let i = group.startIndex; i < group.endIndex; i++) {
 				const msg = messages[i]!;
-				const isUser = msg.type === "user";
+				const isUser = msg.type === "user" || msg.type === "user-answer"; // user-answer 也使用粉色前缀
 				const isWelcome = msg.type === "welcome";
 				const isLastMessage = i === messages.length - 1;
 
