@@ -463,7 +463,8 @@ export default function MessageOutput({
 				}
 
 				// 2. 渲染正式内容
-				if (msg.content) {
+				// 注意：检查 content 是否有实际内容（非空字符串），避免在只有 reasoning 时渲染空行
+				if (msg.content && msg.content.trim()) {
 					const content = renderContent(msg, isLastMessage);
 					const msgLines = content.split("\n");
 
@@ -482,7 +483,7 @@ export default function MessageOutput({
 							isFirstLineOfMsg = false;
 						}
 					}
-				} else if (!msg.reasoning) {
+				} else if (!msg.reasoning && !msg.askUserQA) {
 					// 没有思考内容也没有正式内容（空消息）
 					const content = renderContent(msg, isLastMessage);
 					const msgLines = content.split("\n");
