@@ -70,7 +70,8 @@ export function detectEncoding(
 	buffer: Buffer,
 	sampleSize: number = 65536,
 ): EncodingInfo {
-	const sample = buffer.length > sampleSize ? buffer.subarray(0, sampleSize) : buffer;
+	const sample =
+		buffer.length > sampleSize ? buffer.subarray(0, sampleSize) : buffer;
 
 	// Stage 1: BOM detection (near 100% accurate)
 	const bom = detectBOM(sample);

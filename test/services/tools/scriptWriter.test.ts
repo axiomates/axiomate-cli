@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
 	getScriptsDir,
 	ensureScriptsDir,
@@ -102,7 +102,7 @@ describe("scriptWriter", () => {
 		it("should write PowerShell script with UTF-8 BOM", () => {
 			vi.mocked(platform).mockReturnValue("win32");
 
-			const result = writeScript("/project", "powershell", "Write-Host 'Hello'");
+			writeScript("/project", "powershell", "Write-Host 'Hello'");
 
 			expect(writeFileSync).toHaveBeenCalledWith(
 				expect.stringContaining(".ps1"),
@@ -248,10 +248,7 @@ describe("scriptWriter", () => {
 		});
 
 		it("should normalize Windows backslashes to forward slashes", () => {
-			const result = buildScriptCommand(
-				"python",
-				"C:\\Users\\test\\script.py",
-			);
+			const result = buildScriptCommand("python", "C:\\Users\\test\\script.py");
 
 			expect(result).toBe('python "C:/Users/test/script.py"');
 			expect(result).not.toContain("\\");

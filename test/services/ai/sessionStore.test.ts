@@ -382,12 +382,16 @@ describe("SessionStore", () => {
 		});
 
 		it("should take only first line", () => {
-			const title = SessionStore.generateTitleFromMessage("First line\nSecond line");
+			const title = SessionStore.generateTitleFromMessage(
+				"First line\nSecond line",
+			);
 			expect(title).toBe("First line");
 		});
 
 		it("should remove file references", () => {
-			const title = SessionStore.generateTitleFromMessage("Check @src/app.tsx please");
+			const title = SessionStore.generateTitleFromMessage(
+				"Check @src/app.tsx please",
+			);
 			expect(title).toBe("Check  please");
 		});
 
@@ -570,9 +574,7 @@ describe("SessionStore", () => {
 					},
 				});
 			});
-			vi.mocked(fs.readdirSync).mockReturnValue([
-				"session1.json" as any,
-			]);
+			vi.mocked(fs.readdirSync).mockReturnValue(["session1.json" as any]);
 
 			const store = new SessionStore(4096);
 			await store.initialize();

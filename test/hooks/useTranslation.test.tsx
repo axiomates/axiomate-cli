@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import React from "react";
 import { render } from "ink-testing-library";
 import { Text } from "ink";
@@ -35,7 +35,9 @@ describe("useTranslation", () => {
 	});
 
 	it("should update locale when setLocale is called", async () => {
-		const { lastFrame, rerender } = render(<TestComponent translationKey="app.name" />);
+		const { lastFrame, rerender } = render(
+			<TestComponent translationKey="app.name" />,
+		);
 
 		expect(lastFrame()).toContain("en:");
 
@@ -74,7 +76,9 @@ describe("useTranslation", () => {
 		// Test component that uses translation with parameters
 		function ParamComponent() {
 			const { t } = useTranslation();
-			return <Text>{t("commandHandler.modelSwitched", { model: "GPT-4" })}</Text>;
+			return (
+				<Text>{t("commandHandler.modelSwitched", { model: "GPT-4" })}</Text>
+			);
 		}
 
 		const { lastFrame } = render(<ParamComponent />);

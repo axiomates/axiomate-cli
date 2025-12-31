@@ -39,7 +39,9 @@ describe("encodingDetector", () => {
 		});
 
 		it("should detect UTF-8 BOM", () => {
-			const buffer = Buffer.from([0xef, 0xbb, 0xbf, 0x48, 0x65, 0x6c, 0x6c, 0x6f]);
+			const buffer = Buffer.from([
+				0xef, 0xbb, 0xbf, 0x48, 0x65, 0x6c, 0x6c, 0x6f,
+			]);
 			const result = detectBOM(buffer);
 			expect(result).toEqual({ encoding: "utf-8", bytes: 3 });
 		});
@@ -57,13 +59,17 @@ describe("encodingDetector", () => {
 		});
 
 		it("should detect UTF-32 LE BOM", () => {
-			const buffer = Buffer.from([0xff, 0xfe, 0x00, 0x00, 0x48, 0x00, 0x00, 0x00]);
+			const buffer = Buffer.from([
+				0xff, 0xfe, 0x00, 0x00, 0x48, 0x00, 0x00, 0x00,
+			]);
 			const result = detectBOM(buffer);
 			expect(result).toEqual({ encoding: "utf-32le", bytes: 4 });
 		});
 
 		it("should detect UTF-32 BE BOM", () => {
-			const buffer = Buffer.from([0x00, 0x00, 0xfe, 0xff, 0x00, 0x00, 0x00, 0x48]);
+			const buffer = Buffer.from([
+				0x00, 0x00, 0xfe, 0xff, 0x00, 0x00, 0x00, 0x48,
+			]);
 			const result = detectBOM(buffer);
 			expect(result).toEqual({ encoding: "utf-32be", bytes: 4 });
 		});
@@ -96,7 +102,9 @@ describe("encodingDetector", () => {
 
 	describe("detectEncoding", () => {
 		it("should detect UTF-8 BOM with 100% confidence", () => {
-			const buffer = Buffer.from([0xef, 0xbb, 0xbf, 0x48, 0x65, 0x6c, 0x6c, 0x6f]);
+			const buffer = Buffer.from([
+				0xef, 0xbb, 0xbf, 0x48, 0x65, 0x6c, 0x6c, 0x6f,
+			]);
 			const result = detectEncoding(buffer);
 			expect(result).toEqual({
 				encoding: "utf-8",
@@ -163,7 +171,9 @@ describe("encodingDetector", () => {
 
 	describe("detectFileEncoding", () => {
 		it("should read file and detect encoding", () => {
-			const mockBuffer = Buffer.from([0xef, 0xbb, 0xbf, 0x48, 0x65, 0x6c, 0x6c, 0x6f]);
+			const mockBuffer = Buffer.from([
+				0xef, 0xbb, 0xbf, 0x48, 0x65, 0x6c, 0x6c, 0x6f,
+			]);
 			vi.mocked(readFileSync).mockReturnValue(mockBuffer);
 
 			const result = detectFileEncoding("/path/to/file.txt");
@@ -300,8 +310,12 @@ describe("encodingDetector", () => {
 		});
 
 		it("should be case insensitive", () => {
-			expect(getBOMForEncoding("UTF8")).toEqual(Buffer.from([0xef, 0xbb, 0xbf]));
-			expect(getBOMForEncoding("UTF-8")).toEqual(Buffer.from([0xef, 0xbb, 0xbf]));
+			expect(getBOMForEncoding("UTF8")).toEqual(
+				Buffer.from([0xef, 0xbb, 0xbf]),
+			);
+			expect(getBOMForEncoding("UTF-8")).toEqual(
+				Buffer.from([0xef, 0xbb, 0xbf]),
+			);
 			expect(getBOMForEncoding("UTF16LE")).toEqual(Buffer.from([0xff, 0xfe]));
 		});
 	});

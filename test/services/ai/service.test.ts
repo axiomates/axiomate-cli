@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { initI18n, setLocale } from "../../../source/i18n/index.js";
 
 beforeAll(() => {
@@ -22,7 +22,9 @@ vi.mock("../../../source/services/ai/tool-call-handler.js", () => ({
 }));
 
 vi.mock("../../../source/services/ai/adapters/openai.js", () => ({
-	toOpenAITools: vi.fn((tools) => tools.map((t: any) => ({ type: "function", function: { name: t.id } }))),
+	toOpenAITools: vi.fn((tools) =>
+		tools.map((t: any) => ({ type: "function", function: { name: t.id } })),
+	),
 }));
 
 vi.mock("../../../source/constants/prompts.js", () => ({
@@ -30,20 +32,35 @@ vi.mock("../../../source/constants/prompts.js", () => ({
 	buildSystemPrompt: vi.fn(() => "Built system prompt"),
 }));
 
-import { AIService, createAIService } from "../../../source/services/ai/service.js";
-import type { IAIClient, ChatMessage, ChatResponse, StreamChunk } from "../../../source/services/ai/types.js";
-import type { IToolRegistry, ToolDefinition } from "../../../source/services/tools/types.js";
-import { ToolMatcher, detectProjectType } from "../../../source/services/tools/matcher.js";
+import {
+	AIService,
+	createAIService,
+} from "../../../source/services/ai/service.js";
+import type {
+	IAIClient,
+	ChatResponse,
+	StreamChunk,
+} from "../../../source/services/ai/types.js";
+import type {
+	IToolRegistry,
+	ToolDefinition,
+} from "../../../source/services/tools/types.js";
+import {
+	ToolMatcher,
+	detectProjectType,
+} from "../../../source/services/tools/matcher.js";
 import { ToolCallHandler } from "../../../source/services/ai/tool-call-handler.js";
 import { buildSystemPrompt } from "../../../source/constants/prompts.js";
 
 // Helper to create mock client
 function createMockClient(overrides?: Partial<IAIClient>): IAIClient {
 	return {
-		chat: vi.fn(async (): Promise<ChatResponse> => ({
-			message: { role: "assistant", content: "Test response" },
-			finish_reason: "stop",
-		})),
+		chat: vi.fn(
+			async (): Promise<ChatResponse> => ({
+				message: { role: "assistant", content: "Test response" },
+				finish_reason: "stop",
+			}),
+		),
 		...overrides,
 	};
 }
@@ -355,7 +372,10 @@ describe("AIService", () => {
 			const clientWithoutStream = createMockClient();
 			delete (clientWithoutStream as any).streamChat;
 
-			const service = new AIService({ client: clientWithoutStream }, mockRegistry);
+			const service = new AIService(
+				{ client: clientWithoutStream },
+				mockRegistry,
+			);
 
 			const result = await service.streamMessage("Hello");
 
@@ -399,7 +419,9 @@ describe("AIService", () => {
 			const historyBefore = service.getHistory().length;
 
 			// Now try streaming which will fail
-			await expect(service.streamMessage("Fail")).rejects.toThrow("Network error");
+			await expect(service.streamMessage("Fail")).rejects.toThrow(
+				"Network error",
+			);
 
 			// History should be restored (rollback)
 			expect(service.getHistory().length).toBe(historyBefore);
@@ -481,7 +503,9 @@ describe("AIService", () => {
 				autoSelect: vi.fn(() => [tools[0]]),
 				match: vi.fn(() => []),
 			};
-			vi.mocked(ToolMatcher).mockImplementation(() => mockMatcherInstance as any);
+			vi.mocked(ToolMatcher).mockImplementation(
+				() => mockMatcherInstance as any,
+			);
 
 			const service = new AIService({ client: mockClient }, registry);
 
@@ -508,7 +532,9 @@ describe("AIService", () => {
 				autoSelect: vi.fn(() => [tools[0]]),
 				match: vi.fn(() => []),
 			};
-			vi.mocked(ToolMatcher).mockImplementation(() => mockMatcherInstance as any);
+			vi.mocked(ToolMatcher).mockImplementation(
+				() => mockMatcherInstance as any,
+			);
 
 			// First call returns tool_calls, second returns final response
 			let callCount = 0;
@@ -539,10 +565,16 @@ describe("AIService", () => {
 			// Mock tool handler
 			const mockToolHandlerInstance = {
 				handleToolCalls: vi.fn(async () => [
-					{ role: "tool" as const, content: "Tool result", tool_call_id: "call_1" },
+					{
+						role: "tool" as const,
+						content: "Tool result",
+						tool_call_id: "call_1",
+					},
 				]),
 			};
-			vi.mocked(ToolCallHandler).mockImplementation(() => mockToolHandlerInstance as any);
+			vi.mocked(ToolCallHandler).mockImplementation(
+				() => mockToolHandlerInstance as any,
+			);
 
 			const service = new AIService({ client: mockClient }, registry);
 
@@ -570,15 +602,23 @@ describe("AIService", () => {
 				autoSelect: vi.fn(() => [tools[0]]),
 				match: vi.fn(() => []),
 			};
-			vi.mocked(ToolMatcher).mockImplementation(() => mockMatcherInstance as any);
+			vi.mocked(ToolMatcher).mockImplementation(
+				() => mockMatcherInstance as any,
+			);
 
 			// Mock tool handler
 			const mockToolHandlerInstance = {
 				handleToolCalls: vi.fn(async () => [
-					{ role: "tool" as const, content: "Tool result", tool_call_id: "call_1" },
+					{
+						role: "tool" as const,
+						content: "Tool result",
+						tool_call_id: "call_1",
+					},
 				]),
 			};
-			vi.mocked(ToolCallHandler).mockImplementation(() => mockToolHandlerInstance as any);
+			vi.mocked(ToolCallHandler).mockImplementation(
+				() => mockToolHandlerInstance as any,
+			);
 
 			let streamCallCount = 0;
 			mockClient.streamChat = vi.fn(() => {
@@ -609,7 +649,9 @@ describe("AIService", () => {
 
 			const service = new AIService({ client: mockClient }, registry);
 
-			const result = await service.streamMessage("Use tool", { cwd: "/project" });
+			const result = await service.streamMessage("Use tool", {
+				cwd: "/project",
+			});
 
 			expect(result).toBe("Final");
 			expect(mockToolHandlerInstance.handleToolCalls).toHaveBeenCalled();
@@ -633,38 +675,50 @@ describe("AIService", () => {
 				autoSelect: vi.fn(() => [tools[0]]),
 				match: vi.fn(() => []),
 			};
-			vi.mocked(ToolMatcher).mockImplementation(() => mockMatcherInstance as any);
+			vi.mocked(ToolMatcher).mockImplementation(
+				() => mockMatcherInstance as any,
+			);
 
 			// Mock tool handler
 			const mockToolHandlerInstance = {
 				handleToolCalls: vi.fn(async () => [
-					{ role: "tool" as const, content: "Tool result", tool_call_id: "call_1" },
+					{
+						role: "tool" as const,
+						content: "Tool result",
+						tool_call_id: "call_1",
+					},
 				]),
 			};
-			vi.mocked(ToolCallHandler).mockImplementation(() => mockToolHandlerInstance as any);
+			vi.mocked(ToolCallHandler).mockImplementation(
+				() => mockToolHandlerInstance as any,
+			);
 
 			// Always return tool_calls to hit the limit
-			mockClient.chat = vi.fn(async (): Promise<ChatResponse> => ({
-				message: {
-					role: "assistant",
-					content: "",
-					tool_calls: [
-						{
-							id: "call_1",
-							type: "function",
-							function: { name: "test-tool", arguments: "{}" },
-						},
-					],
-				},
-				finish_reason: "tool_calls",
-			}));
+			mockClient.chat = vi.fn(
+				async (): Promise<ChatResponse> => ({
+					message: {
+						role: "assistant",
+						content: "",
+						tool_calls: [
+							{
+								id: "call_1",
+								type: "function",
+								function: { name: "test-tool", arguments: "{}" },
+							},
+						],
+					},
+					finish_reason: "tool_calls",
+				}),
+			);
 
 			const service = new AIService(
 				{ client: mockClient, maxToolCallRounds: 3 },
 				registry,
 			);
 
-			const result = await service.sendMessage("Use tool repeatedly", { cwd: "/project" });
+			const result = await service.sendMessage("Use tool repeatedly", {
+				cwd: "/project",
+			});
 
 			expect(result).toContain("已达到最大工具调用轮数限制");
 			expect(mockClient.chat).toHaveBeenCalledTimes(3);
@@ -688,15 +742,23 @@ describe("AIService", () => {
 				autoSelect: vi.fn(() => [tools[0]]),
 				match: vi.fn(() => []),
 			};
-			vi.mocked(ToolMatcher).mockImplementation(() => mockMatcherInstance as any);
+			vi.mocked(ToolMatcher).mockImplementation(
+				() => mockMatcherInstance as any,
+			);
 
 			// Mock tool handler
 			const mockToolHandlerInstance = {
 				handleToolCalls: vi.fn(async () => [
-					{ role: "tool" as const, content: "Tool result", tool_call_id: "call_1" },
+					{
+						role: "tool" as const,
+						content: "Tool result",
+						tool_call_id: "call_1",
+					},
 				]),
 			};
-			vi.mocked(ToolCallHandler).mockImplementation(() => mockToolHandlerInstance as any);
+			vi.mocked(ToolCallHandler).mockImplementation(
+				() => mockToolHandlerInstance as any,
+			);
 
 			// Always return tool_calls in stream to hit the limit
 			mockClient.streamChat = vi.fn(() => {
@@ -757,7 +819,9 @@ describe("AIService", () => {
 				autoSelect: vi.fn(() => []), // No auto-selected tools
 				match: vi.fn(() => [{ tool: tools[0], score: 0.9 }]), // Match by query
 			};
-			vi.mocked(ToolMatcher).mockImplementation(() => mockMatcherInstance as any);
+			vi.mocked(ToolMatcher).mockImplementation(
+				() => mockMatcherInstance as any,
+			);
 
 			const service = new AIService({ client: mockClient }, registry);
 
@@ -786,7 +850,9 @@ describe("AIService", () => {
 				autoSelect: vi.fn(() => [tools[0]]),
 				match: vi.fn(() => []),
 			};
-			vi.mocked(ToolMatcher).mockImplementation(() => mockMatcherInstance as any);
+			vi.mocked(ToolMatcher).mockImplementation(
+				() => mockMatcherInstance as any,
+			);
 
 			const service = new AIService(
 				{ client: mockClient, contextAwareEnabled: false },

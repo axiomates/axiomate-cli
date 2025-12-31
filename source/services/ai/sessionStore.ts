@@ -106,10 +106,7 @@ export class SessionStore {
 				this.activeSessionId = index.activeSessionId;
 
 				// 验证活跃 session 存在
-				if (
-					this.activeSessionId &&
-					!this.sessions.has(this.activeSessionId)
-				) {
+				if (this.activeSessionId && !this.sessions.has(this.activeSessionId)) {
 					this.activeSessionId = null;
 				}
 			} catch (error) {
@@ -415,9 +412,7 @@ export class SessionStore {
 	 */
 	saveSession(session: Session, infoOrId: SessionInfo | string): void {
 		const info =
-			typeof infoOrId === "string"
-				? this.sessions.get(infoOrId)
-				: infoOrId;
+			typeof infoOrId === "string" ? this.sessions.get(infoOrId) : infoOrId;
 		if (!info) return;
 
 		const state = session.getInternalState();

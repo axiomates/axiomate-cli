@@ -120,7 +120,10 @@ describe("tokenEstimator", () => {
 
 		it("should truncate content exceeding limit", () => {
 			// 创建多行内容
-			const lines = Array.from({ length: 100 }, (_, i) => `This is line ${i + 1} with some content`);
+			const lines = Array.from(
+				{ length: 100 },
+				(_, i) => `This is line ${i + 1} with some content`,
+			);
 			const content = lines.join("\n");
 			const result = truncateToFit(content, 50); // 很小的限制
 

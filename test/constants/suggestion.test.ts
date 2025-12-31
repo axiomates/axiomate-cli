@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
 	getSuggestionModel,
 	SUGGESTION_CONFIG,
@@ -34,7 +34,9 @@ describe("suggestion", () => {
 		});
 
 		it("should return default model when config returns undefined-like", () => {
-			vi.mocked(getSuggestionModelId).mockReturnValue(null as unknown as string);
+			vi.mocked(getSuggestionModelId).mockReturnValue(
+				null as unknown as string,
+			);
 			const result = getSuggestionModel();
 			expect(result).toBe("THUDM/GLM-Z1-9B-0414");
 		});

@@ -363,7 +363,10 @@ describe("LogWriter", () => {
 			vi.mocked(fs.promises.readdir).mockResolvedValue([]);
 
 			// First write - sets up the state
-			writer.write("info", "First message that is longer than max size limit to trigger rotation");
+			writer.write(
+				"info",
+				"First message that is longer than max size limit to trigger rotation",
+			);
 			await vi.runAllTimersAsync();
 
 			// Second write should detect size limit and rotate

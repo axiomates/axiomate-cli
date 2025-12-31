@@ -36,11 +36,12 @@ import {
 import type { InitResult } from "./utils/init.js";
 import { resumeInput } from "./utils/stdin.js";
 import { t } from "./i18n/index.js";
-import { isThinkingEnabled, currentModelSupportsThinking, isPlanModeEnabled } from "./utils/config.js";
 import {
-	initSessionStore,
-	SessionStore,
-} from "./services/ai/sessionStore.js";
+	isThinkingEnabled,
+	currentModelSupportsThinking,
+	isPlanModeEnabled,
+} from "./utils/config.js";
+import { initSessionStore, SessionStore } from "./services/ai/sessionStore.js";
 import { clearCommandCache } from "./constants/commands.js";
 
 /**
@@ -192,8 +193,7 @@ export default function App({ initResult }: Props) {
 	// 初始化 SessionStore
 	useEffect(() => {
 		const initStore = async () => {
-			const contextWindow =
-				aiServiceRef.current?.getContextWindow() ?? 32768;
+			const contextWindow = aiServiceRef.current?.getContextWindow() ?? 32768;
 			const store = await initSessionStore(contextWindow);
 			sessionStoreRef.current = store;
 
@@ -328,7 +328,9 @@ export default function App({ initResult }: Props) {
 				// 添加 AI 的问题到消息历史
 				setMessages((prev) => {
 					// 移除空的流式消息（如果有的话）
-					const newMessages = prev.filter((msg) => !(msg.streaming && !msg.content));
+					const newMessages = prev.filter(
+						(msg) => !(msg.streaming && !msg.content),
+					);
 					// 添加 AI 的问题
 					return [
 						...newMessages,
@@ -412,7 +414,9 @@ export default function App({ initResult }: Props) {
 						const newMessages = [...prev];
 						newMessages[streamingIndex] = {
 							...newMessages[streamingIndex],
-							content: newMessages[streamingIndex].content + `\n\nError: ${error.message}`,
+							content:
+								newMessages[streamingIndex].content +
+								`\n\nError: ${error.message}`,
 							streaming: false,
 						};
 						return newMessages;
@@ -541,13 +545,16 @@ export default function App({ initResult }: Props) {
 	}, []);
 
 	// ask_user 选择处理
-	const handleAskUserSelect = useCallback((answer: string) => {
-		if (pendingAskUser) {
-			// onResolve 内部已经处理了消息添加，这里只需调用它
-			pendingAskUser.onResolve(answer);
-			setPendingAskUser(null);
-		}
-	}, [pendingAskUser]);
+	const handleAskUserSelect = useCallback(
+		(answer: string) => {
+			if (pendingAskUser) {
+				// onResolve 内部已经处理了消息添加，这里只需调用它
+				pendingAskUser.onResolve(answer);
+				setPendingAskUser(null);
+			}
+		},
+		[pendingAskUser],
+	);
 
 	// ask_user 取消处理
 	const handleAskUserCancel = useCallback(() => {
@@ -556,7 +563,6 @@ export default function App({ initResult }: Props) {
 			setPendingAskUser(null);
 		}
 	}, [pendingAskUser]);
-
 
 	// 用于从 View 模式注入文本到输入框
 	const [injectText, setInjectText] = useState<string>("");
@@ -625,7 +631,8 @@ export default function App({ initResult }: Props) {
 			}
 
 			// 检查思考模式与模型支持
-			const showThinkingWarning = isThinkingEnabled() && !currentModelSupportsThinking();
+			const showThinkingWarning =
+				isThinkingEnabled() && !currentModelSupportsThinking();
 
 			// 显示用户消息
 			// 如果队列正在处理其他消息，标记为 queued 以显示等待指示器
@@ -634,7 +641,11 @@ export default function App({ initResult }: Props) {
 
 			// 加入消息队列（异步处理）
 			// Capture plan mode state at enqueue time (snapshot for concurrency safety)
-			const messageId = messageQueueRef.current.enqueue(content, files, isPlanModeEnabled());
+			const messageId = messageQueueRef.current.enqueue(
+				content,
+				files,
+				isPlanModeEnabled(),
+			);
 
 			if (isUserMessage) {
 				setMessages((prev) => {
@@ -768,10 +779,13 @@ export default function App({ initResult }: Props) {
 				// 清空 UI 并显示成功消息
 				setMessages([
 					{
-						content: t("session.compactedNewSession", {
-							oldName,
-							newName: newInfo.name,
-						}) + "\n\n---\n\n" + summary,
+						content:
+							t("session.compactedNewSession", {
+								oldName,
+								newName: newInfo.name,
+							}) +
+							"\n\n---\n\n" +
+							summary,
 						type: "system",
 					},
 				]);
@@ -1116,7 +1130,10 @@ export default function App({ initResult }: Props) {
 			)}
 
 			{/* 输入框区域（始终挂载以保留输入历史，通过 display 控制显示） */}
-			<Box flexShrink={0} display={isInputMode && !pendingAskUser ? "flex" : "none"}>
+			<Box
+				flexShrink={0}
+				display={isInputMode && !pendingAskUser ? "flex" : "none"}
+			>
 				<AutocompleteInput
 					prompt="> "
 					onSubmit={handleSubmit}

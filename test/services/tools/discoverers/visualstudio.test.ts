@@ -45,7 +45,8 @@ describe("visualstudio discoverer", () => {
 
 		it("should return not installed when devenv.exe does not exist", async () => {
 			vi.mocked(findVisualStudio).mockResolvedValue({
-				installPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+				installPath:
+					"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
 				version: "17.8.34330.188",
 			});
 			vi.mocked(fileExists).mockReturnValue(false);
@@ -57,7 +58,8 @@ describe("visualstudio discoverer", () => {
 
 		it("should return installed tool when VS is found", async () => {
 			vi.mocked(findVisualStudio).mockResolvedValue({
-				installPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+				installPath:
+					"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
 				version: "17.8.34330.188",
 			});
 			vi.mocked(fileExists).mockReturnValue(true);
@@ -66,14 +68,15 @@ describe("visualstudio discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\devenv.exe"
+				"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\devenv.exe",
 			);
 			expect(result.version).toBe("17.8");
 		});
 
 		it("should use full version when pattern not matched", async () => {
 			vi.mocked(findVisualStudio).mockResolvedValue({
-				installPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+				installPath:
+					"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
 				version: "unknown-version",
 			});
 			vi.mocked(fileExists).mockReturnValue(true);
@@ -96,7 +99,8 @@ describe("visualstudio discoverer", () => {
 
 		it("should return not installed when MSBuild.exe does not exist", async () => {
 			vi.mocked(findVisualStudio).mockResolvedValue({
-				installPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+				installPath:
+					"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
 				version: "17.8.34330.188",
 			});
 			vi.mocked(fileExists).mockReturnValue(false);
@@ -108,7 +112,8 @@ describe("visualstudio discoverer", () => {
 
 		it("should return installed tool when MSBuild is found", async () => {
 			vi.mocked(findVisualStudio).mockResolvedValue({
-				installPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+				installPath:
+					"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
 				version: "17.8.34330.188",
 			});
 			vi.mocked(fileExists).mockReturnValue(true);
@@ -118,21 +123,22 @@ describe("visualstudio discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\MSBuild\\Current\\Bin\\MSBuild.exe"
+				"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\MSBuild\\Current\\Bin\\MSBuild.exe",
 			);
 			expect(result.version).toBe("17.8.3.57717");
 		});
 
 		it("should parse version from last line of output", async () => {
 			vi.mocked(findVisualStudio).mockResolvedValue({
-				installPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+				installPath:
+					"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
 				version: "17.8.34330.188",
 			});
 			vi.mocked(fileExists).mockReturnValue(true);
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
 					return options.parseOutput(
-						"Microsoft (R) Build Engine version 17.8.3+195e7f5a3\nCopyright (C) Microsoft Corporation.\n17.8.3.57717"
+						"Microsoft (R) Build Engine version 17.8.3+195e7f5a3\nCopyright (C) Microsoft Corporation.\n17.8.3.57717",
 					);
 				}
 				return "17.8.3.57717";
@@ -145,7 +151,8 @@ describe("visualstudio discoverer", () => {
 
 		it("should handle null version", async () => {
 			vi.mocked(findVisualStudio).mockResolvedValue({
-				installPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+				installPath:
+					"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
 				version: "17.8.34330.188",
 			});
 			vi.mocked(fileExists).mockReturnValue(true);

@@ -20,7 +20,9 @@ type IconvLite = {
 };
 
 // Handle both ESM default export and CommonJS module.exports
-const iconv: IconvLite = (iconvModule as unknown as { default?: IconvLite }).default ?? (iconvModule as unknown as IconvLite);
+const iconv: IconvLite =
+	(iconvModule as unknown as { default?: IconvLite }).default ??
+	(iconvModule as unknown as IconvLite);
 import {
 	detectEncoding,
 	normalizeEncodingName,
@@ -255,7 +257,12 @@ export function editFileContent(
 
 		writeFileContent(filePath, content, "overwrite", originalEncoding, addBOM);
 
-		return { success: true, path: filePath, replaced, encoding: originalEncoding };
+		return {
+			success: true,
+			path: filePath,
+			replaced,
+			encoding: originalEncoding,
+		};
 	} catch (err) {
 		return {
 			success: false,
@@ -364,10 +371,7 @@ export function searchInFile(
 		// Reset lastIndex for each line
 		regex.lastIndex = 0;
 
-		while (
-			(match = regex.exec(line)) !== null &&
-			matches.length < maxMatches
-		) {
+		while ((match = regex.exec(line)) !== null && matches.length < maxMatches) {
 			matches.push({
 				line: i + 1,
 				column: match.index + 1,

@@ -15,7 +15,10 @@ import type {
 	StreamOptions,
 } from "../types.js";
 import { toOpenAIMessages, parseOpenAIToolCalls } from "../adapters/openai.js";
-import { isThinkingEnabled, currentModelSupportsThinking } from "../../../utils/config.js";
+import {
+	isThinkingEnabled,
+	currentModelSupportsThinking,
+} from "../../../utils/config.js";
 
 /**
  * OpenAI API 响应类型
@@ -352,8 +355,7 @@ export class OpenAIClient implements IAIClient {
 								} else {
 									// 新的 tool_call
 									// 某些 API 可能不返回 id，需要生成一个
-									const callId =
-										tc.id || `call_${Date.now()}_${tc.index}`;
+									const callId = tc.id || `call_${Date.now()}_${tc.index}`;
 									accumulatedToolCalls.set(tc.index, {
 										id: callId,
 										type: tc.type || "function",

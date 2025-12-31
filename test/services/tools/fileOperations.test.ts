@@ -36,8 +36,10 @@ vi.mock("../../../source/services/tools/encodingDetector.js", () => ({
 		return map[enc.toLowerCase()] || enc.toLowerCase();
 	}),
 	getBOMForEncoding: vi.fn((enc: string) => {
-		if (enc === "utf8" || enc === "utf-8") return Buffer.from([0xef, 0xbb, 0xbf]);
-		if (enc === "utf16le" || enc === "utf-16le") return Buffer.from([0xff, 0xfe]);
+		if (enc === "utf8" || enc === "utf-8")
+			return Buffer.from([0xef, 0xbb, 0xbf]);
+		if (enc === "utf16le" || enc === "utf-16le")
+			return Buffer.from([0xff, 0xfe]);
 		return null;
 	}),
 }));
@@ -47,8 +49,8 @@ vi.mock("node:module", () => ({
 	createRequire: vi.fn(() => (moduleName: string) => {
 		if (moduleName === "iconv-lite") {
 			return {
-				decode: vi.fn((buffer: Buffer, encoding: string) => buffer.toString("utf8")),
-				encode: vi.fn((content: string, encoding: string) => Buffer.from(content, "utf8")),
+				decode: vi.fn((buffer: Buffer) => buffer.toString("utf8")),
+				encode: vi.fn((content: string) => Buffer.from(content, "utf8")),
 			};
 		}
 		throw new Error(`Unknown module: ${moduleName}`);
@@ -84,10 +86,9 @@ describe("fileOperations", () => {
 
 			ensureDir("C:\\Users\\test\\file.txt");
 
-			expect(mkdirSync).toHaveBeenCalledWith(
-				expect.stringContaining("Users"),
-				{ recursive: true },
-			);
+			expect(mkdirSync).toHaveBeenCalledWith(expect.stringContaining("Users"), {
+				recursive: true,
+			});
 		});
 	});
 
@@ -218,7 +219,9 @@ describe("fileOperations", () => {
 			vi.mocked(existsSync).mockImplementation((path) => {
 				return path === "/path/to/file.txt";
 			});
-			vi.mocked(readFileSync).mockReturnValue(Buffer.from([0xef, 0xbb, 0xbf, 0x48]));
+			vi.mocked(readFileSync).mockReturnValue(
+				Buffer.from([0xef, 0xbb, 0xbf, 0x48]),
+			);
 			vi.mocked(detectEncoding).mockReturnValue({
 				encoding: "utf-8",
 				confidence: 1.0,
@@ -257,7 +260,13 @@ describe("fileOperations", () => {
 		it("should add BOM when requested", () => {
 			vi.mocked(existsSync).mockReturnValue(false);
 
-			writeFileContent("/path/to/file.txt", "Hello", "overwrite", "utf-8", true);
+			writeFileContent(
+				"/path/to/file.txt",
+				"Hello",
+				"overwrite",
+				"utf-8",
+				true,
+			);
 
 			expect(writeFileSync).toHaveBeenCalled();
 		});
@@ -415,7 +424,9 @@ describe("fileOperations", () => {
 		});
 
 		it("should read all lines by default", () => {
-			vi.mocked(readFileSync).mockReturnValue(Buffer.from("Line 1\nLine 2\nLine 3"));
+			vi.mocked(readFileSync).mockReturnValue(
+				Buffer.from("Line 1\nLine 2\nLine 3"),
+			);
 
 			const result = readFileLines("/path/to/file.txt");
 
@@ -440,7 +451,9 @@ describe("fileOperations", () => {
 		});
 
 		it("should handle -1 as end line (read to EOF)", () => {
-			vi.mocked(readFileSync).mockReturnValue(Buffer.from("Line 1\nLine 2\nLine 3"));
+			vi.mocked(readFileSync).mockReturnValue(
+				Buffer.from("Line 1\nLine 2\nLine 3"),
+			);
 
 			const result = readFileLines("/path/to/file.txt", 2, -1);
 
@@ -489,7 +502,9 @@ describe("fileOperations", () => {
 		});
 
 		it("should handle CRLF line endings", () => {
-			vi.mocked(readFileSync).mockReturnValue(Buffer.from("Line 1\r\nLine 2\r\nLine 3"));
+			vi.mocked(readFileSync).mockReturnValue(
+				Buffer.from("Line 1\r\nLine 2\r\nLine 3"),
+			);
 
 			const result = readFileLines("/path/to/file.txt");
 
@@ -548,7 +563,9 @@ describe("fileOperations", () => {
 		});
 
 		it("should find multiple matches on same line", () => {
-			vi.mocked(readFileSync).mockReturnValue(Buffer.from("foo bar foo baz foo"));
+			vi.mocked(readFileSync).mockReturnValue(
+				Buffer.from("foo bar foo baz foo"),
+			);
 
 			const result = searchInFile("/path/to/file.txt", "foo");
 
@@ -650,9 +667,7 @@ describe("fileOperations", () => {
 		});
 
 		it("should handle CRLF line endings", () => {
-			vi.mocked(readFileSync).mockReturnValue(
-				Buffer.from("foo\r\nbar\r\nfoo"),
-			);
+			vi.mocked(readFileSync).mockReturnValue(Buffer.from("foo\r\nbar\r\nfoo"));
 
 			const result = searchInFile("/path/to/file.txt", "foo");
 

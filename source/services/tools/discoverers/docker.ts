@@ -148,7 +148,8 @@ const dockerDefinition: ToolDefinition = {
 			commandTemplate: "docker build -t {{tag}} {{path}}",
 		},
 	],
-	installHint: "Download Docker Desktop from https://www.docker.com/products/docker-desktop/",
+	installHint:
+		"Download Docker Desktop from https://www.docker.com/products/docker-desktop/",
 };
 
 const dockerComposeDefinition: ToolDefinition = {

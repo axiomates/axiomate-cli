@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import type { ToolRegistry } from "../../../../source/services/tools/registry.js";
-import type { DiscoveredTool, ToolAction } from "../../../../source/services/tools/types.js";
+import type {
+	DiscoveredTool,
+	ToolAction,
+} from "../../../../source/services/tools/types.js";
 import { initI18n, setLocale } from "../../../../source/i18n/index.js";
 
 beforeAll(() => {
@@ -16,10 +19,15 @@ vi.mock("../../../../source/services/tools/executor.js", () => ({
 		properties: Object.fromEntries(
 			params.map((p: { name: string; type: string; description: string }) => [
 				p.name,
-				{ type: p.type === "number" ? "number" : "string", description: p.description },
-			])
+				{
+					type: p.type === "number" ? "number" : "string",
+					description: p.description,
+				},
+			]),
 		),
-		required: params.filter((p: { required: boolean }) => p.required).map((p: { name: string }) => p.name),
+		required: params
+			.filter((p: { required: boolean }) => p.required)
+			.map((p: { name: string }) => p.name),
 	})),
 }));
 
@@ -30,7 +38,10 @@ describe("InProcessMcpProvider", () => {
 	let mockRegistry: ToolRegistry;
 	let provider: InProcessMcpProvider;
 
-	const createMockTool = (id: string, actions: ToolAction[]): DiscoveredTool => ({
+	const createMockTool = (
+		id: string,
+		actions: ToolAction[],
+	): DiscoveredTool => ({
 		id,
 		name: id,
 		description: `${id} tool`,
@@ -41,7 +52,15 @@ describe("InProcessMcpProvider", () => {
 		executionPath: `/bin/${id}`,
 	});
 
-	const createMockAction = (name: string, params: { name: string; type: string; description: string; required: boolean }[] = []): ToolAction => ({
+	const createMockAction = (
+		name: string,
+		params: {
+			name: string;
+			type: string;
+			description: string;
+			required: boolean;
+		}[] = [],
+	): ToolAction => ({
 		name,
 		description: `${name} action`,
 		parameters: params.map((p) => ({
@@ -55,12 +74,26 @@ describe("InProcessMcpProvider", () => {
 
 		const gitTool = createMockTool("git", [
 			createMockAction("status"),
-			createMockAction("log", [{ name: "count", type: "number", description: "Number of commits", required: false }]),
+			createMockAction("log", [
+				{
+					name: "count",
+					type: "number",
+					description: "Number of commits",
+					required: false,
+				},
+			]),
 		]);
 
 		const nodeTool = createMockTool("node", [
 			createMockAction("version"),
-			createMockAction("eval", [{ name: "code", type: "string", description: "Code to evaluate", required: true }]),
+			createMockAction("eval", [
+				{
+					name: "code",
+					type: "string",
+					description: "Code to evaluate",
+					required: true,
+				},
+			]),
 		]);
 
 		const tools = new Map<string, DiscoveredTool>();
@@ -261,7 +294,7 @@ describe("InProcessMcpProvider", () => {
 			expect(executeToolAction).toHaveBeenCalledWith(
 				expect.objectContaining({ id: "node" }),
 				expect.objectContaining({ name: "eval" }),
-				{ code: "console.log('hello')" }
+				{ code: "console.log('hello')" },
 			);
 		});
 	});

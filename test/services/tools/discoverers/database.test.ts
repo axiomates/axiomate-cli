@@ -62,7 +62,7 @@ describe("database discoverer", () => {
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
 					return options.parseOutput(
-						"mysql  Ver 8.0.35 for Linux on x86_64 (MySQL Community Server - GPL)"
+						"mysql  Ver 8.0.35 for Linux on x86_64 (MySQL Community Server - GPL)",
 					);
 				}
 				return "8.0.35";
@@ -210,7 +210,7 @@ describe("database discoverer", () => {
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
 					return options.parseOutput(
-						"3.44.2 2023-11-24 11:41:44 ebead0e7230cd33bcec9f95d2183069565b9e709bf745c9b5db65cc0cbf92c0f"
+						"3.44.2 2023-11-24 11:41:44 ebead0e7230cd33bcec9f95d2183069565b9e709bf745c9b5db65cc0cbf92c0f",
 					);
 				}
 				return "3.44.2";

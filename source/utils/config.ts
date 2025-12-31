@@ -182,18 +182,30 @@ export function isFirstTimeUser(): boolean {
 		const content = fs.readFileSync(configPath, "utf-8");
 		const parsed = JSON.parse(content);
 
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+		if (
+			typeof parsed !== "object" ||
+			parsed === null ||
+			Array.isArray(parsed)
+		) {
 			return true;
 		}
 
 		// 检查 models 是否存在且有配置
 		const models = parsed.models;
-		if (!models || typeof models !== "object" || Object.keys(models).length === 0) {
+		if (
+			!models ||
+			typeof models !== "object" ||
+			Object.keys(models).length === 0
+		) {
 			return true;
 		}
 
 		// 检查 currentModel 是否存在且非空，且在 models 中有配置
-		if (!parsed.currentModel || typeof parsed.currentModel !== "string" || parsed.currentModel.trim() === "") {
+		if (
+			!parsed.currentModel ||
+			typeof parsed.currentModel !== "string" ||
+			parsed.currentModel.trim() === ""
+		) {
 			return true;
 		}
 		if (!(parsed.currentModel in models)) {
@@ -201,7 +213,11 @@ export function isFirstTimeUser(): boolean {
 		}
 
 		// 检查 suggestionModel 是否存在且非空，且在 models 中有配置
-		if (!parsed.suggestionModel || typeof parsed.suggestionModel !== "string" || parsed.suggestionModel.trim() === "") {
+		if (
+			!parsed.suggestionModel ||
+			typeof parsed.suggestionModel !== "string" ||
+			parsed.suggestionModel.trim() === ""
+		) {
 			return true;
 		}
 		if (!(parsed.suggestionModel in models)) {
@@ -248,9 +264,12 @@ export function getModelById(modelId: string): ModelConfig | undefined {
 /**
  * 获取模型的 API 配置
  */
-export function getModelApiConfig(
-	modelId: string,
-): { baseUrl: string; apiKey: string; model: string; protocol: ApiProtocol } | null {
+export function getModelApiConfig(modelId: string): {
+	baseUrl: string;
+	apiKey: string;
+	model: string;
+	protocol: ApiProtocol;
+} | null {
 	const modelConfig = getModelById(modelId);
 	if (!modelConfig?.baseUrl || !modelConfig?.apiKey) {
 		return null;

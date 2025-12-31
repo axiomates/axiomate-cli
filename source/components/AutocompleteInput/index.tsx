@@ -226,7 +226,6 @@ export default function AutocompleteInput({
 	// 计算 prompt 缩进（用于后续行对齐）
 	const promptIndent = " ".repeat(prompt.length);
 
-
 	return (
 		<Box flexDirection="column">
 			{/* 输入行 */}

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -173,11 +173,13 @@ describe("config", () => {
 
 		it("should return true when models is empty", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				models: {},
-				currentModel: "test",
-				suggestionModel: "test",
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					models: {},
+					currentModel: "test",
+					suggestionModel: "test",
+				}),
+			);
 
 			const { isFirstTimeUser } = await resetConfigModule();
 			expect(isFirstTimeUser()).toBe(true);
@@ -185,10 +187,12 @@ describe("config", () => {
 
 		it("should return true when currentModel is missing", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				models: { "test": {} },
-				suggestionModel: "test",
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					models: { test: {} },
+					suggestionModel: "test",
+				}),
+			);
 
 			const { isFirstTimeUser } = await resetConfigModule();
 			expect(isFirstTimeUser()).toBe(true);
@@ -196,11 +200,13 @@ describe("config", () => {
 
 		it("should return true when currentModel is empty string", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				models: { "test": {} },
-				currentModel: "",
-				suggestionModel: "test",
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					models: { test: {} },
+					currentModel: "",
+					suggestionModel: "test",
+				}),
+			);
 
 			const { isFirstTimeUser } = await resetConfigModule();
 			expect(isFirstTimeUser()).toBe(true);
@@ -208,11 +214,13 @@ describe("config", () => {
 
 		it("should return true when currentModel not in models", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				models: { "other": {} },
-				currentModel: "test",
-				suggestionModel: "other",
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					models: { other: {} },
+					currentModel: "test",
+					suggestionModel: "other",
+				}),
+			);
 
 			const { isFirstTimeUser } = await resetConfigModule();
 			expect(isFirstTimeUser()).toBe(true);
@@ -220,10 +228,12 @@ describe("config", () => {
 
 		it("should return true when suggestionModel is missing", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				models: { "test": {} },
-				currentModel: "test",
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					models: { test: {} },
+					currentModel: "test",
+				}),
+			);
 
 			const { isFirstTimeUser } = await resetConfigModule();
 			expect(isFirstTimeUser()).toBe(true);
@@ -231,11 +241,13 @@ describe("config", () => {
 
 		it("should return true when suggestionModel not in models", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				models: { "test": {} },
-				currentModel: "test",
-				suggestionModel: "other",
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					models: { test: {} },
+					currentModel: "test",
+					suggestionModel: "other",
+				}),
+			);
 
 			const { isFirstTimeUser } = await resetConfigModule();
 			expect(isFirstTimeUser()).toBe(true);
@@ -243,11 +255,13 @@ describe("config", () => {
 
 		it("should return false when config is complete", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				models: { "test-model": {} },
-				currentModel: "test-model",
-				suggestionModel: "test-model",
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					models: { "test-model": {} },
+					currentModel: "test-model",
+					suggestionModel: "test-model",
+				}),
+			);
 
 			const { isFirstTimeUser } = await resetConfigModule();
 			expect(isFirstTimeUser()).toBe(false);
@@ -259,7 +273,8 @@ describe("config", () => {
 			vi.mocked(fs.existsSync).mockReturnValue(false);
 			vi.mocked(fs.writeFileSync).mockReturnValue(undefined);
 
-			const { getCurrentModelId, setCurrentModelId } = await resetConfigModule();
+			const { getCurrentModelId, setCurrentModelId } =
+				await resetConfigModule();
 
 			expect(getCurrentModelId()).toBe("");
 
@@ -269,8 +284,8 @@ describe("config", () => {
 
 		it("should get all models", async () => {
 			const models = {
-				"model1": { model: "model1", name: "Model 1" },
-				"model2": { model: "model2", name: "Model 2" },
+				model1: { model: "model1", name: "Model 1" },
+				model2: { model: "model2", name: "Model 2" },
 			};
 			vi.mocked(fs.existsSync).mockReturnValue(true);
 			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ models }));
@@ -283,7 +298,7 @@ describe("config", () => {
 
 		it("should get model by id", async () => {
 			const models = {
-				"model1": { model: "model1", name: "Model 1" },
+				model1: { model: "model1", name: "Model 1" },
 			};
 			vi.mocked(fs.existsSync).mockReturnValue(true);
 			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ models }));
@@ -298,7 +313,7 @@ describe("config", () => {
 	describe("getModelApiConfig", () => {
 		it("should return api config when model exists", async () => {
 			const models = {
-				"model1": {
+				model1: {
 					model: "model1",
 					name: "Model 1",
 					protocol: "openai",
@@ -332,7 +347,7 @@ describe("config", () => {
 
 		it("should return null when model lacks api config", async () => {
 			const models = {
-				"model1": { model: "model1", name: "Model 1" },
+				model1: { model: "model1", name: "Model 1" },
 			};
 			vi.mocked(fs.existsSync).mockReturnValue(true);
 			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ models }));
@@ -356,7 +371,7 @@ describe("config", () => {
 		it("should return true when current model has valid config", async () => {
 			const config = {
 				models: {
-					"model1": {
+					model1: {
 						model: "model1",
 						baseUrl: "https://api.test.com",
 						apiKey: "test-key",
@@ -378,7 +393,8 @@ describe("config", () => {
 			vi.mocked(fs.existsSync).mockReturnValue(false);
 			vi.mocked(fs.writeFileSync).mockReturnValue(undefined);
 
-			const { getSuggestionModelId, setSuggestionModelId } = await resetConfigModule();
+			const { getSuggestionModelId, setSuggestionModelId } =
+				await resetConfigModule();
 
 			expect(getSuggestionModelId()).toBe("");
 
@@ -398,9 +414,11 @@ describe("config", () => {
 
 		it("should return false when explicitly disabled", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				suggestionEnabled: false,
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					suggestionEnabled: false,
+				}),
+			);
 
 			const { isSuggestionEnabled } = await resetConfigModule();
 			expect(isSuggestionEnabled()).toBe(false);
@@ -410,7 +428,8 @@ describe("config", () => {
 			vi.mocked(fs.existsSync).mockReturnValue(false);
 			vi.mocked(fs.writeFileSync).mockReturnValue(undefined);
 
-			const { setSuggestionEnabled, isSuggestionEnabled } = await resetConfigModule();
+			const { setSuggestionEnabled, isSuggestionEnabled } =
+				await resetConfigModule();
 
 			setSuggestionEnabled(false);
 			expect(isSuggestionEnabled()).toBe(false);
@@ -431,9 +450,11 @@ describe("config", () => {
 
 		it("should return true when explicitly enabled", async () => {
 			vi.mocked(fs.existsSync).mockReturnValue(true);
-			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-				thinkingEnabled: true,
-			}));
+			vi.mocked(fs.readFileSync).mockReturnValue(
+				JSON.stringify({
+					thinkingEnabled: true,
+				}),
+			);
 
 			const { isThinkingEnabled } = await resetConfigModule();
 			expect(isThinkingEnabled()).toBe(true);
@@ -443,7 +464,8 @@ describe("config", () => {
 			vi.mocked(fs.existsSync).mockReturnValue(false);
 			vi.mocked(fs.writeFileSync).mockReturnValue(undefined);
 
-			const { setThinkingEnabled, isThinkingEnabled } = await resetConfigModule();
+			const { setThinkingEnabled, isThinkingEnabled } =
+				await resetConfigModule();
 
 			setThinkingEnabled(true);
 			expect(isThinkingEnabled()).toBe(true);

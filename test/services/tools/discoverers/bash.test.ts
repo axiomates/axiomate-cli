@@ -58,7 +58,7 @@ describe("bash discoverer", () => {
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
 					return options.parseOutput(
-						"GNU bash, version 5.1.16(1)-release (x86_64-pc-linux-gnu)"
+						"GNU bash, version 5.1.16(1)-release (x86_64-pc-linux-gnu)",
 					);
 				}
 				return "5.1.16";
@@ -113,7 +113,9 @@ describe("bash discoverer", () => {
 
 			const result = await detectBash();
 
-			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(true);
+			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(
+				true,
+			);
 			expect(result.actions.some((a) => a.name === "version")).toBe(true);
 		});
 	});

@@ -37,6 +37,13 @@ const config: Linter.Config[] = [
 		},
 	},
 	{
+		// Allow 'any' in test files for mocking flexibility
+		files: ["test/**/*.{ts,tsx}"],
+		rules: {
+			"@typescript-eslint/no-explicit-any": "off",
+		},
+	},
+	{
 		ignores: ["dist/", "node_modules/", "bundle/"],
 	},
 ];

@@ -25,7 +25,9 @@ vi.mock("../../../../source/services/tools/discoverers/java.js", () => ({
 }));
 
 vi.mock("../../../../source/services/tools/discoverers/powershell.js", () => ({
-	detectPowershell: vi.fn(() => Promise.resolve({ id: "powershell", installed: true })),
+	detectPowershell: vi.fn(() =>
+		Promise.resolve({ id: "powershell", installed: true }),
+	),
 	detectPwsh: vi.fn(() => Promise.resolve({ id: "pwsh", installed: false })),
 }));
 
@@ -41,34 +43,56 @@ vi.mock("../../../../source/services/tools/discoverers/vscode.js", () => ({
 	detectVscode: vi.fn(() => Promise.resolve({ id: "vscode", installed: true })),
 }));
 
-vi.mock("../../../../source/services/tools/discoverers/visualstudio.js", () => ({
-	detectVisualStudio: vi.fn(() => Promise.resolve({ id: "vs2022", installed: false })),
-	detectMsbuild: vi.fn(() => Promise.resolve({ id: "msbuild", installed: false })),
-}));
+vi.mock(
+	"../../../../source/services/tools/discoverers/visualstudio.js",
+	() => ({
+		detectVisualStudio: vi.fn(() =>
+			Promise.resolve({ id: "vs2022", installed: false }),
+		),
+		detectMsbuild: vi.fn(() =>
+			Promise.resolve({ id: "msbuild", installed: false }),
+		),
+	}),
+);
 
-vi.mock("../../../../source/services/tools/discoverers/beyondcompare.js", () => ({
-	detectBeyondCompare: vi.fn(() => Promise.resolve({ id: "beyondcompare", installed: false })),
-}));
+vi.mock(
+	"../../../../source/services/tools/discoverers/beyondcompare.js",
+	() => ({
+		detectBeyondCompare: vi.fn(() =>
+			Promise.resolve({ id: "beyondcompare", installed: false }),
+		),
+	}),
+);
 
 vi.mock("../../../../source/services/tools/discoverers/docker.js", () => ({
-	detectDocker: vi.fn(() => Promise.resolve({ id: "docker", installed: false })),
-	detectDockerCompose: vi.fn(() => Promise.resolve({ id: "docker-compose", installed: false })),
+	detectDocker: vi.fn(() =>
+		Promise.resolve({ id: "docker", installed: false }),
+	),
+	detectDockerCompose: vi.fn(() =>
+		Promise.resolve({ id: "docker-compose", installed: false }),
+	),
 }));
 
 vi.mock("../../../../source/services/tools/discoverers/build.js", () => ({
 	detectCmake: vi.fn(() => Promise.resolve({ id: "cmake", installed: false })),
-	detectGradle: vi.fn(() => Promise.resolve({ id: "gradle", installed: false })),
+	detectGradle: vi.fn(() =>
+		Promise.resolve({ id: "gradle", installed: false }),
+	),
 	detectMaven: vi.fn(() => Promise.resolve({ id: "maven", installed: false })),
 }));
 
 vi.mock("../../../../source/services/tools/discoverers/database.js", () => ({
 	detectMysql: vi.fn(() => Promise.resolve({ id: "mysql", installed: false })),
 	detectPsql: vi.fn(() => Promise.resolve({ id: "psql", installed: false })),
-	detectSqlite: vi.fn(() => Promise.resolve({ id: "sqlite3", installed: false })),
+	detectSqlite: vi.fn(() =>
+		Promise.resolve({ id: "sqlite3", installed: false }),
+	),
 }));
 
 vi.mock("../../../../source/services/tools/discoverers/web.js", () => ({
-	detectWebFetch: vi.fn(() => Promise.resolve({ id: "web-fetch", installed: true })),
+	detectWebFetch: vi.fn(() =>
+		Promise.resolve({ id: "web-fetch", installed: true }),
+	),
 }));
 
 describe("discoverers index", () => {

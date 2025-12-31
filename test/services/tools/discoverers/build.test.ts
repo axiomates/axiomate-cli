@@ -135,7 +135,7 @@ describe("build discoverer", () => {
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
 					return options.parseOutput(
-						"------------------------------------------------------------\nGradle 8.5\n------------------------------------------------------------"
+						"------------------------------------------------------------\nGradle 8.5\n------------------------------------------------------------",
 					);
 				}
 				return "8.5";
@@ -210,7 +210,7 @@ describe("build discoverer", () => {
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
 					return options.parseOutput(
-						"Apache Maven 3.9.6 (bc0240f3c744dd6b6ec2920b3cd08dcc295161ae)"
+						"Apache Maven 3.9.6 (bc0240f3c744dd6b6ec2920b3cd08dcc295161ae)",
 					);
 				}
 				return "3.9.6";

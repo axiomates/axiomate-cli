@@ -19,7 +19,10 @@ vi.mock("../../../../source/services/ai/adapters/openai.js", () => ({
 }));
 
 import { OpenAIClient } from "../../../../source/services/ai/clients/openai.js";
-import { isThinkingEnabled, currentModelSupportsThinking } from "../../../../source/utils/config.js";
+import {
+	isThinkingEnabled,
+	currentModelSupportsThinking,
+} from "../../../../source/utils/config.js";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -416,10 +419,10 @@ describe("OpenAIClient", () => {
 			});
 
 			await expect(async () => {
-				for await (const _ of client.streamChat([
+				for await (const _chunk of client.streamChat([
 					{ role: "user", content: "Hi" },
 				])) {
-					// consume
+					void _chunk; // consume
 				}
 			}).rejects.toThrow("OpenAI API error: 500 Internal Server Error");
 		});
@@ -437,10 +440,10 @@ describe("OpenAIClient", () => {
 			});
 
 			await expect(async () => {
-				for await (const _ of client.streamChat([
+				for await (const _chunk of client.streamChat([
 					{ role: "user", content: "Hi" },
 				])) {
-					// consume
+					void _chunk; // consume
 				}
 			}).rejects.toThrow("Response body is null");
 		});
@@ -456,12 +459,12 @@ describe("OpenAIClient", () => {
 			});
 
 			await expect(async () => {
-				for await (const _ of client.streamChat(
+				for await (const _chunk of client.streamChat(
 					[{ role: "user", content: "Hi" }],
 					undefined,
 					{ signal: controller.signal },
 				)) {
-					// consume
+					void _chunk; // consume
 				}
 			}).rejects.toThrow("Request was aborted");
 		});
@@ -603,7 +606,7 @@ describe("OpenAIClient", () => {
 		it("should skip invalid JSON lines and continue processing", async () => {
 			const encoder = new TextEncoder();
 			const chunks = [
-				'data: {invalid json}\n\n',
+				"data: {invalid json}\n\n",
 				'data: {"choices":[{"delta":{"content":"Valid"},"finish_reason":null}]}\n\n',
 				'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n',
 			];
@@ -669,7 +672,10 @@ describe("OpenAIClient", () => {
 			});
 
 			const controller = new AbortController();
-			const removeEventListenerSpy = vi.spyOn(controller.signal, "removeEventListener");
+			const removeEventListenerSpy = vi.spyOn(
+				controller.signal,
+				"removeEventListener",
+			);
 
 			const client = new OpenAIClient({
 				apiKey: "test-key",
@@ -677,16 +683,19 @@ describe("OpenAIClient", () => {
 				baseUrl: "https://api.openai.com/v1",
 			});
 
-			for await (const _ of client.streamChat(
+			for await (const _chunk of client.streamChat(
 				[{ role: "user", content: "Hi" }],
 				undefined,
 				{ signal: controller.signal },
 			)) {
-				// consume
+				void _chunk; // consume
 			}
 
 			// Verify that removeEventListener was called in the finally block
-			expect(removeEventListenerSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+			expect(removeEventListenerSpy).toHaveBeenCalledWith(
+				"abort",
+				expect.any(Function),
+			);
 		});
 	});
 });

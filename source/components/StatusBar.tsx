@@ -59,7 +59,8 @@ export default function StatusBar({
 
 		return (
 			<Text color={usageColor}>
-				{formatTokens(used)}/{formatTokens(contextWindow)} ({Math.round(percent)}%){" "}
+				{formatTokens(used)}/{formatTokens(contextWindow)} (
+				{Math.round(percent)}%){" "}
 			</Text>
 		);
 	};

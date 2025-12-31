@@ -46,7 +46,7 @@ describe("powershell discoverer", () => {
 		it("should return installed tool when powershell exists", async () => {
 			vi.mocked(commandExists).mockResolvedValue(true);
 			vi.mocked(getExecutablePath).mockResolvedValue(
-				"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+				"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
 			);
 			vi.mocked(getVersion).mockResolvedValue("5.1.22621.4391");
 
@@ -54,7 +54,7 @@ describe("powershell discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+				"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
 			);
 			expect(result.version).toBe("5.1.22621.4391");
 		});
@@ -103,7 +103,9 @@ describe("powershell discoverer", () => {
 
 			const result = await detectPowershell();
 
-			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(true);
+			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(
+				true,
+			);
 			expect(result.actions.some((a) => a.name === "version")).toBe(true);
 		});
 	});
@@ -121,7 +123,7 @@ describe("powershell discoverer", () => {
 		it("should return installed tool when pwsh exists", async () => {
 			vi.mocked(commandExists).mockResolvedValue(true);
 			vi.mocked(getExecutablePath).mockResolvedValue(
-				"C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+				"C:\\Program Files\\PowerShell\\7\\pwsh.exe",
 			);
 			vi.mocked(getVersion).mockResolvedValue("7.4.1");
 
@@ -129,7 +131,7 @@ describe("powershell discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+				"C:\\Program Files\\PowerShell\\7\\pwsh.exe",
 			);
 			expect(result.version).toBe("7.4.1");
 		});

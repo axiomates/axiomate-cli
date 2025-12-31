@@ -24,11 +24,17 @@ import {
 	detectProjectType,
 	createToolMatcher,
 } from "../../../source/services/tools/matcher.js";
-import type { IToolRegistry, DiscoveredTool } from "../../../source/services/tools/types.js";
+import type {
+	IToolRegistry,
+	DiscoveredTool,
+} from "../../../source/services/tools/types.js";
 
 describe("matcher", () => {
 	// Mock registry
-	const createMockTool = (id: string, installed: boolean = true): DiscoveredTool => ({
+	const createMockTool = (
+		id: string,
+		installed: boolean = true,
+	): DiscoveredTool => ({
 		id,
 		name: id,
 		description: `${id} tool`,
@@ -47,14 +53,32 @@ describe("matcher", () => {
 
 	const createMockRegistry = (): IToolRegistry => {
 		const tools = new Map<string, DiscoveredTool>();
-		["git", "node", "python", "java", "bash", "powershell", "pwsh", "cmd", "docker", "cmake", "web", "dotnet", "sqlite3", "vs2022", "msbuild"].forEach(id => {
+		[
+			"git",
+			"node",
+			"python",
+			"java",
+			"bash",
+			"powershell",
+			"pwsh",
+			"cmd",
+			"docker",
+			"cmake",
+			"web",
+			"dotnet",
+			"sqlite3",
+			"vs2022",
+			"msbuild",
+		].forEach((id) => {
 			tools.set(id, createMockTool(id));
 		});
 
 		return {
 			register: vi.fn(),
 			getTool: vi.fn((id) => tools.get(id) || null),
-			getInstalled: vi.fn(() => Array.from(tools.values()).filter(t => t.installed)),
+			getInstalled: vi.fn(() =>
+				Array.from(tools.values()).filter((t) => t.installed),
+			),
 			getByCapability: vi.fn(() => []),
 			discover: vi.fn(),
 			getStats: vi.fn(() => ({ total: 10, installed: 10 })),
@@ -69,8 +93,8 @@ describe("matcher", () => {
 
 	describe("detectProjectType", () => {
 		it("should detect node project from package.json", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("package.json")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("package.json"),
 			);
 
 			const result = detectProjectType("/project");
@@ -78,8 +102,8 @@ describe("matcher", () => {
 		});
 
 		it("should detect python project from requirements.txt", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("requirements.txt")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("requirements.txt"),
 			);
 
 			const result = detectProjectType("/project");
@@ -87,8 +111,8 @@ describe("matcher", () => {
 		});
 
 		it("should detect python project from pyproject.toml", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("pyproject.toml")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("pyproject.toml"),
 			);
 
 			const result = detectProjectType("/project");
@@ -96,8 +120,8 @@ describe("matcher", () => {
 		});
 
 		it("should detect java project from pom.xml", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("pom.xml")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("pom.xml"),
 			);
 
 			const result = detectProjectType("/project");
@@ -105,8 +129,8 @@ describe("matcher", () => {
 		});
 
 		it("should detect java project from build.gradle", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("build.gradle")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("build.gradle"),
 			);
 
 			const result = detectProjectType("/project");
@@ -114,8 +138,8 @@ describe("matcher", () => {
 		});
 
 		it("should detect cpp project from CMakeLists.txt", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("CMakeLists.txt")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("CMakeLists.txt"),
 			);
 
 			const result = detectProjectType("/project");
@@ -130,8 +154,8 @@ describe("matcher", () => {
 		});
 
 		it("should detect rust project from Cargo.toml", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("Cargo.toml")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("Cargo.toml"),
 			);
 
 			const result = detectProjectType("/project");
@@ -139,8 +163,8 @@ describe("matcher", () => {
 		});
 
 		it("should detect go project from go.mod", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) =>
-				typeof p === "string" && p.includes("go.mod")
+			vi.mocked(fs.existsSync).mockImplementation(
+				(p) => typeof p === "string" && p.includes("go.mod"),
 			);
 
 			const result = detectProjectType("/project");
@@ -185,7 +209,7 @@ describe("matcher", () => {
 				const results = matcher.match("build a container");
 
 				expect(results.length).toBeGreaterThan(0);
-				const dockerResult = results.find(r => r.tool.id === "docker");
+				const dockerResult = results.find((r) => r.tool.id === "docker");
 				expect(dockerResult).toBeDefined();
 			});
 
@@ -193,7 +217,7 @@ describe("matcher", () => {
 				const results = matcher.match("打开网页");
 
 				expect(results.length).toBeGreaterThan(0);
-				const webResult = results.find(r => r.tool.id === "web");
+				const webResult = results.find((r) => r.tool.id === "web");
 				expect(webResult).toBeDefined();
 			});
 
@@ -208,7 +232,9 @@ describe("matcher", () => {
 
 				// Should find tools where name or description contains "tool"
 				expect(results.length).toBeGreaterThan(0);
-				const hasNameDescMatch = results.some(r => r.reason === "Name/description match");
+				const hasNameDescMatch = results.some(
+					(r) => r.reason === "Name/description match",
+				);
 				expect(hasNameDescMatch).toBe(true);
 			});
 
@@ -257,8 +283,10 @@ describe("matcher", () => {
 				const results = matcher.autoSelect({ cwd: "/project" });
 
 				// Should include Windows shell tools
-				const toolIds = results.map(t => t.id);
-				expect(toolIds.some(id => ["pwsh", "powershell", "cmd"].includes(id))).toBe(true);
+				const toolIds = results.map((t) => t.id);
+				expect(
+					toolIds.some((id) => ["pwsh", "powershell", "cmd"].includes(id)),
+				).toBe(true);
 			});
 
 			it("should include bash on unix", () => {
@@ -266,7 +294,7 @@ describe("matcher", () => {
 
 				const results = matcher.autoSelect({ cwd: "/project" });
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("bash");
 			});
 
@@ -276,22 +304,24 @@ describe("matcher", () => {
 					projectType: "node",
 				});
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("node");
 			});
 
 			it("should detect tools from directory", () => {
 				vi.mocked(fs.existsSync).mockReturnValue(true);
-				vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+				vi.mocked(fs.statSync).mockReturnValue({
+					isDirectory: () => true,
+				} as any);
 
 				// .git directory exists
-				vi.mocked(fs.existsSync).mockImplementation((p) =>
-					typeof p === "string" && p.includes(".git")
+				vi.mocked(fs.existsSync).mockImplementation(
+					(p) => typeof p === "string" && p.includes(".git"),
 				);
 
 				const results = matcher.autoSelect({ cwd: "/project" });
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("git");
 			});
 
@@ -301,7 +331,7 @@ describe("matcher", () => {
 					selectedFiles: ["/project/app.js"],
 				});
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("node");
 			});
 
@@ -311,7 +341,7 @@ describe("matcher", () => {
 					selectedFiles: ["/project/script.py"],
 				});
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("python");
 			});
 
@@ -321,7 +351,7 @@ describe("matcher", () => {
 					selectedFiles: ["/project/Dockerfile"],
 				});
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("docker");
 			});
 
@@ -331,7 +361,7 @@ describe("matcher", () => {
 					selectedFiles: ["/project/docker-compose.yml"],
 				});
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("docker");
 			});
 
@@ -341,7 +371,7 @@ describe("matcher", () => {
 					selectedFiles: ["/project/CMakeLists.txt"],
 				});
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("cmake");
 			});
 
@@ -356,13 +386,13 @@ describe("matcher", () => {
 			});
 
 			it("should detect project type from cwd", () => {
-				vi.mocked(fs.existsSync).mockImplementation((p) =>
-					typeof p === "string" && p.includes("package.json")
+				vi.mocked(fs.existsSync).mockImplementation(
+					(p) => typeof p === "string" && p.includes("package.json"),
 				);
 
 				const results = matcher.autoSelect({ cwd: "/project" });
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("node");
 			});
 
@@ -372,7 +402,7 @@ describe("matcher", () => {
 					currentFiles: ["/project/test.ts"],
 				});
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("node");
 			});
 
@@ -383,7 +413,7 @@ describe("matcher", () => {
 
 				const results = matcher.autoSelect({ cwd: "/project" });
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("dotnet");
 			});
 
@@ -393,7 +423,7 @@ describe("matcher", () => {
 
 				const results = matcher.autoSelect({ cwd: "/project" });
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("dotnet");
 			});
 
@@ -403,7 +433,7 @@ describe("matcher", () => {
 
 				const results = matcher.autoSelect({ cwd: "/project" });
 
-				const toolIds = results.map(t => t.id);
+				const toolIds = results.map((t) => t.id);
 				expect(toolIds).toContain("sqlite3");
 			});
 

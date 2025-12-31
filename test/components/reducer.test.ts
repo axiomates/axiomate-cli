@@ -728,7 +728,10 @@ describe("editorReducer", () => {
 			});
 
 			// Confirm a new file
-			state = editorReducer(state, { type: "CONFIRM_FILE", fileName: "new.ts" });
+			state = editorReducer(state, {
+				type: "CONFIRM_FILE",
+				fileName: "new.ts",
+			});
 
 			// New file should be added, and suffix file position should be adjusted
 			expect(state.instance.selectedFiles).toHaveLength(2);
@@ -765,9 +768,9 @@ describe("editorReducer", () => {
 
 			// New folder should be added, and suffix file position should be adjusted
 			expect(state.instance.selectedFiles).toHaveLength(2);
-			expect(
-				state.instance.selectedFiles.some((f) => f.path === "src"),
-			).toBe(true);
+			expect(state.instance.selectedFiles.some((f) => f.path === "src")).toBe(
+				true,
+			);
 		});
 
 		it("REMOVE_SELECTED_FILE removes file from text and list", () => {
@@ -1151,7 +1154,10 @@ describe("editorReducer", () => {
 				suffix: "",
 			});
 
-			state = editorReducer(state, { type: "ENTER_FILE_DIR", dirName: "components" });
+			state = editorReducer(state, {
+				type: "ENTER_FILE_DIR",
+				dirName: "components",
+			});
 
 			// Update with filter text
 			state = editorReducer(state, {
@@ -1195,10 +1201,15 @@ describe("editorReducer", () => {
 			});
 
 			// Confirm a new file
-			state = editorReducer(state, { type: "CONFIRM_FILE", fileName: "new.ts" });
+			state = editorReducer(state, {
+				type: "CONFIRM_FILE",
+				fileName: "new.ts",
+			});
 
 			// Prefix file position should NOT be adjusted (it's before the new file position)
-			const prefixFile = state.instance.selectedFiles.find(f => f.path === "prefix.ts");
+			const prefixFile = state.instance.selectedFiles.find(
+				(f) => f.path === "prefix.ts",
+			);
 			expect(prefixFile).toBeDefined();
 			expect(prefixFile!.atPosition).toBe(0); // unchanged
 			expect(prefixFile!.endPosition).toBe(10); // unchanged

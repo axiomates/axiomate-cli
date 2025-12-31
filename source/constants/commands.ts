@@ -121,7 +121,9 @@ export function getSlashCommands(): SlashCommand[] {
 	const currentSessionName = getCurrentSessionDisplay();
 	const currentSuggestionModelName = getCurrentSuggestionModelDisplay();
 	const thinkingStatus = isThinkingEnabled() ? t("common.on") : t("common.off");
-	const suggestionStatus = isSuggestionEnabled() ? t("common.on") : t("common.off");
+	const suggestionStatus = isSuggestionEnabled()
+		? t("common.on")
+		: t("common.off");
 	const planStatus = isPlanModeEnabled() ? t("common.on") : t("common.off");
 
 	return [
@@ -315,7 +317,9 @@ export const SLASH_COMMANDS: SlashCommand[] = new Proxy([] as SlashCommand[], {
 		if (!cachedCommands) {
 			cachedCommands = getSlashCommands();
 		}
-		return (cachedCommands as any)[prop];
+		return (cachedCommands as unknown as Record<string | symbol, unknown>)[
+			prop
+		];
 	},
 	has(target, prop) {
 		if (!cachedCommands) {

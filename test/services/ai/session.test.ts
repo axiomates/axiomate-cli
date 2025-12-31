@@ -397,7 +397,11 @@ describe("Session", () => {
 				role: "assistant",
 				content: "Let me check",
 				tool_calls: [
-					{ id: "call_1", type: "function", function: { name: "test", arguments: "{}" } },
+					{
+						id: "call_1",
+						type: "function",
+						function: { name: "test", arguments: "{}" },
+					},
 				],
 			});
 			session.addToolMessage({
@@ -418,7 +422,11 @@ describe("Session", () => {
 				role: "assistant",
 				content: "Calling tool",
 				tool_calls: [
-					{ id: "call_1", type: "function", function: { name: "test", arguments: "{}" } },
+					{
+						id: "call_1",
+						type: "function",
+						function: { name: "test", arguments: "{}" },
+					},
 				],
 			});
 			// No tool result
@@ -476,7 +484,11 @@ describe("Session", () => {
 				role: "assistant",
 				content: "Calling",
 				tool_calls: [
-					{ id: "call_1", type: "function", function: { name: "test", arguments: "{}" } },
+					{
+						id: "call_1",
+						type: "function",
+						function: { name: "test", arguments: "{}" },
+					},
 				],
 			});
 
@@ -493,7 +505,11 @@ describe("Session", () => {
 				role: "assistant",
 				content: "Calling",
 				tool_calls: [
-					{ id: "call_1", type: "function", function: { name: "test", arguments: "{}" } },
+					{
+						id: "call_1",
+						type: "function",
+						function: { name: "test", arguments: "{}" },
+					},
 				],
 			});
 			session.addToolMessage({
@@ -516,8 +532,16 @@ describe("Session", () => {
 				role: "assistant",
 				content: "Calling two",
 				tool_calls: [
-					{ id: "call_1", type: "function", function: { name: "test1", arguments: "{}" } },
-					{ id: "call_2", type: "function", function: { name: "test2", arguments: "{}" } },
+					{
+						id: "call_1",
+						type: "function",
+						function: { name: "test1", arguments: "{}" },
+					},
+					{
+						id: "call_2",
+						type: "function",
+						function: { name: "test2", arguments: "{}" },
+					},
 				],
 			});
 			// Only provide result for call_1, not call_2

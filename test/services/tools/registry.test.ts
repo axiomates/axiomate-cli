@@ -265,9 +265,8 @@ describe("getToolRegistry and initToolRegistry", () => {
 	});
 
 	it("should return singleton instance", async () => {
-		const { getToolRegistry } = await import(
-			"../../../source/services/tools/registry.js"
-		);
+		const { getToolRegistry } =
+			await import("../../../source/services/tools/registry.js");
 
 		const registry1 = getToolRegistry();
 		const registry2 = getToolRegistry();
@@ -276,9 +275,8 @@ describe("getToolRegistry and initToolRegistry", () => {
 	});
 
 	it("should initialize registry on first call", async () => {
-		const { initToolRegistry } = await import(
-			"../../../source/services/tools/registry.js"
-		);
+		const { initToolRegistry } =
+			await import("../../../source/services/tools/registry.js");
 
 		const registry = await initToolRegistry();
 
@@ -286,12 +284,10 @@ describe("getToolRegistry and initToolRegistry", () => {
 	});
 
 	it("should not re-discover on second init call", async () => {
-		const { initToolRegistry } = await import(
-			"../../../source/services/tools/registry.js"
-		);
-		const { discoverAllTools } = await import(
-			"../../../source/services/tools/discoverers/index.js"
-		);
+		const { initToolRegistry } =
+			await import("../../../source/services/tools/registry.js");
+		const { discoverAllTools } =
+			await import("../../../source/services/tools/discoverers/index.js");
 
 		await initToolRegistry();
 		await initToolRegistry();

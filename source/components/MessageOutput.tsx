@@ -1,5 +1,12 @@
 import { Box, Text, useInput, measureElement, type DOMElement } from "ink";
-import { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from "react";
+import {
+	useState,
+	useCallback,
+	useMemo,
+	useEffect,
+	useRef,
+	useLayoutEffect,
+} from "react";
 import useTerminalWidth from "../hooks/useTerminalWidth.js";
 import { THEME_PINK, THEME_LIGHT_YELLOW } from "../constants/colors.js";
 import {
@@ -130,7 +137,7 @@ export default function MessageOutput({
 				setHeight(measured.height);
 			}
 		}
-	});
+	}, [height]);
 
 	// scrollOffset: 从底部向上的偏移量（0 = 显示最新消息）
 	const [scrollOffset, setScrollOffset] = useState(0);
@@ -508,7 +515,10 @@ export default function MessageOutput({
 		(offset: number) => {
 			// 先用无指示器的高度计算
 			const baseContentHeight = height;
-			const baseStartLine = Math.max(0, totalLines - baseContentHeight - offset);
+			const baseStartLine = Math.max(
+				0,
+				totalLines - baseContentHeight - offset,
+			);
 			const baseHasAbove = baseStartLine > 0;
 			const baseHasBelow = offset > 0;
 
@@ -643,8 +653,7 @@ export default function MessageOutput({
 			// 原来在组头部行,直接找组头部
 			targetIndex = renderedLines.findIndex(
 				(line) =>
-					line.isGroupHeader &&
-					line.groupId === expandAllCursorInfo.groupId
+					line.isGroupHeader && line.groupId === expandAllCursorInfo.groupId,
 			);
 		} else {
 			// 原来在消息内容行,找到消息第一行再偏移
@@ -653,7 +662,7 @@ export default function MessageOutput({
 					line.groupId === expandAllCursorInfo.groupId &&
 					line.msgIndex === expandAllCursorInfo.msgIndex &&
 					line.isFirstLine &&
-					!line.isGroupHeader  // 排除组头部行
+					!line.isGroupHeader, // 排除组头部行
 			);
 
 			if (firstLineIndex >= 0) {
@@ -661,7 +670,10 @@ export default function MessageOutput({
 				let offset = 0;
 				for (let i = firstLineIndex; i < renderedLines.length; i++) {
 					const line = renderedLines[i];
-					if (line?.msgIndex !== expandAllCursorInfo.msgIndex || line.isGroupHeader) {
+					if (
+						line?.msgIndex !== expandAllCursorInfo.msgIndex ||
+						line.isGroupHeader
+					) {
 						// 超出消息范围或遇到组头部,停止
 						break;
 					}
@@ -773,7 +785,14 @@ export default function MessageOutput({
 				setScrollOffset(Math.max(0, newOffset));
 			}
 		},
-		[totalLines, safeOffset, startLine, contentHeight, maxOffset, computeDisplayState],
+		[
+			totalLines,
+			safeOffset,
+			startLine,
+			contentHeight,
+			maxOffset,
+			computeDisplayState,
+		],
 	);
 
 	// 键盘控制
@@ -840,10 +859,7 @@ export default function MessageOutput({
 				if (key.return && cursorIndex >= 0) {
 					const cursorLine = renderedLines[cursorIndex];
 					// 思考块头部：切换思考内容的折叠状态
-					if (
-						cursorLine?.isReasoningHeader &&
-						onToggleReasoningCollapse
-					) {
+					if (cursorLine?.isReasoningHeader && onToggleReasoningCollapse) {
 						onToggleReasoningCollapse(cursorLine.msgIndex);
 						return;
 					}
@@ -874,7 +890,10 @@ export default function MessageOutput({
 								let firstLineIdx = cursorIndex;
 								for (let i = cursorIndex; i >= 0; i--) {
 									const line = renderedLines[i];
-									if (line?.msgIndex !== cursorLine.msgIndex || line?.isGroupHeader) {
+									if (
+										line?.msgIndex !== cursorLine.msgIndex ||
+										line?.isGroupHeader
+									) {
 										break;
 									}
 									if (line.isFirstLine) {
@@ -943,7 +962,9 @@ export default function MessageOutput({
 	if (hasMoreAbove) {
 		contentRows.push(
 			<Box key="indicator-above" justifyContent="center" height={1}>
-				<Text dimColor>{t("messageOutput.scrollUpHint", { count: linesAbove })}</Text>
+				<Text dimColor>
+					{t("messageOutput.scrollUpHint", { count: linesAbove })}
+				</Text>
 			</Box>,
 		);
 	}
@@ -1237,7 +1258,9 @@ export default function MessageOutput({
 	if (hasMoreBelow) {
 		contentRows.push(
 			<Box key="indicator-below" justifyContent="center" height={1}>
-				<Text dimColor>{t("messageOutput.scrollDownHint", { count: linesBelow })}</Text>
+				<Text dimColor>
+					{t("messageOutput.scrollDownHint", { count: linesBelow })}
+				</Text>
 			</Box>,
 		);
 	}

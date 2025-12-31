@@ -235,7 +235,7 @@ describe("Anthropic Adapter", () => {
 							type: "function",
 							function: {
 								name: "test_func",
-								arguments: '{}',
+								arguments: "{}",
 							},
 						},
 					],
@@ -268,7 +268,7 @@ describe("Anthropic Adapter", () => {
 							type: "function",
 							function: {
 								name: "test_func",
-								arguments: '{}',
+								arguments: "{}",
 							},
 						},
 					],

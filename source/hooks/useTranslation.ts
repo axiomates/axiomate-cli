@@ -39,7 +39,8 @@ export function useTranslation() {
 		(key: string, params?: Record<string, string | number>) => {
 			return translate(key, params);
 		},
-		[locale], // Depends on locale - recreates on language change
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- locale state triggers re-render for stable t identity
+		[locale],
 	);
 
 	return { t, locale };

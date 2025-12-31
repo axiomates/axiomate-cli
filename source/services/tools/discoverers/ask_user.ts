@@ -35,7 +35,7 @@ const askUserDefinition: ToolDefinition = {
 				{
 					name: "options",
 					description:
-						'JSON array of 2-3 options representing different approaches YOU think are best suited for the situation. ' +
+						"JSON array of 2-3 options representing different approaches YOU think are best suited for the situation. " +
 						'Example: \'["Use TypeScript for type safety", "Use JavaScript for simplicity", "Use both with gradual migration"]\'. ' +
 						"Each option should be a distinct direction, not variations of the same thing. Maximum 3 options.",
 					type: "string",

@@ -29,7 +29,6 @@ const stateValues: Array<[unknown, unknown]> = [
 ];
 
 let effectCallback: (() => void) | null = null;
-let callbackFn: (() => void) | null = null;
 
 vi.mock("react", () => ({
 	useState: (initial: unknown) => {
@@ -43,10 +42,7 @@ vi.mock("react", () => ({
 	useEffect: (callback: () => void) => {
 		effectCallback = callback;
 	},
-	useCallback: (fn: () => void) => {
-		callbackFn = fn;
-		return fn;
-	},
+	useCallback: (fn: () => void) => fn,
 }));
 
 import { useFileSelect } from "../../../../source/components/AutocompleteInput/hooks/useFileSelect.js";
@@ -56,7 +52,6 @@ describe("useFileSelect", () => {
 		vi.clearAllMocks();
 		stateIndex = 0;
 		effectCallback = null;
-		callbackFn = null;
 		mockReaddirSync.mockReturnValue([]);
 		mockStatSync.mockReturnValue({ isDirectory: () => false });
 	});
@@ -66,7 +61,7 @@ describe("useFileSelect", () => {
 			mockReaddirSync.mockReturnValue(["file1.ts", "file2.ts"]);
 			mockStatSync.mockReturnValue({ isDirectory: () => false });
 
-			const result = useFileSelect(".");
+			useFileSelect(".");
 
 			// Trigger effect
 			if (effectCallback) effectCallback();

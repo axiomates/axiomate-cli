@@ -275,7 +275,7 @@ describe("platform", () => {
 				throw new Error("not found");
 			});
 
-			const promise = restartApp();
+			void restartApp();
 
 			// Allow spawn callback to execute
 			await new Promise((r) => setTimeout(r, 10));
@@ -296,11 +296,10 @@ describe("platform", () => {
 			});
 
 			// Import fresh to reset restartPromise
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
-			);
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
-			const promise = freshRestartApp();
+			void freshRestartApp();
 			await new Promise((r) => setTimeout(r, 10));
 
 			expect(childProcess.spawn).toHaveBeenCalledWith(
@@ -319,11 +318,10 @@ describe("platform", () => {
 			});
 
 			// Import fresh to reset restartPromise
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
-			);
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
-			const promise = freshRestartApp();
+			void freshRestartApp();
 			await new Promise((r) => setTimeout(r, 10));
 
 			expect(childProcess.spawn).toHaveBeenCalledWith(
@@ -337,11 +335,10 @@ describe("platform", () => {
 			vi.resetModules();
 			vi.mocked(os.platform).mockReturnValue("linux");
 
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
-			);
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
-			const promise = freshRestartApp();
+			void freshRestartApp();
 			await new Promise((r) => setTimeout(r, 10));
 
 			expect(childProcess.spawn).toHaveBeenCalledWith(
@@ -367,11 +364,10 @@ describe("platform", () => {
 				writable: true,
 			});
 
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
-			);
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
-			const promise = freshRestartApp();
+			void freshRestartApp();
 			await new Promise((r) => setTimeout(r, 10));
 
 			// Should use args from slice(2) for Bun packaged exe
@@ -390,9 +386,8 @@ describe("platform", () => {
 				throw new Error("not found");
 			});
 
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
-			);
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
 			const promise1 = freshRestartApp();
 			const promise2 = freshRestartApp();
@@ -416,11 +411,12 @@ describe("platform", () => {
 					}
 				}),
 			}));
-			vi.mocked(childProcess.spawn).mockImplementation(errorSpawnMock as unknown as typeof childProcess.spawn);
-
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
+			vi.mocked(childProcess.spawn).mockImplementation(
+				errorSpawnMock as unknown as typeof childProcess.spawn,
 			);
+
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
 			const promise = freshRestartApp();
 
@@ -428,13 +424,16 @@ describe("platform", () => {
 			await expect(promise).rejects.toThrow("spawn error");
 
 			// Restore spawn mock
-			vi.mocked(childProcess.spawn).mockImplementation(() => ({
-				on: vi.fn((event, callback) => {
-					if (event === "close") {
-						setTimeout(callback, 0);
-					}
-				}),
-			}) as unknown as ReturnType<typeof childProcess.spawn>);
+			vi.mocked(childProcess.spawn).mockImplementation(
+				() =>
+					({
+						on: vi.fn((event, callback) => {
+							if (event === "close") {
+								setTimeout(callback, 0);
+							}
+						}),
+					}) as unknown as ReturnType<typeof childProcess.spawn>,
+			);
 		});
 
 		it("should escape PowerShell args with single quotes", async () => {
@@ -450,11 +449,10 @@ describe("platform", () => {
 				writable: true,
 			});
 
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
-			);
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
-			const promise = freshRestartApp();
+			void freshRestartApp();
 			await new Promise((r) => setTimeout(r, 10));
 
 			expect(childProcess.spawn).toHaveBeenCalledWith(
@@ -479,11 +477,10 @@ describe("platform", () => {
 				writable: true,
 			});
 
-			const { restartApp: freshRestartApp } = await import(
-				"../../source/utils/platform.js"
-			);
+			const { restartApp: freshRestartApp } =
+				await import("../../source/utils/platform.js");
 
-			const promise = freshRestartApp();
+			void freshRestartApp();
 			await new Promise((r) => setTimeout(r, 10));
 
 			expect(childProcess.spawn).toHaveBeenCalledWith(

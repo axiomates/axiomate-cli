@@ -13,15 +13,19 @@ vi.mock("ink", () => ({
 
 // Mock React's useCallback to just return the callback directly
 vi.mock("react", () => ({
-	useCallback: (fn: any) => fn,
+	useCallback: <T>(fn: T) => fn,
 }));
 
 // Import after mocking
 import { useInputHandler } from "../../../../source/components/AutocompleteInput/hooks/useInputHandler.js";
-import type { EditorState, HistoryEntry } from "../../../../source/components/AutocompleteInput/types.js";
+import type {
+	EditorState,
+	HistoryEntry,
+} from "../../../../source/components/AutocompleteInput/types.js";
 
 // Helper to call hook (it just registers useInput, returns void)
 function callHook(options: Parameters<typeof useInputHandler>[0]) {
+	// eslint-disable-next-line react-hooks/rules-of-hooks -- test helper function
 	useInputHandler(options);
 }
 
@@ -61,7 +65,8 @@ function simulateKeyPress(
 		shift: boolean;
 	}> = {},
 ) {
-	const callback = mockUseInput.mock.calls[mockUseInput.mock.calls.length - 1]?.[0];
+	const callback =
+		mockUseInput.mock.calls[mockUseInput.mock.calls.length - 1]?.[0];
 	if (callback) {
 		callback(inputChar, {
 			return: false,
@@ -1284,7 +1289,7 @@ describe("useInputHandler", () => {
 						{
 							path: "file.ts",
 							atPosition: 6,
-							endPosition: 14,  // 6 + "@file.ts".length = 6 + 8 = 14
+							endPosition: 14, // 6 + "@file.ts".length = 6 + 8 = 14
 						},
 					],
 				},
@@ -1327,9 +1332,7 @@ describe("useInputHandler", () => {
 				state,
 				dispatch: mockDispatch,
 				history: [],
-				filteredCommands: [
-					{ name: "gpt4", description: "GPT-4" },
-				],
+				filteredCommands: [{ name: "gpt4", description: "GPT-4" }],
 				filteredFiles: [],
 				effectiveSuggestion: null,
 				onSubmit: mockOnSubmit,
@@ -1583,26 +1586,6 @@ describe("useInputHandler", () => {
 		it("should remove file when delete key next char is inside file region", () => {
 			// Text is "x@file.ts world" - file starts at position 1
 			// Cursor at 1, cursor+1=2 which is > 1 (atPosition) and < 9 (endPosition)
-			const state = createInitialState({
-				instance: {
-					text: "x@file.ts world",
-					cursor: 1, // At @, but findSelectedFileStartingAt returns null for this position
-					          // because findSelectedFileStartingAt checks if cursor == atPosition
-					          // and here cursor=1, atPosition=1, so it matches fileAtStart first
-					          // Let me use cursor=0 instead
-					type: "message",
-					segments: [{ text: "x@file.ts world", color: undefined }],
-					commandPath: [],
-					filePath: [],
-					selectedFiles: [
-						{
-							path: "file.ts",
-							atPosition: 1,
-							endPosition: 9, // 1 + "@file.ts".length = 1 + 8 = 9
-						},
-					],
-				},
-			});
 			// Actually, for cursor=0, cursor+1=1, and 1 > 1 is false, so it won't match
 			// We need cursor such that cursor+1 is strictly between atPosition and endPosition
 			// Let's say cursor=1, cursor+1=2, and atPosition=1, endPosition=9
@@ -1783,7 +1766,9 @@ describe("useInputHandler", () => {
 				dispatch: mockDispatch,
 				history: [],
 				filteredCommands: [],
-				filteredFiles: [{ name: "file.ts", isDirectory: false, path: "src/file.ts" }],
+				filteredFiles: [
+					{ name: "file.ts", isDirectory: false, path: "src/file.ts" },
+				],
 				effectiveSuggestion: null,
 				onSubmit: mockOnSubmit,
 			});

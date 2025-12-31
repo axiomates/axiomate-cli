@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import type { ToolRegistry } from "../../../../source/services/tools/registry.js";
-import type { DiscoveredTool, ToolAction, ToolParameter } from "../../../../source/services/tools/types.js";
+import type {
+	DiscoveredTool,
+	ToolAction,
+	ToolParameter,
+} from "../../../../source/services/tools/types.js";
 import { initI18n, setLocale } from "../../../../source/i18n/index.js";
 
 beforeAll(() => {
@@ -24,10 +28,15 @@ vi.mock("../../../../source/services/tools/executor.js", () => ({
 		properties: Object.fromEntries(
 			params.map((p: ToolParameter) => [
 				p.name,
-				{ type: p.type === "number" ? "number" : "string", description: p.description },
-			])
+				{
+					type: p.type === "number" ? "number" : "string",
+					description: p.description,
+				},
+			]),
 		),
-		required: params.filter((p: ToolParameter) => p.required).map((p: ToolParameter) => p.name),
+		required: params
+			.filter((p: ToolParameter) => p.required)
+			.map((p: ToolParameter) => p.name),
 	})),
 }));
 
@@ -40,7 +49,10 @@ import { executeToolAction } from "../../../../source/services/tools/executor.js
 describe("MCP Server", () => {
 	let mockRegistry: ToolRegistry;
 
-	const createMockTool = (id: string, actions: ToolAction[]): DiscoveredTool => ({
+	const createMockTool = (
+		id: string,
+		actions: ToolAction[],
+	): DiscoveredTool => ({
 		id,
 		name: id,
 		description: `${id} tool`,
@@ -51,7 +63,10 @@ describe("MCP Server", () => {
 		executionPath: `/bin/${id}`,
 	});
 
-	const createMockAction = (name: string, params: ToolParameter[] = []): ToolAction => ({
+	const createMockAction = (
+		name: string,
+		params: ToolParameter[] = [],
+	): ToolAction => ({
 		name,
 		description: `${name} action`,
 		parameters: params,
@@ -63,14 +78,24 @@ describe("MCP Server", () => {
 		const gitTool = createMockTool("git", [
 			createMockAction("status"),
 			createMockAction("log", [
-				{ name: "count", type: "number", description: "Number of commits", required: false },
+				{
+					name: "count",
+					type: "number",
+					description: "Number of commits",
+					required: false,
+				},
 			]),
 		]);
 
 		const nodeTool = createMockTool("node", [
 			createMockAction("version"),
 			createMockAction("eval", [
-				{ name: "code", type: "string", description: "Code to evaluate", required: true },
+				{
+					name: "code",
+					type: "string",
+					description: "Code to evaluate",
+					required: true,
+				},
 			]),
 		]);
 
@@ -112,7 +137,7 @@ describe("MCP Server", () => {
 			expect(mockRegisterTool).toHaveBeenCalledWith(
 				"list_available_tools",
 				expect.objectContaining({ description: expect.any(String) }),
-				expect.any(Function)
+				expect.any(Function),
 			);
 		});
 
@@ -122,7 +147,7 @@ describe("MCP Server", () => {
 			expect(mockRegisterTool).toHaveBeenCalledWith(
 				"get_tools_stats",
 				expect.objectContaining({ description: expect.any(String) }),
-				expect.any(Function)
+				expect.any(Function),
 			);
 		});
 
@@ -134,8 +159,10 @@ describe("MCP Server", () => {
 
 			expect(mockRegisterTool).toHaveBeenCalledWith(
 				"git_status",
-				expect.objectContaining({ description: expect.stringContaining("[git]") }),
-				expect.any(Function)
+				expect.objectContaining({
+					description: expect.stringContaining("[git]"),
+				}),
+				expect.any(Function),
 			);
 
 			expect(mockRegisterTool).toHaveBeenCalledWith(
@@ -144,7 +171,7 @@ describe("MCP Server", () => {
 					description: expect.stringContaining("[node]"),
 					inputSchema: expect.any(Object),
 				}),
-				expect.any(Function)
+				expect.any(Function),
 			);
 		});
 
@@ -153,7 +180,7 @@ describe("MCP Server", () => {
 
 			// Find the list_available_tools handler
 			const listToolsCall = mockRegisterTool.mock.calls.find(
-				(call) => call[0] === "list_available_tools"
+				(call) => call[0] === "list_available_tools",
 			);
 			expect(listToolsCall).toBeDefined();
 
@@ -170,7 +197,7 @@ describe("MCP Server", () => {
 			createToolsMcpServer(mockRegistry);
 
 			const statsCall = mockRegisterTool.mock.calls.find(
-				(call) => call[0] === "get_tools_stats"
+				(call) => call[0] === "get_tools_stats",
 			);
 			expect(statsCall).toBeDefined();
 
@@ -194,7 +221,7 @@ describe("MCP Server", () => {
 			createToolsMcpServer(mockRegistry);
 
 			const gitStatusCall = mockRegisterTool.mock.calls.find(
-				(call) => call[0] === "git_status"
+				(call) => call[0] === "git_status",
 			);
 			expect(gitStatusCall).toBeDefined();
 
@@ -216,7 +243,7 @@ describe("MCP Server", () => {
 			createToolsMcpServer(mockRegistry);
 
 			const gitStatusCall = mockRegisterTool.mock.calls.find(
-				(call) => call[0] === "git_status"
+				(call) => call[0] === "git_status",
 			);
 			const handler = gitStatusCall![2];
 			const result = await handler({});
@@ -236,7 +263,7 @@ describe("MCP Server", () => {
 			createToolsMcpServer(mockRegistry);
 
 			const gitStatusCall = mockRegisterTool.mock.calls.find(
-				(call) => call[0] === "git_status"
+				(call) => call[0] === "git_status",
 			);
 			const handler = gitStatusCall![2];
 			const result = await handler({});
@@ -259,7 +286,7 @@ describe("MCP Server", () => {
 			createToolsMcpServer(mockRegistry);
 
 			const gitStatusCall = mockRegisterTool.mock.calls.find(
-				(call) => call[0] === "git_status"
+				(call) => call[0] === "git_status",
 			);
 			const handler = gitStatusCall![2];
 			const result = await handler({});
@@ -279,7 +306,7 @@ describe("MCP Server", () => {
 			createToolsMcpServer(mockRegistry);
 
 			const gitStatusCall = mockRegisterTool.mock.calls.find(
-				(call) => call[0] === "git_status"
+				(call) => call[0] === "git_status",
 			);
 			const handler = gitStatusCall![2];
 			const result = await handler({});

@@ -38,17 +38,17 @@ Creates `bundle/axiomate.exe` (Windows) or `bundle/axiomate` (macOS/Linux).
 
 Type `/` to open the command menu:
 
-| Command | Description |
-|---------|-------------|
-| `/model` | Switch AI model |
-| `/thinking on\|off` | Toggle thinking mode |
-| `/session list\|new\|switch\|delete\|clear` | Session management |
-| `/compact` | Summarize conversation to free context |
-| `/stop` | Stop AI processing |
-| `/tools list\|refresh\|stats` | Manage local tools |
-| `/suggestion on\|off\|model` | AI input suggestions |
-| `/language en\|zh-CN\|ja` | Switch language |
-| `/exit` | Exit application |
+| Command                                     | Description                            |
+| ------------------------------------------- | -------------------------------------- |
+| `/model`                                    | Switch AI model                        |
+| `/thinking on\|off`                         | Toggle thinking mode                   |
+| `/session list\|new\|switch\|delete\|clear` | Session management                     |
+| `/compact`                                  | Summarize conversation to free context |
+| `/stop`                                     | Stop AI processing                     |
+| `/tools list\|refresh\|stats`               | Manage local tools                     |
+| `/suggestion on\|off\|model`                | AI input suggestions                   |
+| `/language en\|zh-CN\|ja`                   | Switch language                        |
+| `/exit`                                     | Exit application                       |
 
 ### File Selection
 
@@ -64,21 +64,22 @@ analyze @src/app.ts and @src/utils.ts
 
 ### Focus Modes
 
-| Mode | Toggle | Description |
-|------|--------|-------------|
-| Input | `Shift+↑/↓` | Input active, `↑/↓` for history |
+| Mode   | Toggle      | Description                          |
+| ------ | ----------- | ------------------------------------ |
+| Input  | `Shift+↑/↓` | Input active, `↑/↓` for history      |
 | Browse | `Shift+↑/↓` | Input hidden, `↑/↓` scrolls messages |
 
 ### Context Management
 
 Two independent mechanisms handle context limits:
 
-| Mechanism | Trigger | What it does |
-|-----------|---------|--------------|
-| **Truncation** | File > available space | Truncates large files to fit |
-| **Auto-Compact** | Usage > 85% with history | Summarizes conversation |
+| Mechanism        | Trigger                  | What it does                 |
+| ---------------- | ------------------------ | ---------------------------- |
+| **Truncation**   | File > available space   | Truncates large files to fit |
+| **Auto-Compact** | Usage > 85% with history | Summarizes conversation      |
 
 Example flow:
+
 ```
 Message 1: @large-file.md → File truncated (too big for context)
 Message 2: @small-file.ts → Auto-compact triggers (history + new > 85%)
@@ -87,28 +88,31 @@ Message 2: @small-file.ts → Auto-compact triggers (history + new > 85%)
 ## Keyboard Shortcuts
 
 ### Global
-| Key | Action |
-|-----|--------|
-| `Shift+↑/↓` | Toggle Input/Browse mode |
-| `PageUp/Down` | Scroll messages |
-| `Ctrl+C` | Exit |
+
+| Key           | Action                   |
+| ------------- | ------------------------ |
+| `Shift+↑/↓`   | Toggle Input/Browse mode |
+| `PageUp/Down` | Scroll messages          |
+| `Ctrl+C`      | Exit                     |
 
 ### Input Mode
-| Key | Action |
-|-----|--------|
-| `/` | Slash commands |
-| `@` | File selection |
-| `?` | Help (when empty) |
-| `Tab` | Accept suggestion |
-| `↑/↓` | History / menu navigation |
-| `Ctrl+Enter` | New line |
+
+| Key          | Action                    |
+| ------------ | ------------------------- |
+| `/`          | Slash commands            |
+| `@`          | File selection            |
+| `?`          | Help (when empty)         |
+| `Tab`        | Accept suggestion         |
+| `↑/↓`        | History / menu navigation |
+| `Ctrl+Enter` | New line                  |
 
 ### Browse Mode
-| Key | Action |
-|-----|--------|
-| `↑/↓` | Scroll |
-| `Enter` | Toggle group/thinking collapse |
-| `e` / `c` | Expand/collapse all |
+
+| Key       | Action                         |
+| --------- | ------------------------------ |
+| `↑/↓`     | Scroll                         |
+| `Enter`   | Toggle group/thinking collapse |
+| `e` / `c` | Expand/collapse all            |
 
 ## Configuration
 

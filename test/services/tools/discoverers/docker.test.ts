@@ -60,9 +60,7 @@ describe("docker discoverer", () => {
 			vi.mocked(getExecutablePath).mockResolvedValue("/usr/bin/docker");
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
-					return options.parseOutput(
-						"Docker version 24.0.7, build afdd53b"
-					);
+					return options.parseOutput("Docker version 24.0.7, build afdd53b");
 				}
 				return "24.0.7";
 			});

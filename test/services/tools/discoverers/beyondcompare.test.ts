@@ -28,9 +28,11 @@ vi.mock("../../../../source/services/tools/discoverers/base.js", () => ({
 	})),
 }));
 
-import * as fs from "node:fs";
 import * as os from "node:os";
-import { queryRegistry, fileExists } from "../../../../source/services/tools/discoverers/base.js";
+import {
+	queryRegistry,
+	fileExists,
+} from "../../../../source/services/tools/discoverers/base.js";
 
 describe("beyondcompare discoverer", () => {
 	beforeEach(() => {
@@ -44,9 +46,8 @@ describe("beyondcompare discoverer", () => {
 			vi.mocked(os.platform).mockReturnValue("linux");
 			// Re-import to get updated isWindows
 			vi.resetModules();
-			const { detectBeyondCompare: detect } = await import(
-				"../../../../source/services/tools/discoverers/beyondcompare.js"
-			);
+			const { detectBeyondCompare: detect } =
+				await import("../../../../source/services/tools/discoverers/beyondcompare.js");
 
 			const result = await detect();
 
@@ -69,7 +70,7 @@ describe("beyondcompare discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Program Files\\Beyond Compare 4\\BComp.exe"
+				"C:\\Program Files\\Beyond Compare 4\\BComp.exe",
 			);
 			expect(result.version).toBe("4");
 		});
@@ -89,7 +90,7 @@ describe("beyondcompare discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Program Files\\Beyond Compare 5\\BComp.exe"
+				"C:\\Program Files\\Beyond Compare 5\\BComp.exe",
 			);
 			expect(result.version).toBe("5");
 		});
@@ -104,7 +105,7 @@ describe("beyondcompare discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Program Files\\Beyond Compare 4\\BComp.exe"
+				"C:\\Program Files\\Beyond Compare 4\\BComp.exe",
 			);
 			expect(result.version).toBe("4");
 		});
@@ -131,9 +132,7 @@ describe("beyondcompare discoverer", () => {
 		});
 
 		it("should skip registry path if file does not exist", async () => {
-			vi.mocked(queryRegistry).mockResolvedValue(
-				"C:\\NonExistent\\BComp.exe"
-			);
+			vi.mocked(queryRegistry).mockResolvedValue("C:\\NonExistent\\BComp.exe");
 			vi.mocked(fileExists).mockImplementation((p) => {
 				// Registry path doesn't exist, but default path does
 				return p === "C:\\Program Files\\Beyond Compare 4\\BComp.exe";
@@ -143,7 +142,7 @@ describe("beyondcompare discoverer", () => {
 
 			expect(result.installed).toBe(true);
 			expect(result.executablePath).toBe(
-				"C:\\Program Files\\Beyond Compare 4\\BComp.exe"
+				"C:\\Program Files\\Beyond Compare 4\\BComp.exe",
 			);
 		});
 

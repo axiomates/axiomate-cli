@@ -9,7 +9,10 @@ import {
 	paramsToJsonSchema,
 	executeScript,
 } from "../../../source/services/tools/executor.js";
-import type { ToolAction, DiscoveredTool } from "../../../source/services/tools/types.js";
+import type {
+	ToolAction,
+	DiscoveredTool,
+} from "../../../source/services/tools/types.js";
 import * as scriptWriter from "../../../source/services/tools/scriptWriter.js";
 
 // Mock config module
@@ -115,7 +118,9 @@ describe("Tool Executor", () => {
 
 			const result = validateParams(action, params);
 			expect(result.valid).toBe(false);
-			expect(result.errors).toContain("Missing required parameter: required_param");
+			expect(result.errors).toContain(
+				"Missing required parameter: required_param",
+			);
 		});
 
 		it("should report empty string for required parameter", () => {
@@ -156,7 +161,9 @@ describe("Tool Executor", () => {
 			// Valid string number
 			expect(validateParams(action, { count: "42" }).valid).toBe(true);
 			// Invalid string
-			expect(validateParams(action, { count: "not-a-number" }).valid).toBe(false);
+			expect(validateParams(action, { count: "not-a-number" }).valid).toBe(
+				false,
+			);
 		});
 
 		it("should validate boolean type", () => {
@@ -280,26 +287,26 @@ describe("Tool Executor", () => {
 
 		it("should capture stderr", async () => {
 			const cmd =
-				process.platform === "win32"
-					? "echo error 1>&2"
-					: "echo error >&2";
+				process.platform === "win32" ? "echo error 1>&2" : "echo error >&2";
 			const result = await executeCommand(cmd, { timeout: 5000 });
 
 			// On some platforms this might go to stdout
-			const hasError = result.stderr.includes("error") || result.stdout.includes("error");
+			const hasError =
+				result.stderr.includes("error") || result.stdout.includes("error");
 			expect(hasError).toBe(true);
 		});
 
 		it("should use custom cwd", async () => {
 			const result = await executeCommand(
 				process.platform === "win32" ? "cd" : "pwd",
-				{ cwd: process.cwd(), timeout: 5000 }
+				{ cwd: process.cwd(), timeout: 5000 },
 			);
 			expect(result.success).toBe(true);
 		});
 
 		it("should use custom env", async () => {
-			const cmd = process.platform === "win32" ? "echo %TEST_VAR%" : "echo $TEST_VAR";
+			const cmd =
+				process.platform === "win32" ? "echo %TEST_VAR%" : "echo $TEST_VAR";
 			const result = await executeCommand(cmd, {
 				env: { TEST_VAR: "test_value" },
 				timeout: 5000,
@@ -384,7 +391,12 @@ describe("Tool Executor", () => {
 				],
 			};
 
-			const result = await executeToolAction(tool, action, { message: "hello" }, { timeout: 5000 });
+			const result = await executeToolAction(
+				tool,
+				action,
+				{ message: "hello" },
+				{ timeout: 5000 },
+			);
 			expect(result.success).toBe(true);
 			expect(result.stdout).toContain("hello");
 		});
@@ -413,7 +425,12 @@ describe("Tool Executor", () => {
 				],
 			};
 
-			const result = await executeToolAction(tool, action, {}, { timeout: 5000 });
+			const result = await executeToolAction(
+				tool,
+				action,
+				{},
+				{ timeout: 5000 },
+			);
 			expect(result.success).toBe(true);
 			expect(result.stdout).toContain("default_msg");
 		});
@@ -441,7 +458,9 @@ describe("Tool Executor", () => {
 				],
 			};
 
-			const result = await executeToolAction(tool, action, { content: "echo test" });
+			const result = await executeToolAction(tool, action, {
+				content: "echo test",
+			});
 			expect(result.success).toBe(false);
 			expect(result.error).toContain("does not support script execution");
 		});
@@ -624,7 +643,9 @@ describe("Tool Executor", () => {
 	describe("executeScript", () => {
 		beforeEach(() => {
 			vi.spyOn(scriptWriter, "writeScript").mockReturnValue("/tmp/script.sh");
-			vi.spyOn(scriptWriter, "buildScriptCommand").mockReturnValue('echo "test"');
+			vi.spyOn(scriptWriter, "buildScriptCommand").mockReturnValue(
+				'echo "test"',
+			);
 		});
 
 		afterEach(() => {
@@ -632,31 +653,39 @@ describe("Tool Executor", () => {
 		});
 
 		it("should execute a script and include path info", async () => {
-			const result = await executeScript("bash", "echo test", { timeout: 5000 });
+			const result = await executeScript("bash", "echo test", {
+				timeout: 5000,
+			});
 
 			expect(scriptWriter.writeScript).toHaveBeenCalled();
 			expect(result.stdout).toContain("[Script:");
 		});
 
 		it("should use custom cwd", async () => {
-			await executeScript("bash", "echo test", { cwd: "/custom/dir", timeout: 5000 });
+			await executeScript("bash", "echo test", {
+				cwd: "/custom/dir",
+				timeout: 5000,
+			});
 
 			expect(scriptWriter.writeScript).toHaveBeenCalledWith(
 				"/custom/dir",
 				"bash",
 				"echo test",
-				expect.any(Object)
+				expect.any(Object),
 			);
 		});
 
 		it("should pass prefix to writeScript", async () => {
-			await executeScript("bash", "echo test", { prefix: "myprefix", timeout: 5000 });
+			await executeScript("bash", "echo test", {
+				prefix: "myprefix",
+				timeout: 5000,
+			});
 
 			expect(scriptWriter.writeScript).toHaveBeenCalledWith(
 				expect.any(String),
 				"bash",
 				"echo test",
-				{ prefix: "myprefix" }
+				{ prefix: "myprefix" },
 			);
 		});
 

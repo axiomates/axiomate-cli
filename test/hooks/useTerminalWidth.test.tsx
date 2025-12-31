@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import React, { useEffect, useState } from "react";
+import { describe, it, expect } from "vitest";
+import React, { useEffect } from "react";
 import { render } from "ink-testing-library";
 import { Text } from "ink";
 import useTerminalWidth from "../../source/hooks/useTerminalWidth.js";
@@ -11,7 +11,11 @@ function TestComponent() {
 }
 
 // Test component that can trigger resize
-function ResizeTestComponent({ onMount }: { onMount: (emit: () => void) => void }) {
+function ResizeTestComponent({
+	onMount,
+}: {
+	onMount: (emit: () => void) => void;
+}) {
 	const width = useTerminalWidth();
 
 	useEffect(() => {
@@ -44,10 +48,7 @@ describe("useTerminalWidth", () => {
 	});
 
 	it("should handle resize events", () => {
-		let emitResize: (() => void) | null = null;
-		const { lastFrame } = render(
-			<ResizeTestComponent onMount={(emit) => { emitResize = emit; }} />
-		);
+		const { lastFrame } = render(<ResizeTestComponent onMount={() => {}} />);
 
 		// Initial render
 		expect(lastFrame()).toContain("Width:");

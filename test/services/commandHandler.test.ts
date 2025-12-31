@@ -500,9 +500,8 @@ describe("commandHandler", () => {
 		});
 
 		it("should handle async command errors", async () => {
-			const { getToolRegistry } = await import(
-				"../../source/services/tools/registry.js"
-			);
+			const { getToolRegistry } =
+				await import("../../source/services/tools/registry.js");
 			vi.mocked(getToolRegistry).mockReturnValue({
 				isDiscovered: false,
 				discover: vi.fn().mockRejectedValue(new Error("Discovery failed")),
@@ -520,7 +519,11 @@ describe("commandHandler", () => {
 
 		it("should handle session switch command", async () => {
 			const callbacks = createMockCallbacks();
-			await handleCommand(["session", "switch", "Session 1"], context, callbacks);
+			await handleCommand(
+				["session", "switch", "Session 1"],
+				context,
+				callbacks,
+			);
 
 			expect(callbacks.stop).toHaveBeenCalled();
 			expect(callbacks.sessionSwitch).toHaveBeenCalledWith("session-1");
@@ -528,7 +531,11 @@ describe("commandHandler", () => {
 
 		it("should handle session delete command", async () => {
 			const callbacks = createMockCallbacks();
-			await handleCommand(["session", "delete", "Session 2"], context, callbacks);
+			await handleCommand(
+				["session", "delete", "Session 2"],
+				context,
+				callbacks,
+			);
 
 			expect(callbacks.sessionDelete).toHaveBeenCalledWith("session-2");
 		});
@@ -536,7 +543,11 @@ describe("commandHandler", () => {
 		it("should handle suggestion model selection", async () => {
 			const callbacks = createMockCallbacks();
 			// path 需要是完整的命令路径，最后一个元素是 model id
-			await handleCommand(["suggestion", "model", "test-model"], context, callbacks);
+			await handleCommand(
+				["suggestion", "model", "test-model"],
+				context,
+				callbacks,
+			);
 
 			// 验证 showMessage 被调用，说明命令执行成功
 			expect(callbacks.showMessage).toHaveBeenCalled();
@@ -545,7 +556,11 @@ describe("commandHandler", () => {
 		it("should handle suggestion model selection with unknown model", async () => {
 			const callbacks = createMockCallbacks();
 			// 使用不存在的 model id
-			await handleCommand(["suggestion", "model", "unknown-model-id"], context, callbacks);
+			await handleCommand(
+				["suggestion", "model", "unknown-model-id"],
+				context,
+				callbacks,
+			);
 
 			// 应该显示错误消息
 			expect(callbacks.showMessage).toHaveBeenCalledWith(
@@ -561,14 +576,17 @@ describe("commandHandler", () => {
 		});
 
 		it("should handle tools refresh command", async () => {
-			const { getToolRegistry } = await import(
-				"../../source/services/tools/registry.js"
-			);
+			const { getToolRegistry } =
+				await import("../../source/services/tools/registry.js");
 			vi.mocked(getToolRegistry).mockReturnValue({
 				isDiscovered: true,
 				discover: vi.fn().mockResolvedValue(undefined),
 				formatToolList: vi.fn(),
-				getStats: vi.fn(() => ({ installed: 5, notInstalled: 2, byCategory: {} })),
+				getStats: vi.fn(() => ({
+					installed: 5,
+					notInstalled: 2,
+					byCategory: {},
+				})),
 			} as any);
 
 			const callbacks = createMockCallbacks();
@@ -578,14 +596,17 @@ describe("commandHandler", () => {
 		});
 
 		it("should handle tools stats command", async () => {
-			const { getToolRegistry } = await import(
-				"../../source/services/tools/registry.js"
-			);
+			const { getToolRegistry } =
+				await import("../../source/services/tools/registry.js");
 			vi.mocked(getToolRegistry).mockReturnValue({
 				isDiscovered: true,
 				discover: vi.fn(),
 				formatToolList: vi.fn(),
-				getStats: vi.fn(() => ({ installed: 5, notInstalled: 2, byCategory: { shell: 2 } })),
+				getStats: vi.fn(() => ({
+					installed: 5,
+					notInstalled: 2,
+					byCategory: { shell: 2 },
+				})),
 			} as any);
 
 			const callbacks = createMockCallbacks();
@@ -635,7 +656,11 @@ describe("commandHandler", () => {
 
 		it("should handle session switch with not found session", async () => {
 			const callbacks = createMockCallbacks();
-			await handleCommand(["session", "switch", "Non-existent Session"], context, callbacks);
+			await handleCommand(
+				["session", "switch", "Non-existent Session"],
+				context,
+				callbacks,
+			);
 
 			expect(callbacks.showMessage).toHaveBeenCalledWith(
 				expect.stringContaining("Error"),
@@ -644,7 +669,11 @@ describe("commandHandler", () => {
 
 		it("should handle session delete with not found session", async () => {
 			const callbacks = createMockCallbacks();
-			await handleCommand(["session", "delete", "Non-existent Session"], context, callbacks);
+			await handleCommand(
+				["session", "delete", "Non-existent Session"],
+				context,
+				callbacks,
+			);
 
 			expect(callbacks.showMessage).toHaveBeenCalledWith(
 				expect.stringContaining("Error"),
@@ -654,7 +683,11 @@ describe("commandHandler", () => {
 		it("should handle deleting active session", async () => {
 			const callbacks = createMockCallbacks();
 			// Session 1 is the active session in our mock
-			await handleCommand(["session", "delete", "Session 1"], context, callbacks);
+			await handleCommand(
+				["session", "delete", "Session 1"],
+				context,
+				callbacks,
+			);
 
 			expect(callbacks.showMessage).toHaveBeenCalledWith(
 				expect.stringContaining("Error"),

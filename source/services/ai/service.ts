@@ -251,7 +251,12 @@ export class AIService implements IAIService {
 		try {
 			// 使用流式 API
 			// 注意：streamChatWithTools 内部已经调用了 onEnd，这里不需要重复调用
-			const result = await this.streamChatWithTools(tools, callbacks, options, onAskUser);
+			const result = await this.streamChatWithTools(
+				tools,
+				callbacks,
+				options,
+				onAskUser,
+			);
 
 			return result;
 		} catch (error) {
@@ -271,11 +276,18 @@ export class AIService implements IAIService {
 	 * 确保上下文已注入到 System Prompt（仅首次调用时生效）
 	 * @param planMode Whether plan mode is enabled (from snapshot)
 	 */
-	private ensureContextInSystemPrompt(context: MatchContext, planMode: boolean = false): void {
+	private ensureContextInSystemPrompt(
+		context: MatchContext,
+		planMode: boolean = false,
+	): void {
 		if (this.contextInjected) return;
 
 		// 构建带上下文的 System Prompt
-		const prompt = buildSystemPrompt(context.cwd, context.projectType, planMode);
+		const prompt = buildSystemPrompt(
+			context.cwd,
+			context.projectType,
+			planMode,
+		);
 		this.session.setSystemPrompt(prompt);
 		this.contextInjected = true;
 	}
@@ -284,7 +296,10 @@ export class AIService implements IAIService {
 	 * 获取上下文相关工具
 	 * @param planMode Whether plan mode is enabled (from snapshot)
 	 */
-	private getContextTools(context: MatchContext, planMode: boolean = false): OpenAITool[] {
+	private getContextTools(
+		context: MatchContext,
+		planMode: boolean = false,
+	): OpenAITool[] {
 		// Plan mode: only plan tool is available
 		if (planMode) {
 			const planTool = this.registry.getTool("plan");

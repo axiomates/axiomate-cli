@@ -16,7 +16,9 @@ describe("FileMenu", () => {
 
 	describe("loading state", () => {
 		it("should show loading indicator when loading", () => {
-			const { lastFrame } = render(<FileMenu {...defaultProps} loading={true} />);
+			const { lastFrame } = render(
+				<FileMenu {...defaultProps} loading={true} />,
+			);
 
 			expect(lastFrame()).toContain("Loading...");
 		});
@@ -37,7 +39,9 @@ describe("FileMenu", () => {
 				{ name: "file2.ts", path: "/project/file2.ts", isDirectory: false },
 			];
 
-			const { lastFrame } = render(<FileMenu {...defaultProps} files={files} />);
+			const { lastFrame } = render(
+				<FileMenu {...defaultProps} files={files} />,
+			);
 
 			expect(lastFrame()).toContain("file1.ts");
 			expect(lastFrame()).toContain("file2.ts");
@@ -50,7 +54,9 @@ describe("FileMenu", () => {
 				{ name: "test", path: "/project/test", isDirectory: true },
 			];
 
-			const { lastFrame } = render(<FileMenu {...defaultProps} files={files} />);
+			const { lastFrame } = render(
+				<FileMenu {...defaultProps} files={files} />,
+			);
 
 			expect(lastFrame()).toContain("src");
 			expect(lastFrame()).toContain("📁");
@@ -63,7 +69,9 @@ describe("FileMenu", () => {
 				{ name: "README.md", path: "/project/README.md", isDirectory: false },
 			];
 
-			const { lastFrame } = render(<FileMenu {...defaultProps} files={files} />);
+			const { lastFrame } = render(
+				<FileMenu {...defaultProps} files={files} />,
+			);
 
 			expect(lastFrame()).toContain("📁");
 			expect(lastFrame()).toContain("📄");
@@ -77,7 +85,9 @@ describe("FileMenu", () => {
 				{ name: "utils", path: "/project/src/utils", isDirectory: true },
 			];
 
-			const { lastFrame } = render(<FileMenu {...defaultProps} files={files} />);
+			const { lastFrame } = render(
+				<FileMenu {...defaultProps} files={files} />,
+			);
 
 			expect(lastFrame()).toContain(".");
 			expect(lastFrame()).toContain("(Select this folder)");
@@ -134,7 +144,11 @@ describe("FileMenu", () => {
 			];
 
 			const { lastFrame } = render(
-				<FileMenu {...defaultProps} files={files} path={["src", "components"]} />,
+				<FileMenu
+					{...defaultProps}
+					files={files}
+					path={["src", "components"]}
+				/>,
 			);
 
 			expect(lastFrame()).toContain("src");

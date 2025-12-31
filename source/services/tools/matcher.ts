@@ -220,7 +220,11 @@ const DIRECTORY_DETECTION_RULES: DirectoryDetectionRule[] = [
 	// .NET (vs2022 only for .NET projects)
 	{ path: "bin", isDirectory: true, tools: ["dotnet"] },
 	{ path: "obj", isDirectory: true, tools: ["dotnet"] },
-	{ path: "*.csproj", isDirectory: false, tools: ["dotnet", "vs2022", "msbuild"] },
+	{
+		path: "*.csproj",
+		isDirectory: false,
+		tools: ["dotnet", "vs2022", "msbuild"],
+	},
 	{ path: "*.sln", isDirectory: false, tools: ["dotnet", "vs2022", "msbuild"] },
 
 	// Databases

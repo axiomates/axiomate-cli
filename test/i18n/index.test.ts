@@ -126,14 +126,15 @@ describe("i18n", () => {
 			expect(locale).toBe("en");
 
 			// Restore
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = originalDateTimeFormat;
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat =
+				originalDateTimeFormat;
 		});
 
 		it("should detect Japanese locale", () => {
 			// Save original
 			const originalDateTimeFormat = Intl.DateTimeFormat;
 			// Mock to return Japanese locale
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function() {
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function () {
 				return {
 					resolvedOptions: () => ({ locale: "ja-JP" }),
 				};
@@ -143,14 +144,15 @@ describe("i18n", () => {
 			expect(locale).toBe("ja");
 
 			// Restore
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = originalDateTimeFormat;
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat =
+				originalDateTimeFormat;
 		});
 
 		it("should detect Chinese locale", () => {
 			// Save original
 			const originalDateTimeFormat = Intl.DateTimeFormat;
 			// Mock to return Chinese locale
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function() {
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function () {
 				return {
 					resolvedOptions: () => ({ locale: "zh-Hans-CN" }),
 				};
@@ -160,14 +162,15 @@ describe("i18n", () => {
 			expect(locale).toBe("zh-CN");
 
 			// Restore
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = originalDateTimeFormat;
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat =
+				originalDateTimeFormat;
 		});
 
 		it("should detect English locale", () => {
 			// Save original
 			const originalDateTimeFormat = Intl.DateTimeFormat;
 			// Mock to return English locale
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function() {
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function () {
 				return {
 					resolvedOptions: () => ({ locale: "en-US" }),
 				};
@@ -177,14 +180,15 @@ describe("i18n", () => {
 			expect(locale).toBe("en");
 
 			// Restore
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = originalDateTimeFormat;
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat =
+				originalDateTimeFormat;
 		});
 
 		it("should fallback to 'en' for unsupported locale", () => {
 			// Save original
 			const originalDateTimeFormat = Intl.DateTimeFormat;
 			// Mock to return unsupported locale
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function() {
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = function () {
 				return {
 					resolvedOptions: () => ({ locale: "fr-FR" }),
 				};
@@ -194,7 +198,8 @@ describe("i18n", () => {
 			expect(locale).toBe("en");
 
 			// Restore
-			(Intl as { DateTimeFormat: unknown }).DateTimeFormat = originalDateTimeFormat;
+			(Intl as { DateTimeFormat: unknown }).DateTimeFormat =
+				originalDateTimeFormat;
 		});
 	});
 

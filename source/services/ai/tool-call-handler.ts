@@ -197,7 +197,6 @@ export class ToolCallHandler implements IToolCallHandler {
 		call: ToolCall,
 		onAskUser?: AskUserCallback,
 	): Promise<ChatMessage> {
-
 		// Parse arguments
 		let args: { question?: string; options?: string } = {};
 		try {
@@ -230,7 +229,8 @@ export class ToolCallHandler implements IToolCallHandler {
 			return {
 				role: "tool",
 				tool_call_id: call.id,
-				content: "[Ask User] Error: User interaction not available in this context",
+				content:
+					"[Ask User] Error: User interaction not available in this context",
 			};
 		}
 

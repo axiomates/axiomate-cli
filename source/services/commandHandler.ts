@@ -73,9 +73,25 @@ type CommandResult =
 	| { type: "config"; key: string; value: string }
 	| { type: "action"; action: "exit" }
 	| { type: "async"; handler: () => Promise<string> }
-	| { type: "callback"; callback: "compact" | "stop" | "recreate_ai_service" | "session_new" | "sessionClear" }
-	| { type: "callback_with_message"; callback: "recreate_ai_service"; content: string }
-	| { type: "callback_with_param"; callback: "session_switch" | "session_delete"; param: string }
+	| {
+			type: "callback";
+			callback:
+				| "compact"
+				| "stop"
+				| "recreate_ai_service"
+				| "session_new"
+				| "sessionClear";
+	  }
+	| {
+			type: "callback_with_message";
+			callback: "recreate_ai_service";
+			content: string;
+	  }
+	| {
+			type: "callback_with_param";
+			callback: "session_switch" | "session_delete";
+			param: string;
+	  }
 	| { type: "error"; message: string };
 
 /**
@@ -146,7 +162,10 @@ const internalHandlers: Record<string, InternalHandler> = {
 		// 根据名称查找 session
 		const store = getSessionStore();
 		if (!store) {
-			return { type: "error" as const, message: t("session.storeNotInitialized") };
+			return {
+				type: "error" as const,
+				message: t("session.storeNotInitialized"),
+			};
 		}
 
 		const sessions = store.listSessions();
@@ -172,7 +191,10 @@ const internalHandlers: Record<string, InternalHandler> = {
 		// 根据名称查找 session
 		const store = getSessionStore();
 		if (!store) {
-			return { type: "error" as const, message: t("session.storeNotInitialized") };
+			return {
+				type: "error" as const,
+				message: t("session.storeNotInitialized"),
+			};
 		}
 
 		const sessions = store.listSessions();
@@ -183,7 +205,10 @@ const internalHandlers: Record<string, InternalHandler> = {
 
 		// 检查是否是活跃 session
 		if (session.id === store.getActiveSessionId()) {
-			return { type: "error" as const, message: t("session.cannotDeleteActive") };
+			return {
+				type: "error" as const,
+				message: t("session.cannotDeleteActive"),
+			};
 		}
 
 		return {
@@ -260,12 +285,18 @@ const internalHandlers: Record<string, InternalHandler> = {
 		// path = ["model", "gpt-4o"] -> modelId = "gpt-4o"
 		const modelId = path[path.length - 1];
 		if (!modelId) {
-			return { type: "error" as const, message: t("commandHandler.unknownCommand") };
+			return {
+				type: "error" as const,
+				message: t("commandHandler.unknownCommand"),
+			};
 		}
 
 		const model = getModelById(modelId);
 		if (!model) {
-			return { type: "error" as const, message: t("commandHandler.unknownCommand") };
+			return {
+				type: "error" as const,
+				message: t("commandHandler.unknownCommand"),
+			};
 		}
 
 		// 保存到配置
@@ -293,7 +324,7 @@ const internalHandlers: Record<string, InternalHandler> = {
 	},
 
 	// 语言切换处理器
-	"language_en": () => {
+	language_en: () => {
 		setLocale("en");
 		return {
 			type: "message" as const,
@@ -309,7 +340,7 @@ const internalHandlers: Record<string, InternalHandler> = {
 		};
 	},
 
-	"language_ja": () => {
+	language_ja: () => {
 		setLocale("ja");
 		return {
 			type: "message" as const,
@@ -341,12 +372,18 @@ const internalHandlers: Record<string, InternalHandler> = {
 		// path = ["suggestion", "model", "<model-id>"]
 		const modelId = path[path.length - 1];
 		if (!modelId) {
-			return { type: "error" as const, message: t("commandHandler.unknownCommand") };
+			return {
+				type: "error" as const,
+				message: t("commandHandler.unknownCommand"),
+			};
 		}
 
 		const model = getModelById(modelId);
 		if (!model) {
-			return { type: "error" as const, message: t("commandHandler.unknownCommand") };
+			return {
+				type: "error" as const,
+				message: t("commandHandler.unknownCommand"),
+			};
 		}
 
 		// 保存到配置
@@ -355,7 +392,9 @@ const internalHandlers: Record<string, InternalHandler> = {
 
 		return {
 			type: "message" as const,
-			content: t("commandHandler.suggestionModelSwitched", { model: model.name }),
+			content: t("commandHandler.suggestionModelSwitched", {
+				model: model.name,
+			}),
 		};
 	},
 

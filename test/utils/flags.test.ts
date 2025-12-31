@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { setFlags, getFlags, type CliFlags } from "../../source/utils/flags.js";
+import { setFlags, getFlags } from "../../source/utils/flags.js";
 
 describe("flags", () => {
 	beforeEach(() => {

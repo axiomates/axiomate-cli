@@ -63,7 +63,8 @@ const fileDefinition: ToolDefinition = {
 		},
 		{
 			name: "write",
-			description: "Write file (preserves encoding for existing files, UTF-8 for new)",
+			description:
+				"Write file (preserves encoding for existing files, UTF-8 for new)",
 			parameters: [
 				{
 					name: "path",

@@ -37,9 +37,8 @@ describe("localsettings", () => {
 				throw new Error("ENOENT");
 			});
 
-			const { initLocalSettings, getLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings, getLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			const settings = initLocalSettings();
 
@@ -60,9 +59,8 @@ describe("localsettings", () => {
 				}),
 			);
 
-			const { initLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			const settings = initLocalSettings();
 
@@ -78,9 +76,8 @@ describe("localsettings", () => {
 				}),
 			);
 
-			const { initLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			const settings = initLocalSettings();
 
@@ -90,9 +87,8 @@ describe("localsettings", () => {
 		it("should return defaults for invalid JSON", async () => {
 			vi.mocked(fs.readFileSync).mockReturnValue("invalid json");
 
-			const { initLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			const settings = initLocalSettings();
 
@@ -106,9 +102,8 @@ describe("localsettings", () => {
 		it("should return defaults for null settings", async () => {
 			vi.mocked(fs.readFileSync).mockReturnValue("null");
 
-			const { initLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			const settings = initLocalSettings();
 
@@ -118,9 +113,8 @@ describe("localsettings", () => {
 		it("should return defaults for array settings", async () => {
 			vi.mocked(fs.readFileSync).mockReturnValue("[]");
 
-			const { initLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			const settings = initLocalSettings();
 
@@ -138,9 +132,8 @@ describe("localsettings", () => {
 				}),
 			);
 
-			const { initLocalSettings, getLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings, getLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			initLocalSettings();
 			const settings1 = getLocalSettings();
@@ -192,9 +185,8 @@ describe("localsettings", () => {
 				}),
 			);
 
-			const { initLocalSettings, updateLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings, updateLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			initLocalSettings();
 
@@ -213,9 +205,8 @@ describe("localsettings", () => {
 				throw new Error("ENOENT");
 			});
 
-			const { initLocalSettings, updateLocalSettings } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings, updateLocalSettings } =
+				await import("../../source/utils/localsettings.js");
 
 			initLocalSettings();
 			updateLocalSettings({
@@ -235,9 +226,8 @@ describe("localsettings", () => {
 				throw new Error("ENOENT");
 			});
 
-			const { initLocalSettings, getLocalSettingsPath } = await import(
-				"../../source/utils/localsettings.js"
-			);
+			const { initLocalSettings, getLocalSettingsPath } =
+				await import("../../source/utils/localsettings.js");
 
 			initLocalSettings();
 			const path = getLocalSettingsPath();

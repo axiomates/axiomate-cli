@@ -59,8 +59,12 @@ export type BuildContentOptions = {
 export async function buildMessageContent(
 	options: BuildContentOptions,
 ): Promise<ContentBuildResult> {
-	const { userMessage, files: fileRefs, cwd: workingDir, availableTokens } =
-		options;
+	const {
+		userMessage,
+		files: fileRefs,
+		cwd: workingDir,
+		availableTokens,
+	} = options;
 
 	// 如果没有文件，直接返回用户消息
 	if (fileRefs.length === 0) {

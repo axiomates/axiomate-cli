@@ -41,7 +41,9 @@ describe("python discoverer", () => {
 		});
 
 		it("should detect python3 first if available", async () => {
-			vi.mocked(commandExists).mockImplementation(async (cmd) => cmd === "python3");
+			vi.mocked(commandExists).mockImplementation(
+				async (cmd) => cmd === "python3",
+			);
 			vi.mocked(getExecutablePath).mockResolvedValue("/usr/bin/python3");
 			vi.mocked(getVersion).mockResolvedValue("Python 3.11.0");
 
@@ -52,7 +54,9 @@ describe("python discoverer", () => {
 		});
 
 		it("should fallback to python if python3 not found", async () => {
-			vi.mocked(commandExists).mockImplementation(async (cmd) => cmd === "python");
+			vi.mocked(commandExists).mockImplementation(
+				async (cmd) => cmd === "python",
+			);
 			vi.mocked(getExecutablePath).mockResolvedValue("/usr/bin/python");
 			vi.mocked(getVersion).mockResolvedValue("Python 3.9.0");
 
@@ -68,7 +72,9 @@ describe("python discoverer", () => {
 
 			const result = await detectPython();
 
-			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(true);
+			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(
+				true,
+			);
 		});
 
 		it("should handle null executable path", async () => {

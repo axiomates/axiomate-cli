@@ -217,11 +217,7 @@ describe("discoverers/base", () => {
 			await vi.advanceTimersByTimeAsync(100);
 			await resultPromise;
 
-			expect(spawn).toHaveBeenCalledWith(
-				"myapp",
-				["-v"],
-				expect.any(Object),
-			);
+			expect(spawn).toHaveBeenCalledWith("myapp", ["-v"], expect.any(Object));
 		});
 
 		it("should use stderr when useStderr option is true", async () => {
@@ -380,7 +376,8 @@ HKEY_LOCAL_MACHINE\\Software\\Test
 				createMockProcess(
 					JSON.stringify([
 						{
-							installationPath: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional",
+							installationPath:
+								"C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional",
 							installationVersion: "17.8.0",
 							productId: "Microsoft.VisualStudio.Product.Professional",
 						},

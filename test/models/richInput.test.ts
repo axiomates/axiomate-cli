@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
 	segmentsToRanges,
 	type ColoredSegment,
-	type ColorRange,
 } from "../../source/models/richInput.js";
 
 describe("richInput", () => {

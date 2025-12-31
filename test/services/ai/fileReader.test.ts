@@ -223,10 +223,7 @@ describe("fileReader", () => {
 
 	describe("formatDirectoryListing", () => {
 		it("should format directory listing", () => {
-			const result = formatDirectoryListing("src", [
-				"file1.ts",
-				"file2.ts",
-			]);
+			const result = formatDirectoryListing("src", ["file1.ts", "file2.ts"]);
 
 			expect(result).toBe(
 				'<directory path="src">file1.ts, file2.ts</directory>',

@@ -126,7 +126,11 @@ export class MessageQueue {
 	 * @param planMode Plan mode snapshot (captured at enqueue time)
 	 * @returns 消息 ID
 	 */
-	enqueue(content: string, files: FileReference[] = [], planMode: boolean = false): string {
+	enqueue(
+		content: string,
+		files: FileReference[] = [],
+		planMode: boolean = false,
+	): string {
 		// 新消息入队时重置停止状态
 		this.stopped = false;
 

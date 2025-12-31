@@ -18,7 +18,10 @@ vi.mock("../../../source/services/tools/executor.js", () => ({
 	getToolAction: vi.fn(),
 }));
 
-import { executeToolAction, getToolAction } from "../../../source/services/tools/executor.js";
+import {
+	executeToolAction,
+	getToolAction,
+} from "../../../source/services/tools/executor.js";
 
 describe("ToolCallHandler", () => {
 	let registry: IToolRegistry;
@@ -146,7 +149,11 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should return error when arguments are invalid JSON", async () => {
-			const action = { name: "status", description: "Show status", parameters: [] };
+			const action = {
+				name: "status",
+				description: "Show status",
+				parameters: [],
+			};
 			vi.mocked(registry.getTool).mockReturnValue({
 				id: "git",
 				name: "Git",
@@ -175,7 +182,11 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should execute tool successfully", async () => {
-			const action = { name: "status", description: "Show status", parameters: [] };
+			const action = {
+				name: "status",
+				description: "Show status",
+				parameters: [],
+			};
 			vi.mocked(registry.getTool).mockReturnValue({
 				id: "git",
 				name: "Git",
@@ -212,7 +223,11 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should handle empty stdout with success message", async () => {
-			const action = { name: "init", description: "Initialize repo", parameters: [] };
+			const action = {
+				name: "init",
+				description: "Initialize repo",
+				parameters: [],
+			};
 			vi.mocked(registry.getTool).mockReturnValue({
 				id: "git",
 				name: "Git",
@@ -247,7 +262,11 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should handle execution failure", async () => {
-			const action = { name: "push", description: "Push changes", parameters: [] };
+			const action = {
+				name: "push",
+				description: "Push changes",
+				parameters: [],
+			};
 			vi.mocked(registry.getTool).mockReturnValue({
 				id: "git",
 				name: "Git",
@@ -284,8 +303,16 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should handle multiple tool calls", async () => {
-			const action1 = { name: "status", description: "Show status", parameters: [] };
-			const action2 = { name: "branch", description: "Show branches", parameters: [] };
+			const action1 = {
+				name: "status",
+				description: "Show status",
+				parameters: [],
+			};
+			const action2 = {
+				name: "branch",
+				description: "Show branches",
+				parameters: [],
+			};
 
 			vi.mocked(registry.getTool).mockReturnValue({
 				id: "git",
@@ -335,7 +362,11 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should include tool and action info in output", async () => {
-			const action = { name: "status", description: "Show status", parameters: [] };
+			const action = {
+				name: "status",
+				description: "Show status",
+				parameters: [],
+			};
 			vi.mocked(registry.getTool).mockReturnValue({
 				id: "git",
 				name: "Git",
@@ -370,7 +401,11 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should handle execution failure without specific error", async () => {
-			const action = { name: "status", description: "Show status", parameters: [] };
+			const action = {
+				name: "status",
+				description: "Show status",
+				parameters: [],
+			};
 			vi.mocked(registry.getTool).mockReturnValue({
 				id: "git",
 				name: "Git",
@@ -412,7 +447,10 @@ describe("ToolCallHandler", () => {
 		});
 
 		it("should accept options", () => {
-			const result = createToolCallHandler(registry, { cwd: "/home", timeout: 10000 });
+			const result = createToolCallHandler(registry, {
+				cwd: "/home",
+				timeout: 10000,
+			});
 			expect(result).toBeInstanceOf(ToolCallHandler);
 		});
 	});

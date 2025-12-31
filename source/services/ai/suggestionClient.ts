@@ -111,10 +111,7 @@ export class SuggestionClient {
 	private cache: LRUCache;
 
 	constructor() {
-		this.cache = new LRUCache(
-			SUGGESTION_CACHE.maxSize,
-			SUGGESTION_CACHE.ttl,
-		);
+		this.cache = new LRUCache(SUGGESTION_CACHE.maxSize, SUGGESTION_CACHE.ttl);
 	}
 
 	/**
@@ -190,10 +187,7 @@ export class SuggestionClient {
 	/**
 	 * Generate cache key from input and context
 	 */
-	private generateCacheKey(
-		input: string,
-		context?: SuggestionContext,
-	): string {
+	private generateCacheKey(input: string, context?: SuggestionContext): string {
 		const parts = [input];
 		if (context?.cwd) {
 			parts.push(context.cwd);

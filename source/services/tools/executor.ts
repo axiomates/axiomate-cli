@@ -335,7 +335,12 @@ export async function executeToolAction(
 		const replaceAll = filledParams.replace_all === true;
 		const cwd = options?.cwd || process.cwd();
 		const fullPath = isAbsolute(path) ? path : join(cwd, path);
-		const result = editFileContent(fullPath, oldContent, newContent, replaceAll);
+		const result = editFileContent(
+			fullPath,
+			oldContent,
+			newContent,
+			replaceAll,
+		);
 		return {
 			success: result.success,
 			stdout: result.success
@@ -412,7 +417,12 @@ export async function executeToolAction(
 		const oldContent = filledParams.old_content as string;
 		const newContent = filledParams.new_content as string;
 		const replaceAll = filledParams.replace_all === true;
-		const result = editFileContent(planPath, oldContent, newContent, replaceAll);
+		const result = editFileContent(
+			planPath,
+			oldContent,
+			newContent,
+			replaceAll,
+		);
 		return {
 			success: result.success,
 			stdout: result.success ? "Plan updated" : "",
@@ -735,7 +745,10 @@ function htmlToText(html: string): string {
 	text = text.replace(/<li[^>]*>/gi, "• ");
 
 	// Extract link URLs
-	text = text.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, "$2 ($1)");
+	text = text.replace(
+		/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi,
+		"$2 ($1)",
+	);
 
 	// Remove remaining HTML tags
 	text = text.replace(/<[^>]+>/g, "");

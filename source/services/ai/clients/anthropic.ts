@@ -224,9 +224,7 @@ export class AnthropicClient implements IAIClient {
 	/**
 	 * 解析 stop_reason 到统一的 FinishReason
 	 */
-	private parseStopReason(
-		reason: string | null | undefined,
-	): FinishReason {
+	private parseStopReason(reason: string | null | undefined): FinishReason {
 		switch (reason) {
 			case "end_turn":
 				return "stop";
@@ -252,8 +250,7 @@ export class AnthropicClient implements IAIClient {
 		options?: StreamOptions,
 	): AsyncGenerator<AIStreamChunk> {
 		const baseUrl =
-			this.config.baseUrl?.replace(/\/$/, "") ||
-			"https://api.anthropic.com/v1";
+			this.config.baseUrl?.replace(/\/$/, "") || "https://api.anthropic.com/v1";
 		const url = `${baseUrl}/messages`;
 
 		// 提取 system 消息
@@ -452,10 +449,7 @@ export class AnthropicClient implements IAIClient {
 									delta.partial_json
 								) {
 									block.input = (block.input || "") + delta.partial_json;
-								} else if (
-									delta.type === "thinking_delta" &&
-									delta.thinking
-								) {
+								} else if (delta.type === "thinking_delta" && delta.thinking) {
 									block.thinking = (block.thinking || "") + delta.thinking;
 									// yield 思考内容
 									yield {
@@ -484,11 +478,7 @@ export class AnthropicClient implements IAIClient {
 								// 收集所有 tool_use 块
 								const toolCalls: ToolCall[] = [];
 								for (const [, block] of contentBlocks) {
-									if (
-										block.type === "tool_use" &&
-										block.id &&
-										block.name
-									) {
+									if (block.type === "tool_use" && block.id && block.name) {
 										toolCalls.push({
 											id: block.id,
 											type: "function",

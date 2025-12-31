@@ -27,7 +27,10 @@ vi.mock("../../../../source/services/ai/adapters/anthropic.js", () => ({
 }));
 
 import { AnthropicClient } from "../../../../source/services/ai/clients/anthropic.js";
-import { isThinkingEnabled, currentModelSupportsThinking } from "../../../../source/utils/config.js";
+import {
+	isThinkingEnabled,
+	currentModelSupportsThinking,
+} from "../../../../source/utils/config.js";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -380,10 +383,10 @@ describe("AnthropicClient", () => {
 			});
 
 			await expect(async () => {
-				for await (const _ of client.streamChat([
+				for await (const _chunk of client.streamChat([
 					{ role: "user", content: "Hi" },
 				])) {
-					// consume
+					void _chunk; // consume
 				}
 			}).rejects.toThrow("Anthropic API error: 500 Internal Server Error");
 		});
@@ -401,10 +404,10 @@ describe("AnthropicClient", () => {
 			});
 
 			await expect(async () => {
-				for await (const _ of client.streamChat([
+				for await (const _chunk of client.streamChat([
 					{ role: "user", content: "Hi" },
 				])) {
-					// consume
+					void _chunk; // consume
 				}
 			}).rejects.toThrow("Response body is null");
 		});
@@ -420,12 +423,12 @@ describe("AnthropicClient", () => {
 			});
 
 			await expect(async () => {
-				for await (const _ of client.streamChat(
+				for await (const _chunk of client.streamChat(
 					[{ role: "user", content: "Hi" }],
 					undefined,
 					{ signal: controller.signal },
 				)) {
-					// consume
+					void _chunk; // consume
 				}
 			}).rejects.toThrow("Request was aborted");
 		});
@@ -562,10 +565,10 @@ describe("AnthropicClient", () => {
 			});
 
 			await expect(async () => {
-				for await (const _ of client.streamChat([
+				for await (const _chunk of client.streamChat([
 					{ role: "user", content: "Hi" },
 				])) {
-					// consume
+					void _chunk; // consume
 				}
 			}).rejects.toThrow("Anthropic streaming error: Rate limit exceeded");
 		});
@@ -616,7 +619,7 @@ describe("AnthropicClient", () => {
 			const encoder = new TextEncoder();
 			const events = [
 				'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n',
-				'event: content_block_delta\ndata: {invalid json}\n\n',
+				"event: content_block_delta\ndata: {invalid json}\n\n",
 				'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Valid"}}\n\n',
 				'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}\n\n',
 				'event: message_stop\ndata: {"type":"message_stop"}\n\n',
@@ -685,7 +688,10 @@ describe("AnthropicClient", () => {
 			});
 
 			const controller = new AbortController();
-			const removeEventListenerSpy = vi.spyOn(controller.signal, "removeEventListener");
+			const removeEventListenerSpy = vi.spyOn(
+				controller.signal,
+				"removeEventListener",
+			);
 
 			const client = new AnthropicClient({
 				apiKey: "test-key",
@@ -693,16 +699,19 @@ describe("AnthropicClient", () => {
 				baseUrl: "https://api.anthropic.com/v1",
 			});
 
-			for await (const _ of client.streamChat(
+			for await (const _chunk of client.streamChat(
 				[{ role: "user", content: "Hi" }],
 				undefined,
 				{ signal: controller.signal },
 			)) {
-				// consume
+				void _chunk; // consume
 			}
 
 			// Verify that removeEventListener was called in the finally block
-			expect(removeEventListenerSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+			expect(removeEventListenerSpy).toHaveBeenCalledWith(
+				"abort",
+				expect.any(Function),
+			);
 		});
 	});
 });

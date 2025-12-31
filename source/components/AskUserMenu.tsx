@@ -37,9 +37,10 @@ export function AskUserMenu({
 	// Limit to max 3 options + custom input
 	const limitedOptions = options.slice(0, 3);
 	const customInputLabel = t("askUser.customInput");
-	const allOptions = limitedOptions.length > 0
-		? [...limitedOptions, customInputLabel]
-		: [customInputLabel];
+	const allOptions =
+		limitedOptions.length > 0
+			? [...limitedOptions, customInputLabel]
+			: [customInputLabel];
 
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [isCustomInputMode, setIsCustomInputMode] = useState(false);
@@ -93,7 +94,10 @@ export function AskUserMenu({
 
 	// 计算渲染用的可见行信息
 	const lineInfo = useMemo(() => {
-		const { lines, lineIndex, col } = getCursorLineInfo(customInputValue, cursor);
+		const { lines, lineIndex, col } = getCursorLineInfo(
+			customInputValue,
+			cursor,
+		);
 		const totalLineCount = lines.length;
 
 		// 如果总行数超过限制，计算可见窗口
@@ -103,12 +107,18 @@ export function AskUserMenu({
 			// 以光标所在行为中心，显示 maxInputLines 行
 			const halfWindow = Math.floor(maxInputLines / 2);
 			visibleStartIndex = Math.max(0, lineIndex - halfWindow);
-			const visibleEndIndex = Math.min(totalLineCount, visibleStartIndex + maxInputLines);
+			const visibleEndIndex = Math.min(
+				totalLineCount,
+				visibleStartIndex + maxInputLines,
+			);
 			// 调整起始位置，确保显示完整的 maxInputLines 行
 			if (visibleEndIndex - visibleStartIndex < maxInputLines) {
 				visibleStartIndex = Math.max(0, visibleEndIndex - maxInputLines);
 			}
-			visibleLines = lines.slice(visibleStartIndex, visibleStartIndex + maxInputLines);
+			visibleLines = lines.slice(
+				visibleStartIndex,
+				visibleStartIndex + maxInputLines,
+			);
 		}
 
 		return {
@@ -120,15 +130,17 @@ export function AskUserMenu({
 		};
 	}, [customInputValue, cursor, maxInputLines, getCursorLineInfo]);
 
-
 	// 计算给定行索引的起始字符位置
-	const getLineStartPosition = useCallback((lineIndex: number, allLines: string[]) => {
-		let pos = 0;
-		for (let i = 0; i < lineIndex; i++) {
-			pos += allLines[i]!.length + 1; // +1 for newline
-		}
-		return pos;
-	}, []);
+	const getLineStartPosition = useCallback(
+		(lineIndex: number, allLines: string[]) => {
+			let pos = 0;
+			for (let i = 0; i < lineIndex; i++) {
+				pos += allLines[i]!.length + 1; // +1 for newline
+			}
+			return pos;
+		},
+		[],
+	);
 
 	// Keyboard input handling
 	useInput(
@@ -142,7 +154,10 @@ export function AskUserMenu({
 
 				// Ctrl+Enter - 插入换行
 				if (key.ctrl && key.return) {
-					const newValue = customInputValue.slice(0, cursor) + "\n" + customInputValue.slice(cursor);
+					const newValue =
+						customInputValue.slice(0, cursor) +
+						"\n" +
+						customInputValue.slice(cursor);
 					setCustomInputValue(newValue);
 					setCursor(cursor + 1);
 					return;
@@ -156,12 +171,16 @@ export function AskUserMenu({
 
 				// 上箭头 - 移动到上一行
 				if (key.upArrow) {
-					const { lines, lineIndex, col } = getCursorLineInfo(customInputValue, cursor);
+					const { lines, lineIndex, col } = getCursorLineInfo(
+						customInputValue,
+						cursor,
+					);
 					if (lineIndex > 0) {
 						const prevLineIndex = lineIndex - 1;
 						const prevLine = lines[prevLineIndex]!;
 						const newCol = Math.min(col, prevLine.length);
-						const newCursor = getLineStartPosition(prevLineIndex, lines) + newCol;
+						const newCursor =
+							getLineStartPosition(prevLineIndex, lines) + newCol;
 						setCursor(newCursor);
 					}
 					return;
@@ -169,12 +188,16 @@ export function AskUserMenu({
 
 				// 下箭头 - 移动到下一行
 				if (key.downArrow) {
-					const { lines, lineIndex, col } = getCursorLineInfo(customInputValue, cursor);
+					const { lines, lineIndex, col } = getCursorLineInfo(
+						customInputValue,
+						cursor,
+					);
 					if (lineIndex < lines.length - 1) {
 						const nextLineIndex = lineIndex + 1;
 						const nextLine = lines[nextLineIndex]!;
 						const newCol = Math.min(col, nextLine.length);
-						const newCursor = getLineStartPosition(nextLineIndex, lines) + newCol;
+						const newCursor =
+							getLineStartPosition(nextLineIndex, lines) + newCol;
 						setCursor(newCursor);
 					}
 					return;
@@ -205,7 +228,9 @@ export function AskUserMenu({
 							(input === "" || input === "\b" || input === "\x7f"));
 
 					if (isBackspace && cursor > 0) {
-						const newValue = customInputValue.slice(0, cursor - 1) + customInputValue.slice(cursor);
+						const newValue =
+							customInputValue.slice(0, cursor - 1) +
+							customInputValue.slice(cursor);
 						setCustomInputValue(newValue);
 						setCursor(cursor - 1);
 					}
@@ -214,7 +239,10 @@ export function AskUserMenu({
 
 				// Ctrl+A - 移动到行首
 				if (key.ctrl && input === "a") {
-					const { lines, lineIndex } = getCursorLineInfo(customInputValue, cursor);
+					const { lines, lineIndex } = getCursorLineInfo(
+						customInputValue,
+						cursor,
+					);
 					const lineStart = getLineStartPosition(lineIndex, lines);
 					setCursor(lineStart);
 					return;
@@ -222,7 +250,10 @@ export function AskUserMenu({
 
 				// Ctrl+E - 移动到行尾
 				if (key.ctrl && input === "e") {
-					const { lines, lineIndex } = getCursorLineInfo(customInputValue, cursor);
+					const { lines, lineIndex } = getCursorLineInfo(
+						customInputValue,
+						cursor,
+					);
 					const lineStart = getLineStartPosition(lineIndex, lines);
 					const lineEnd = lineStart + lines[lineIndex]!.length;
 					setCursor(lineEnd);
@@ -231,7 +262,10 @@ export function AskUserMenu({
 
 				// 普通字符输入
 				if (input && !key.ctrl && !key.meta) {
-					const newValue = customInputValue.slice(0, cursor) + input + customInputValue.slice(cursor);
+					const newValue =
+						customInputValue.slice(0, cursor) +
+						input +
+						customInputValue.slice(cursor);
 					setCustomInputValue(newValue);
 					setCursor(cursor + input.length);
 				}
@@ -240,13 +274,9 @@ export function AskUserMenu({
 
 			// Navigation in options list
 			if (key.upArrow) {
-				setSelectedIndex((i) =>
-					i === 0 ? allOptions.length - 1 : i - 1,
-				);
+				setSelectedIndex((i) => (i === 0 ? allOptions.length - 1 : i - 1));
 			} else if (key.downArrow) {
-				setSelectedIndex((i) =>
-					i === allOptions.length - 1 ? 0 : i + 1,
-				);
+				setSelectedIndex((i) => (i === allOptions.length - 1 ? 0 : i + 1));
 			} else if (key.return) {
 				handleSelect();
 			} else if (key.escape) {
@@ -263,7 +293,9 @@ export function AskUserMenu({
 
 			{/* Question */}
 			<Box>
-				<Text color="cyan" bold>? {question}</Text>
+				<Text color="cyan" bold>
+					? {question}
+				</Text>
 			</Box>
 
 			{isCustomInputMode ? (
@@ -272,7 +304,10 @@ export function AskUserMenu({
 					{/* 显示上方省略指示器 */}
 					{lineInfo.visibleStartIndex > 0 && (
 						<Box>
-							<Text color="gray">    ↑ {lineInfo.visibleStartIndex} more line(s)</Text>
+							<Text color="gray">
+								{" "}
+								↑ {lineInfo.visibleStartIndex} more line(s)
+							</Text>
 						</Box>
 					)}
 					{lineInfo.visibleLines.map((line, visibleIdx) => {
@@ -295,9 +330,17 @@ export function AskUserMenu({
 						);
 					})}
 					{/* 显示下方省略指示器 */}
-					{lineInfo.visibleStartIndex + lineInfo.visibleLines.length < lineInfo.totalLineCount && (
+					{lineInfo.visibleStartIndex + lineInfo.visibleLines.length <
+						lineInfo.totalLineCount && (
 						<Box>
-							<Text color="gray">    ↓ {lineInfo.totalLineCount - lineInfo.visibleStartIndex - lineInfo.visibleLines.length} more line(s)</Text>
+							<Text color="gray">
+								{" "}
+								↓{" "}
+								{lineInfo.totalLineCount -
+									lineInfo.visibleStartIndex -
+									lineInfo.visibleLines.length}{" "}
+								more line(s)
+							</Text>
 						</Box>
 					)}
 				</Box>
@@ -312,7 +355,9 @@ export function AskUserMenu({
 							<Box key={index}>
 								<Text
 									backgroundColor={isSelected ? "blue" : undefined}
-									color={isSelected ? "white" : isCustomOption ? "gray" : undefined}
+									color={
+										isSelected ? "white" : isCustomOption ? "gray" : undefined
+									}
 								>
 									{"  "}
 									{isSelected ? "▸ " : "  "}

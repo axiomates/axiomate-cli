@@ -120,10 +120,12 @@ describe("MessageQueue", () => {
 
 		it("should abort current request", async () => {
 			let abortSignal: AbortSignal | undefined;
-			const processor: MessageProcessor = vi.fn().mockImplementation((_, options) => {
-				abortSignal = options?.signal;
-				return new Promise(() => {}); // 永不 resolve
-			});
+			const processor: MessageProcessor = vi
+				.fn()
+				.mockImplementation((_, options) => {
+					abortSignal = options?.signal;
+					return new Promise(() => {}); // 永不 resolve
+				});
 
 			const queue = new MessageQueue(processor, mockCallbacks);
 			queue.enqueue("message");
@@ -218,7 +220,10 @@ describe("MessageQueue", () => {
 			const id = queue.enqueue("message");
 
 			await vi.waitFor(() => {
-				expect(mockCallbacks.onMessageComplete).toHaveBeenCalledWith(id, "success response");
+				expect(mockCallbacks.onMessageComplete).toHaveBeenCalledWith(
+					id,
+					"success response",
+				);
 			});
 		});
 
@@ -264,10 +269,12 @@ describe("MessageQueue", () => {
 
 	describe("streaming callbacks", () => {
 		it("should forward stream start callback", async () => {
-			const processor: MessageProcessor = vi.fn().mockImplementation((_, options) => {
-				options?.streamCallbacks?.onStart?.();
-				return Promise.resolve("done");
-			});
+			const processor: MessageProcessor = vi
+				.fn()
+				.mockImplementation((_, options) => {
+					options?.streamCallbacks?.onStart?.();
+					return Promise.resolve("done");
+				});
 
 			const queue = new MessageQueue(processor, mockCallbacks);
 			const id = queue.enqueue("message");
@@ -278,11 +285,16 @@ describe("MessageQueue", () => {
 		});
 
 		it("should forward stream chunk callback", async () => {
-			const content: StreamContent = { reasoning: "thinking", content: "response" };
-			const processor: MessageProcessor = vi.fn().mockImplementation((_, options) => {
-				options?.streamCallbacks?.onChunk?.(content);
-				return Promise.resolve("done");
-			});
+			const content: StreamContent = {
+				reasoning: "thinking",
+				content: "response",
+			};
+			const processor: MessageProcessor = vi
+				.fn()
+				.mockImplementation((_, options) => {
+					options?.streamCallbacks?.onChunk?.(content);
+					return Promise.resolve("done");
+				});
 
 			const queue = new MessageQueue(processor, mockCallbacks);
 			const id = queue.enqueue("message");
@@ -293,30 +305,43 @@ describe("MessageQueue", () => {
 		});
 
 		it("should forward stream end callback", async () => {
-			const finalContent: StreamContent = { reasoning: "done thinking", content: "final" };
-			const processor: MessageProcessor = vi.fn().mockImplementation((_, options) => {
-				options?.streamCallbacks?.onEnd?.(finalContent);
-				return Promise.resolve("done");
-			});
+			const finalContent: StreamContent = {
+				reasoning: "done thinking",
+				content: "final",
+			};
+			const processor: MessageProcessor = vi
+				.fn()
+				.mockImplementation((_, options) => {
+					options?.streamCallbacks?.onEnd?.(finalContent);
+					return Promise.resolve("done");
+				});
 
 			const queue = new MessageQueue(processor, mockCallbacks);
 			const id = queue.enqueue("message");
 
 			await vi.waitFor(() => {
-				expect(mockCallbacks.onStreamEnd).toHaveBeenCalledWith(id, finalContent);
+				expect(mockCallbacks.onStreamEnd).toHaveBeenCalledWith(
+					id,
+					finalContent,
+				);
 			});
 		});
 
 		it("should not forward callbacks when stopped", async () => {
 			let triggerChunk: (() => void) | null = null;
-			const processor: MessageProcessor = vi.fn().mockImplementation((_, options) => {
-				return new Promise((resolve) => {
-					triggerChunk = () => {
-						options?.streamCallbacks?.onChunk?.({ reasoning: "", content: "chunk" });
-						resolve("done");
-					};
+			const processor: MessageProcessor = vi
+				.fn()
+				.mockImplementation((_, options) => {
+					return new Promise((resolve) => {
+						triggerChunk = () => {
+							options?.streamCallbacks?.onChunk?.({
+								reasoning: "",
+								content: "chunk",
+							});
+							resolve("done");
+						};
+					});
 				});
-			});
 
 			const queue = new MessageQueue(processor, mockCallbacks);
 			queue.enqueue("message");
@@ -345,7 +370,9 @@ describe("MessageQueue", () => {
 				expect(mockCallbacks.onMessageError).toHaveBeenCalled();
 			});
 
-			const [, error] = (mockCallbacks.onMessageError as ReturnType<typeof vi.fn>).mock.calls[0];
+			const [, error] = (
+				mockCallbacks.onMessageError as ReturnType<typeof vi.fn>
+			).mock.calls[0];
 			expect(error).toBeInstanceOf(Error);
 			expect(error.message).toBe("string error");
 		});

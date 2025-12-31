@@ -58,7 +58,7 @@ describe("vscode discoverer", () => {
 			vi.mocked(getVersion).mockImplementation(async (cmd, args, options) => {
 				if (options?.parseOutput) {
 					return options.parseOutput(
-						"1.85.2\n2ccd690cbff1569e4a83d7c43d45101f817401dc\nx64"
+						"1.85.2\n2ccd690cbff1569e4a83d7c43d45101f817401dc\nx64",
 					);
 				}
 				return "1.85.2";

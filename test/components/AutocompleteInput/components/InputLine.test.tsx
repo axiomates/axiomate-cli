@@ -26,7 +26,9 @@ describe("InputLine", () => {
 		});
 
 		it("should render prompt for first line", () => {
-			const { lastFrame } = render(<InputLine {...defaultProps} isFirstLine={true} />);
+			const { lastFrame } = render(
+				<InputLine {...defaultProps} isFirstLine={true} />,
+			);
 
 			expect(lastFrame()).toContain(">");
 		});
@@ -129,7 +131,9 @@ describe("InputLine", () => {
 		});
 
 		it("should render plain text between color ranges", () => {
-			const colorRanges: ColorRange[] = [{ start: 0, end: 2, color: "#ff0000" }];
+			const colorRanges: ColorRange[] = [
+				{ start: 0, end: 2, color: "#ff0000" },
+			];
 
 			const { lastFrame } = render(
 				<InputLine {...defaultProps} colorRanges={colorRanges} />,

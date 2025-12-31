@@ -22,9 +22,7 @@ const localeChangeListeners: LocaleChangeListener[] = [];
 /**
  * Add a listener for locale changes
  */
-export function addLocaleChangeListener(
-	listener: LocaleChangeListener,
-): void {
+export function addLocaleChangeListener(listener: LocaleChangeListener): void {
 	localeChangeListeners.push(listener);
 }
 

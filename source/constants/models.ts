@@ -8,7 +8,11 @@
  * 因为它是临时的测试预设，正式版本会根据用户账号派发可用的模型配置
  */
 
-import { getAllModels, getModelById, type ModelConfig } from "../utils/config.js";
+import {
+	getAllModels,
+	getModelById,
+	type ModelConfig,
+} from "../utils/config.js";
 
 /**
  * API 协议类型

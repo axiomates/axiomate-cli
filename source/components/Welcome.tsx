@@ -13,7 +13,10 @@ import { useEffect, useRef, useState } from "react";
 import { THEME_LIGHT_YELLOW, THEME_PINK } from "../constants/colors.js";
 import { APP_NAME, VERSION } from "../constants/meta.js";
 import { DEFAULT_MODEL_PRESETS } from "../constants/modelPresets.js";
-import { DEFAULT_MODEL_ID, DEFAULT_SUGGESTION_MODEL_ID } from "../constants/models.js";
+import {
+	DEFAULT_MODEL_ID,
+	DEFAULT_SUGGESTION_MODEL_ID,
+} from "../constants/models.js";
 import useTerminalHeight from "../hooks/useTerminalHeight.js";
 import { updateConfig, type ModelConfig } from "../utils/config.js";
 import { resumeInput } from "../utils/stdin.js";

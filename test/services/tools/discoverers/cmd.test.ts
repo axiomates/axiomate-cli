@@ -59,7 +59,7 @@ describe("cmd discoverer", () => {
 			vi.mocked(platform).mockReturnValue("win32");
 			vi.mocked(commandExists).mockResolvedValue(true);
 			vi.mocked(getExecutablePath).mockResolvedValue(
-				"C:\\Windows\\System32\\cmd.exe"
+				"C:\\Windows\\System32\\cmd.exe",
 			);
 
 			const result = await detectCmd();
@@ -86,7 +86,9 @@ describe("cmd discoverer", () => {
 
 			const result = await detectCmd();
 
-			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(true);
+			expect(result.actions.some((a) => a.name === "run_script_content")).toBe(
+				true,
+			);
 			expect(result.actions.some((a) => a.name === "version")).toBe(true);
 		});
 

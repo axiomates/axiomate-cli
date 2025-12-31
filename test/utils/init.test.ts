@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { initApp, type InitProgress } from "../../source/utils/init.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { initApp } from "../../source/utils/init.js";
 
 // Mock dependencies
 vi.mock("../../source/services/tools/registry.js", () => ({

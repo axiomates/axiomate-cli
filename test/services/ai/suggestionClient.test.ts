@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { SuggestionClient, getSuggestionClient } from "../../../source/services/ai/suggestionClient.js";
+import {
+	SuggestionClient,
+	getSuggestionClient,
+} from "../../../source/services/ai/suggestionClient.js";
 
 // Mock dependencies
 vi.mock("../../../source/constants/suggestion.js", () => ({
@@ -139,11 +142,17 @@ describe("SuggestionClient", () => {
 			});
 
 			// First call with projectType
-			await client.getSuggestion("hello", { cwd: "/home/user", projectType: "node" });
+			await client.getSuggestion("hello", {
+				cwd: "/home/user",
+				projectType: "node",
+			});
 			expect(fetchMock).toHaveBeenCalledTimes(1);
 
 			// Second call with same input but different projectType - should not be cached
-			await client.getSuggestion("hello", { cwd: "/home/user", projectType: "python" });
+			await client.getSuggestion("hello", {
+				cwd: "/home/user",
+				projectType: "python",
+			});
 			expect(fetchMock).toHaveBeenCalledTimes(2);
 		});
 
@@ -318,9 +327,8 @@ describe("SuggestionClient without API config", () => {
 			getModelApiConfig: vi.fn(() => null),
 		}));
 
-		const { SuggestionClient } = await import(
-			"../../../source/services/ai/suggestionClient.js"
-		);
+		const { SuggestionClient } =
+			await import("../../../source/services/ai/suggestionClient.js");
 		const client = new SuggestionClient();
 		const result = await client.getSuggestion("hello");
 		expect(result.suggestion).toBeNull();

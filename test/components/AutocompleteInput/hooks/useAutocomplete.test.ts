@@ -22,7 +22,6 @@ vi.mock("../../../../source/utils/config.js", () => ({
 }));
 
 // Mock React hooks
-let effectCleanup: (() => void) | null = null;
 let effectCallbacks: Array<() => (() => void) | void> = [];
 const mockDispatch = vi.fn();
 
@@ -36,7 +35,10 @@ vi.mock("react", () => ({
 }));
 
 import { useAutocomplete } from "../../../../source/components/AutocompleteInput/hooks/useAutocomplete.js";
-import type { EditorState, SlashCommand } from "../../../../source/components/AutocompleteInput/types.js";
+import type {
+	EditorState,
+	SlashCommand,
+} from "../../../../source/components/AutocompleteInput/types.js";
 
 function createInitialState(overrides?: Partial<EditorState>): EditorState {
 	return {
@@ -56,10 +58,14 @@ function createInitialState(overrides?: Partial<EditorState>): EditorState {
 }
 
 const testCommands: SlashCommand[] = [
-	{ name: "model", description: "Select model", children: [
-		{ name: "gpt4", description: "GPT-4" },
-		{ name: "claude", description: "Claude" },
-	]},
+	{
+		name: "model",
+		description: "Select model",
+		children: [
+			{ name: "gpt4", description: "GPT-4" },
+			{ name: "claude", description: "Claude" },
+		],
+	},
 	{ name: "session", description: "Session management" },
 	{ name: "exit", description: "Exit app" },
 ];

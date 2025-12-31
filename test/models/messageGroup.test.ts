@@ -140,7 +140,9 @@ describe("messageGroup", () => {
 			});
 
 			it("应处理单独的系统消息", () => {
-				const messages: Message[] = [{ content: "System info", type: "system" }];
+				const messages: Message[] = [
+					{ content: "System info", type: "system" },
+				];
 				const groups = groupMessages(messages);
 
 				expect(groups).toHaveLength(1);

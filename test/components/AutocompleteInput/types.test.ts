@@ -27,7 +27,12 @@ describe("AutocompleteInput types", () => {
 			const mode: UIMode = {
 				type: "history",
 				index: 0,
-				savedEntry: { text: "", commandPath: [], filePath: [], selectedFiles: [] },
+				savedEntry: {
+					text: "",
+					commandPath: [],
+					filePath: [],
+					selectedFiles: [],
+				},
 			};
 			expect(isHistoryMode(mode)).toBe(true);
 		});
@@ -40,7 +45,12 @@ describe("AutocompleteInput types", () => {
 			const mode: UIMode = {
 				type: "history",
 				index: 5,
-				savedEntry: { text: "test", commandPath: [], filePath: [], selectedFiles: [] },
+				savedEntry: {
+					text: "test",
+					commandPath: [],
+					filePath: [],
+					selectedFiles: [],
+				},
 			};
 			if (isHistoryMode(mode)) {
 				expect(mode.index).toBe(5);

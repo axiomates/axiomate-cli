@@ -46,7 +46,7 @@ describe("StatusBar", () => {
 
 		it("should show N/A when contextWindow is 0", () => {
 			const { lastFrame } = render(
-				<StatusBar contextWindow={0} usedTokens={100} usagePercent={0} />
+				<StatusBar contextWindow={0} usedTokens={100} usagePercent={0} />,
 			);
 			expect(lastFrame()).toContain("N/A");
 		});
@@ -57,7 +57,7 @@ describe("StatusBar", () => {
 					contextWindow={32000}
 					usedTokens={1500}
 					usagePercent={4.7}
-				/>
+				/>,
 			);
 			expect(lastFrame()).toContain("1.5k/32k");
 			expect(lastFrame()).toContain("(5%)");
@@ -65,11 +65,7 @@ describe("StatusBar", () => {
 
 		it("should format small numbers without k suffix", () => {
 			const { lastFrame } = render(
-				<StatusBar
-					contextWindow={999}
-					usedTokens={500}
-					usagePercent={50}
-				/>
+				<StatusBar contextWindow={999} usedTokens={500} usagePercent={50} />,
 			);
 			expect(lastFrame()).toContain("500/999");
 			expect(lastFrame()).toContain("(50%)");
@@ -81,7 +77,7 @@ describe("StatusBar", () => {
 					contextWindow={128000}
 					usedTokens={25600}
 					usagePercent={20}
-				/>
+				/>,
 			);
 			expect(lastFrame()).toContain("26k/128k");
 			expect(lastFrame()).toContain("(20%)");
@@ -89,7 +85,7 @@ describe("StatusBar", () => {
 
 		it("should show 0 tokens when usedTokens is not provided", () => {
 			const { lastFrame } = render(
-				<StatusBar contextWindow={32000} usagePercent={0} />
+				<StatusBar contextWindow={32000} usagePercent={0} />,
 			);
 			expect(lastFrame()).toContain("0/32k");
 			expect(lastFrame()).toContain("(0%)");

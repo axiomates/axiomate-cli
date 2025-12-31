@@ -44,7 +44,9 @@ const dashscopeKey = localEnv["DASHSCOPE_API_KEY"] || "";
 
 // 检查是否有 API keys
 if (!siliconflowKey && !dashscopeKey) {
-	console.log("Warning: No API keys found in .env.local, modelPresets.ts will have empty keys");
+	console.log(
+		"Warning: No API keys found in .env.local, modelPresets.ts will have empty keys",
+	);
 }
 
 const presetsContent = `// 此文件由 scripts/gen-meta.ts 自动生成，请勿手动修改
@@ -168,4 +170,6 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 `;
 
 writeFileSync("source/constants/modelPresets.ts", presetsContent);
-console.log(`Generated modelPresets.ts with ${siliconflowKey ? "SiliconFlow" : "no"} and ${dashscopeKey ? "DashScope" : "no"} API keys`);
+console.log(
+	`Generated modelPresets.ts with ${siliconflowKey ? "SiliconFlow" : "no"} and ${dashscopeKey ? "DashScope" : "no"} API keys`,
+);
