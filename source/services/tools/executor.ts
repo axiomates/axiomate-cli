@@ -469,7 +469,7 @@ export async function executeToolAction(
 		return {
 			success: true,
 			stdout:
-				"Switched to Plan Mode. The new mode will take effect on the next message.",
+				"Switched to Plan Mode. You now have access to plan tools only (read/write/edit plan file).",
 			stderr: "",
 			exitCode: 0,
 		};
@@ -480,7 +480,7 @@ export async function executeToolAction(
 		return {
 			success: true,
 			stdout:
-				"Switched to Action Mode. The new mode will take effect on the next message.",
+				"Switched to Action Mode. You now have access to all tools (file, git, etc.).",
 			stderr: "",
 			exitCode: 0,
 		};
