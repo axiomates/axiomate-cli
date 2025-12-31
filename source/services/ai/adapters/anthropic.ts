@@ -87,6 +87,8 @@ export function toAnthropicMessages(messages: ChatMessage[]): Array<{
 				type: string;
 				tool_use_id?: string;
 				content?: string;
+				text?: string;
+				thinking?: string;
 				id?: string;
 				name?: string;
 				input?: Record<string, unknown>;
@@ -100,6 +102,8 @@ export function toAnthropicMessages(messages: ChatMessage[]): Array<{
 					type: string;
 					tool_use_id?: string;
 					content?: string;
+					text?: string;
+					thinking?: string;
 					id?: string;
 					name?: string;
 					input?: Record<string, unknown>;
@@ -144,16 +148,29 @@ export function toAnthropicMessages(messages: ChatMessage[]): Array<{
 				content: msg.content,
 			});
 		} else if (msg.role === "assistant") {
-			if (msg.tool_calls && msg.tool_calls.length > 0) {
-				// 包含 tool_use 的 assistant 消息
+			// 检查是否需要使用 content 数组格式（有 thinking 或 tool_calls）
+			const hasThinking = !!msg.reasoning_content;
+			const hasToolCalls = msg.tool_calls && msg.tool_calls.length > 0;
+
+			if (hasThinking || hasToolCalls) {
 				const content: Array<{
 					type: string;
 					text?: string;
+					thinking?: string;
 					id?: string;
 					name?: string;
 					input?: Record<string, unknown>;
 				}> = [];
 
+				// 1. 先添加 thinking 块（Anthropic 要求 thinking 在前）
+				if (msg.reasoning_content) {
+					content.push({
+						type: "thinking",
+						thinking: msg.reasoning_content,
+					});
+				}
+
+				// 2. 添加 text 块
 				if (msg.content) {
 					content.push({
 						type: "text",
@@ -161,7 +178,8 @@ export function toAnthropicMessages(messages: ChatMessage[]): Array<{
 					});
 				}
 
-				for (const tc of msg.tool_calls) {
+				// 3. 添加 tool_use 块
+				for (const tc of msg.tool_calls || []) {
 					content.push({
 						type: "tool_use",
 						id: tc.id,
@@ -175,6 +193,7 @@ export function toAnthropicMessages(messages: ChatMessage[]): Array<{
 					content,
 				});
 			} else {
+				// 纯文本消息
 				result.push({
 					role: "assistant",
 					content: msg.content,
