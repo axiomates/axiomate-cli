@@ -130,6 +130,7 @@ export default function MessageOutput({
 	const [height, setHeight] = useState(10); // 默认值，首次渲染时使用
 
 	// 使用 useLayoutEffect 在渲染后测量高度
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- 需要每次渲染都测量以响应布局变化
 	useLayoutEffect(() => {
 		if (boxRef.current) {
 			const measured = measureElement(boxRef.current);
@@ -137,7 +138,7 @@ export default function MessageOutput({
 				setHeight(measured.height);
 			}
 		}
-	}, [height]);
+	});
 
 	// scrollOffset: 从底部向上的偏移量（0 = 显示最新消息）
 	const [scrollOffset, setScrollOffset] = useState(0);
