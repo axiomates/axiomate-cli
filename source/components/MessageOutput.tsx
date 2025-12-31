@@ -526,9 +526,21 @@ export default function MessageOutput({
 					// ask_user 块头部行
 					const isAskUserCollapsed = msg.askUserCollapsed ?? false;
 					const headerSymbol = isAskUserCollapsed ? "▸" : "▼";
-					const headerText = isAskUserCollapsed
-						? `${headerSymbol} ${t("message.askUserQA")} (${totalQALines} ${t("message.lines")})`
-						: `${headerSymbol} ${t("message.askUserQA")}`;
+					// 折叠时显示问题缩略，展开时显示 Q&A 标题
+					let headerText: string;
+					if (isAskUserCollapsed) {
+						// 计算可用宽度：总宽度 - 符号 - 空格 - 行数信息
+						const lineCountSuffix = ` (${totalQALines} ${t("message.lines")})`;
+						const availableWidth = effectiveWidth - 2 - lineCountSuffix.length;
+						// 截断问题文本
+						let questionPreview = qa.question;
+						if (questionPreview.length > availableWidth) {
+							questionPreview = questionPreview.slice(0, availableWidth - 1) + "…";
+						}
+						headerText = `${headerSymbol} ${questionPreview}${lineCountSuffix}`;
+					} else {
+						headerText = `${headerSymbol} ${t("message.askUserQA")}`;
+					}
 
 					lines.push({
 						text: headerText,
