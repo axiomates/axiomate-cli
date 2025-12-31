@@ -427,7 +427,11 @@ export default function App({ initResult }: Props) {
 								// 找到最后一条非 user 类型的消息（应该是 AI 的回复）
 								for (let i = newMessages.length - 1; i >= 0; i--) {
 									const msg = newMessages[i];
-									if (msg && msg.type !== "user" && msg.type !== "user-answer") {
+									if (
+										msg &&
+										msg.type !== "user" &&
+										msg.type !== "user-answer"
+									) {
 										// 附加问答组到这条消息上
 										newMessages[i] = {
 											...msg,
@@ -1313,6 +1317,7 @@ export default function App({ initResult }: Props) {
 			<Box flexShrink={0}>
 				<StatusBar
 					focusMode={focusMode}
+					planMode={isPlanModeEnabled()}
 					usedTokens={usageStatus?.usedTokens}
 					contextWindow={usageStatus?.contextWindow}
 					usagePercent={usageStatus?.usagePercent}

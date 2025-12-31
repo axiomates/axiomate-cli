@@ -276,7 +276,9 @@
 		"urlParamDesc": "The URL of the webpage to fetch"
 	},
 	"statusBar": {
-		"notConfigured": "N/A"
+		"notConfigured": "N/A",
+		"planMode": "Plan",
+		"actionMode": "Action"
 	},
 	"askUser": {
 		"customInput": "[Custom input...]",

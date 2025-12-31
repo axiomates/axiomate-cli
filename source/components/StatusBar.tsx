@@ -5,6 +5,7 @@ type FocusMode = "input" | "output";
 
 type Props = {
 	focusMode?: FocusMode;
+	planMode?: boolean;
 	usedTokens?: number;
 	contextWindow?: number;
 	usagePercent?: number;
@@ -30,6 +31,7 @@ function formatTokens(tokens: number): string {
 
 export default function StatusBar({
 	focusMode = "input",
+	planMode = false,
 	usedTokens,
 	contextWindow,
 	usagePercent,
@@ -45,6 +47,13 @@ export default function StatusBar({
 		if (isNearLimit) return "yellow";
 		return "gray";
 	};
+
+	// Render plan mode indicator
+	const renderPlanMode = () => (
+		<Text color={planMode ? "magenta" : "green"}>
+			[{planMode ? t("statusBar.planMode") : t("statusBar.actionMode")}]{" "}
+		</Text>
+	);
 
 	// Render usage display
 	const renderUsage = () => {
@@ -67,9 +76,11 @@ export default function StatusBar({
 
 	return (
 		<Box flexShrink={0} justifyContent="flex-end" width="100%">
+			{/* Plan/Action 模式指示器 */}
+			{renderPlanMode()}
 			{/* Usage 指示器 */}
 			{renderUsage()}
-			{/* 模式指示器 */}
+			{/* 焦点模式指示器 */}
 			<Text>
 				{isOutputMode ? (
 					<Text color="cyan" bold>

@@ -511,7 +511,8 @@ export default function MessageOutput({
 					let qaContent = `Q: ${qa.question}`;
 					if (qa.options.length > 0) {
 						qaContent +=
-							"\n" + qa.options.map((opt, idx) => `   ${idx + 1}. ${opt}`).join("\n");
+							"\n" +
+							qa.options.map((opt, idx) => `   ${idx + 1}. ${opt}`).join("\n");
 					}
 					qaContent += `\nA: ${qa.answer}`;
 
@@ -535,7 +536,8 @@ export default function MessageOutput({
 						// 截断问题文本
 						let questionPreview = qa.question;
 						if (questionPreview.length > availableWidth) {
-							questionPreview = questionPreview.slice(0, availableWidth - 1) + "…";
+							questionPreview =
+								questionPreview.slice(0, availableWidth - 1) + "…";
 						}
 						headerText = `${headerSymbol} ${questionPreview}${lineCountSuffix}`;
 					} else {

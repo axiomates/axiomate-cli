@@ -276,7 +276,9 @@
 		"urlParamDesc": "要获取的网页 URL"
 	},
 	"statusBar": {
-		"notConfigured": "N/A"
+		"notConfigured": "N/A",
+		"planMode": "规划",
+		"actionMode": "执行"
 	},
 	"askUser": {
 		"customInput": "[自定义输入...]",

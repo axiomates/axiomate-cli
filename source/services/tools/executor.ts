@@ -23,7 +23,11 @@ import {
 	type WriteMode,
 } from "./fileOperations.js";
 import { getPlanFilePath } from "./discoverers/plan.js";
-import { getCurrentModelId, getModelById } from "../../utils/config.js";
+import {
+	getCurrentModelId,
+	getModelById,
+	setPlanModeEnabled,
+} from "../../utils/config.js";
 
 // Map tool IDs to script types for run_script_content action
 const TOOL_SCRIPT_TYPE_MAP: Record<string, ScriptType> = {
@@ -456,6 +460,29 @@ export async function executeToolAction(
 			stderr: "",
 			exitCode: result.success ? 0 : 1,
 			error: result.error,
+		};
+	}
+
+	// Handle plan mode switching
+	if (action.commandTemplate === "__PLAN_ENTER_MODE__") {
+		setPlanModeEnabled(true);
+		return {
+			success: true,
+			stdout:
+				"Switched to Plan Mode. The new mode will take effect on the next message.",
+			stderr: "",
+			exitCode: 0,
+		};
+	}
+
+	if (action.commandTemplate === "__PLAN_EXIT_MODE__") {
+		setPlanModeEnabled(false);
+		return {
+			success: true,
+			stdout:
+				"Switched to Action Mode. The new mode will take effect on the next message.",
+			stderr: "",
+			exitCode: 0,
 		};
 	}
 

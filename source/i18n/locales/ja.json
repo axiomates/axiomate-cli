@@ -276,7 +276,9 @@
 		"urlParamDesc": "取得するウェブページのURL"
 	},
 	"statusBar": {
-		"notConfigured": "N/A"
+		"notConfigured": "N/A",
+		"planMode": "計画",
+		"actionMode": "実行"
 	},
 	"askUser": {
 		"customInput": "[カスタム入力...]",

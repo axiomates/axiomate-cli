@@ -122,6 +122,20 @@ const planDefinition: ToolDefinition = {
 			],
 			commandTemplate: "__PLAN_SEARCH__",
 		},
+		{
+			name: "enter_mode",
+			description:
+				"Switch to Plan Mode (read-only exploration and planning). The new mode will take effect on the next message.",
+			parameters: [],
+			commandTemplate: "__PLAN_ENTER_MODE__",
+		},
+		{
+			name: "exit_mode",
+			description:
+				"Exit Plan Mode and switch to Action Mode. The new mode will take effect on the next message.",
+			parameters: [],
+			commandTemplate: "__PLAN_EXIT_MODE__",
+		},
 	],
 };
 
