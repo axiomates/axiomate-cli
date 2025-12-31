@@ -158,6 +158,21 @@ export default function App({ initResult }: Props) {
 		});
 	}, []);
 
+	// 切换消息 ask_user 问答的折叠状态
+	const toggleAskUserCollapse = useCallback((msgIndex: number) => {
+		setMessages((prev) => {
+			const newMessages = [...prev];
+			const msg = newMessages[msgIndex];
+			if (msg) {
+				newMessages[msgIndex] = {
+					...msg,
+					askUserCollapsed: !msg.askUserCollapsed,
+				};
+			}
+			return newMessages;
+		});
+	}, []);
+
 	// AI 服务实例（从初始化结果获取）
 	const aiServiceRef = useRef<IAIService | null>(initResult.aiService);
 
@@ -213,6 +228,12 @@ export default function App({ initResult }: Props) {
 
 					if (!sessionIsEmpty) {
 						const uiMessages: Message[] = [];
+						// 用于暂存待匹配的 ask_user 问题（来自 tool_calls）
+						let pendingAskUserQuestion: {
+							question: string;
+							options: string[];
+						} | null = null;
+
 						for (const msg of history) {
 							if (msg.role === "user") {
 								uiMessages.push({ content: msg.content, type: "user" });
@@ -221,7 +242,7 @@ export default function App({ initResult }: Props) {
 								if (msg.content) {
 									uiMessages.push({ content: msg.content });
 								}
-								// 检查是否有 ask_user 工具调用，提取问题
+								// 检查是否有 ask_user 工具调用，暂存问题等待匹配回答
 								if (msg.tool_calls) {
 									for (const toolCall of msg.tool_calls) {
 										if (toolCall.function.name === "askuser_ask") {
@@ -239,18 +260,7 @@ export default function App({ initResult }: Props) {
 														// 忽略解析错误
 													}
 												}
-												// 构建问题内容（包含选项）
-												let questionContent = question;
-												if (options.length > 0) {
-													questionContent +=
-														"\n" +
-														options.map((opt, i) => `  ${i + 1}. ${opt}`).join("\n");
-												}
-												uiMessages.push({
-													content: questionContent,
-													type: "system",
-													markdown: false,
-												});
+												pendingAskUserQuestion = { question, options };
 											} catch {
 												// 忽略解析错误
 											}
@@ -264,11 +274,28 @@ export default function App({ initResult }: Props) {
 								const askUserMatch = content.match(
 									/^\[Ask User\] User answered: (.+)$/s,
 								);
-								if (askUserMatch) {
-									uiMessages.push({
-										content: askUserMatch[1]!,
-										type: "user-answer",
-									});
+								if (askUserMatch && pendingAskUserQuestion) {
+									// 将问答组附加到最后一条 assistant 消息上
+									for (let i = uiMessages.length - 1; i >= 0; i--) {
+										const uiMsg = uiMessages[i];
+										if (
+											uiMsg &&
+											uiMsg.type !== "user" &&
+											uiMsg.type !== "user-answer"
+										) {
+											uiMessages[i] = {
+												...uiMsg,
+												askUserQA: {
+													question: pendingAskUserQuestion.question,
+													options: pendingAskUserQuestion.options,
+													answer: askUserMatch[1]!,
+												},
+												askUserCollapsed: true, // 恢复时默认折叠
+											};
+											break;
+										}
+									}
+									pendingAskUserQuestion = null;
 								}
 							}
 						}
@@ -377,32 +404,16 @@ export default function App({ initResult }: Props) {
 				question: string,
 				askOptions: string[],
 			): Promise<string> => {
-				// 当 AI 调用 ask_user 时，需要：
-				// 1. 结束当前流式消息（将 streaming 设为 false）
-				// 2. 添加 AI 的问题作为单独的 system 消息（包含选项）
+				// 当 AI 调用 ask_user 时，暂时结束当前流式消息（等待用户输入）
+				// 不添加单独的问题消息，问答组会在用户回答后附加到当前消息上
 				setMessages((prev) => {
-					const newMessages = prev.map((msg) => {
+					return prev.map((msg) => {
 						if (msg.streaming) {
-							// 结束流式消息
+							// 暂时结束流式消息（等待用户输入）
 							return { ...msg, streaming: false };
 						}
 						return msg;
 					});
-					// 构建问题内容（包含选项）
-					let questionContent = question;
-					if (askOptions.length > 0) {
-						questionContent +=
-							"\n" + askOptions.map((opt, i) => `  ${i + 1}. ${opt}`).join("\n");
-					}
-					// 添加 AI 的问题
-					return [
-						...newMessages,
-						{
-							content: questionContent,
-							type: "system" as const,
-							markdown: false,
-						},
-					];
 				});
 
 				return new Promise((resolve) => {
@@ -410,13 +421,28 @@ export default function App({ initResult }: Props) {
 						question,
 						options: askOptions,
 						onResolve: (answer: string) => {
-							// 用户回答后，添加回答到消息历史
-							// 注意：不需要在这里添加新的流式消息占位
-							// AI 继续输出时会通过 onStreamStart 添加新的流式消息
-							setMessages((prev) => [
-								...prev,
-								{ content: answer, type: "user-answer" as const },
-							]);
+							// 用户回答后，将问答组附加到最后一条非 user 消息上
+							setMessages((prev) => {
+								const newMessages = [...prev];
+								// 找到最后一条非 user 类型的消息（应该是 AI 的回复）
+								for (let i = newMessages.length - 1; i >= 0; i--) {
+									const msg = newMessages[i];
+									if (msg && msg.type !== "user" && msg.type !== "user-answer") {
+										// 附加问答组到这条消息上
+										newMessages[i] = {
+											...msg,
+											askUserQA: {
+												question,
+												options: askOptions,
+												answer,
+											},
+											askUserCollapsed: false, // 默认展开
+										};
+										break;
+									}
+								}
+								return newMessages;
+							});
 							resolve(answer);
 						},
 					});
@@ -992,6 +1018,12 @@ export default function App({ initResult }: Props) {
 			// 将 session 历史转换为 UI 消息
 			const history = session.getHistory();
 			const uiMessages: Message[] = [];
+			// 用于暂存待匹配的 ask_user 问题（来自 tool_calls）
+			let pendingAskUserQuestion: {
+				question: string;
+				options: string[];
+			} | null = null;
+
 			for (const msg of history) {
 				if (msg.role === "user") {
 					uiMessages.push({ content: msg.content, type: "user" });
@@ -1000,7 +1032,7 @@ export default function App({ initResult }: Props) {
 					if (msg.content) {
 						uiMessages.push({ content: msg.content });
 					}
-					// 检查是否有 ask_user 工具调用，提取问题
+					// 检查是否有 ask_user 工具调用，暂存问题等待匹配回答
 					if (msg.tool_calls) {
 						for (const toolCall of msg.tool_calls) {
 							if (toolCall.function.name === "askuser_ask") {
@@ -1018,18 +1050,7 @@ export default function App({ initResult }: Props) {
 											// 忽略解析错误
 										}
 									}
-									// 构建问题内容（包含选项）
-									let questionContent = question;
-									if (options.length > 0) {
-										questionContent +=
-											"\n" +
-											options.map((opt, i) => `  ${i + 1}. ${opt}`).join("\n");
-									}
-									uiMessages.push({
-										content: questionContent,
-										type: "system",
-										markdown: false,
-									});
+									pendingAskUserQuestion = { question, options };
 								} catch {
 									// 忽略解析错误
 								}
@@ -1043,11 +1064,28 @@ export default function App({ initResult }: Props) {
 					const askUserMatch = content.match(
 						/^\[Ask User\] User answered: (.+)$/s,
 					);
-					if (askUserMatch) {
-						uiMessages.push({
-							content: askUserMatch[1]!,
-							type: "user-answer",
-						});
+					if (askUserMatch && pendingAskUserQuestion) {
+						// 将问答组附加到最后一条 assistant 消息上
+						for (let i = uiMessages.length - 1; i >= 0; i--) {
+							const uiMsg = uiMessages[i];
+							if (
+								uiMsg &&
+								uiMsg.type !== "user" &&
+								uiMsg.type !== "user-answer"
+							) {
+								uiMessages[i] = {
+									...uiMsg,
+									askUserQA: {
+										question: pendingAskUserQuestion.question,
+										options: pendingAskUserQuestion.options,
+										answer: askUserMatch[1]!,
+									},
+									askUserCollapsed: true, // 恢复时默认折叠
+								};
+								break;
+							}
+						}
+						pendingAskUserQuestion = null;
 					}
 				}
 			}
@@ -1226,6 +1264,7 @@ export default function App({ initResult }: Props) {
 				onExpandAll={expandAll}
 				onCollapseAll={collapseAll}
 				onToggleReasoningCollapse={toggleReasoningCollapse}
+				onToggleAskUserCollapse={toggleAskUserCollapse}
 			/>
 
 			{/* 输出区域与输入框分隔线（输入模式且无 ask_user 菜单时显示，AskUserMenu 内部有自己的 divider） */}

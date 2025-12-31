@@ -240,6 +240,7 @@
 	},
 	"message": {
 		"thinkingProcess": "Thinking",
+		"askUserQA": "Q&A",
 		"lines": "lines"
 	},
 	"common": {

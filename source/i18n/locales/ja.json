@@ -240,6 +240,7 @@
 	},
 	"message": {
 		"thinkingProcess": "思考中",
+		"askUserQA": "Q&A",
 		"lines": "行"
 	},
 	"common": {

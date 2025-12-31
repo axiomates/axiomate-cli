@@ -17,10 +17,21 @@ import {
 } from "../models/messageGroup.js";
 import { useTranslation } from "../hooks/useTranslation.js";
 
+/**
+ * ask_user 问答对
+ */
+export type AskUserQA = {
+	question: string; // AI 的问题
+	options: string[]; // 可选项
+	answer: string; // 用户的回答
+};
+
 export type Message = {
 	content: string;
 	reasoning?: string; // 思考内容（DeepSeek-R1, QwQ 等模型）
 	reasoningCollapsed?: boolean; // 思考内容是否折叠
+	askUserQA?: AskUserQA; // ask_user 问答对（附加在 assistant 消息上）
+	askUserCollapsed?: boolean; // ask_user 问答是否折叠
 	type?: "user" | "system" | "welcome" | "user-answer"; // user: 用户输入, system: 系统输出（默认）, welcome: 欢迎消息, user-answer: 用户对 ask_user 的回答
 	streaming?: boolean; // true = 正在流式生成, false/undefined = 已完成
 	queued?: boolean; // true = 消息已入队等待处理（用户消息）
@@ -46,6 +57,8 @@ type Props = {
 	onCollapseAll?: () => void; // 折叠所有
 	// 思考内容折叠相关
 	onToggleReasoningCollapse?: (msgIndex: number) => void; // 切换思考折叠状态
+	// ask_user 问答折叠相关
+	onToggleAskUserCollapse?: (msgIndex: number) => void; // 切换 ask_user 折叠状态
 };
 
 // Braille 点阵旋转动画帧
@@ -100,6 +113,10 @@ type RenderedLine = {
 	isReasoning?: boolean; // 是否为思考内容行
 	isReasoningHeader?: boolean; // 是否为思考块头部行（可点击折叠）
 	reasoningLineCount?: number; // 思考内容总行数（仅 header 有值）
+	// ask_user 问答相关
+	isAskUser?: boolean; // 是否为 ask_user 问答行
+	isAskUserHeader?: boolean; // 是否为 ask_user 头部行（可点击折叠）
+	askUserLineCount?: number; // ask_user 问答总行数（仅 header 有值）
 	// 欢迎消息相关
 	isWelcome?: boolean; // 是否为欢迎消息行
 	welcomeSegments?: WelcomeSegment[]; // 欢迎消息的彩色段落
@@ -121,6 +138,7 @@ export default function MessageOutput({
 	onExpandAll,
 	onCollapseAll,
 	onToggleReasoningCollapse,
+	onToggleAskUserCollapse,
 }: Props) {
 	const { t } = useTranslation();
 	const width = useTerminalWidth();
@@ -481,6 +499,62 @@ export default function MessageOutput({
 								groupId: group.id,
 							});
 							isFirstLineOfMsg = false;
+						}
+					}
+				}
+
+				// 3. 渲染 ask_user 问答组（如果有）
+				if (msg.askUserQA) {
+					const qa = msg.askUserQA;
+					// 构建问答内容
+					let qaContent = `Q: ${qa.question}`;
+					if (qa.options.length > 0) {
+						qaContent +=
+							"\n" + qa.options.map((opt, idx) => `   ${idx + 1}. ${opt}`).join("\n");
+					}
+					qaContent += `\nA: ${qa.answer}`;
+
+					// 计算问答内容的总行数
+					const qaLines = qaContent.split("\n");
+					let totalQALines = 0;
+					for (const line of qaLines) {
+						const wrappedLines = wrapLine(line, effectiveWidth - 2); // 缩进 2 空格
+						totalQALines += wrappedLines.length;
+					}
+
+					// ask_user 块头部行
+					const isAskUserCollapsed = msg.askUserCollapsed ?? false;
+					const headerSymbol = isAskUserCollapsed ? "▸" : "▼";
+					const headerText = isAskUserCollapsed
+						? `${headerSymbol} ${t("message.askUserQA")} (${totalQALines} ${t("message.lines")})`
+						: `${headerSymbol} ${t("message.askUserQA")}`;
+
+					lines.push({
+						text: headerText,
+						msgIndex: i,
+						isUser: false,
+						isFirstLine: false,
+						groupId: group.id,
+						isAskUser: true,
+						isAskUserHeader: true,
+						askUserLineCount: totalQALines,
+						isCollapsed: isAskUserCollapsed,
+					});
+
+					// 如果问答未折叠，渲染问答内容
+					if (!isAskUserCollapsed) {
+						for (const line of qaLines) {
+							const wrappedLines = wrapLine(line, effectiveWidth - 2);
+							for (const wrappedLine of wrappedLines) {
+								lines.push({
+									text: "  " + wrappedLine, // 缩进 2 空格
+									msgIndex: i,
+									isUser: false,
+									isFirstLine: false,
+									groupId: group.id,
+									isAskUser: true,
+								});
+							}
 						}
 					}
 				}
@@ -856,12 +930,17 @@ export default function MessageOutput({
 					return;
 				}
 
-				// Enter: 展开/折叠光标所在的消息组或思考块
+				// Enter: 展开/折叠光标所在的消息组、思考块或 ask_user 问答
 				if (key.return && cursorIndex >= 0) {
 					const cursorLine = renderedLines[cursorIndex];
 					// 思考块头部：切换思考内容的折叠状态
 					if (cursorLine?.isReasoningHeader && onToggleReasoningCollapse) {
 						onToggleReasoningCollapse(cursorLine.msgIndex);
+						return;
+					}
+					// ask_user 头部：切换 ask_user 问答的折叠状态
+					if (cursorLine?.isAskUserHeader && onToggleAskUserCollapse) {
+						onToggleAskUserCollapse(cursorLine.msgIndex);
 						return;
 					}
 					// 消息组头部：切换消息组的折叠状态
@@ -1154,6 +1233,42 @@ export default function MessageOutput({
 				} else {
 					contentRows.push(
 						<Box key={`reasoning-${line.msgIndex}-${i}`} height={1}>
+							<Text dimColor>{line.text || " "}</Text>
+						</Box>,
+					);
+				}
+			}
+			continue;
+		}
+
+		// ask_user 问答行的特殊渲染（暗色显示，类似思考内容）
+		if (line.isAskUser) {
+			if (line.isAskUserHeader) {
+				// ask_user 头部行（可点击折叠）
+				if (isCursorLine) {
+					contentRows.push(
+						<Box key={`askuser-header-${line.msgIndex}-${i}`} height={1}>
+							{renderLineWithCursorBg(line.text, "gray")}
+						</Box>,
+					);
+				} else {
+					contentRows.push(
+						<Box key={`askuser-header-${line.msgIndex}-${i}`} height={1}>
+							<Text dimColor>{line.text}</Text>
+						</Box>,
+					);
+				}
+			} else {
+				// ask_user 内容行（暗色）
+				if (isCursorLine) {
+					contentRows.push(
+						<Box key={`askuser-${line.msgIndex}-${i}`} height={1}>
+							{renderLineWithCursorBg(line.text, "gray")}
+						</Box>,
+					);
+				} else {
+					contentRows.push(
+						<Box key={`askuser-${line.msgIndex}-${i}`} height={1}>
 							<Text dimColor>{line.text || " "}</Text>
 						</Box>,
 					);
