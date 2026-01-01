@@ -41,6 +41,16 @@ describe("lineProcessor", () => {
 			expect(isWideChar("。")).toBe(true);
 		});
 
+		it("should return true for simple emoji", () => {
+			expect(isWideChar("😀")).toBe(true);
+			expect(isWideChar("🎉")).toBe(true);
+		});
+
+		it("should return true for ZWJ emoji sequences", () => {
+			// 👨‍👩‍👧 is a ZWJ sequence (multi-codepoint)
+			expect(isWideChar("👨‍👩‍👧")).toBe(true);
+		});
+
 		it("should return false for ASCII characters", () => {
 			expect(isWideChar("a")).toBe(false);
 			expect(isWideChar("A")).toBe(false);
@@ -57,6 +67,11 @@ describe("lineProcessor", () => {
 		it("should return 2 for wide characters", () => {
 			expect(getCharWidth("中")).toBe(2);
 			expect(getCharWidth("あ")).toBe(2);
+		});
+
+		it("should return 2 for emoji", () => {
+			expect(getCharWidth("😀")).toBe(2);
+			expect(getCharWidth("👨‍👩‍👧")).toBe(2);
 		});
 
 		it("should return 1 for ASCII characters", () => {
@@ -83,6 +98,17 @@ describe("lineProcessor", () => {
 		it("should return correct width for mixed string", () => {
 			expect(getStringWidth("Hello中文")).toBe(5 + 4); // 5 + 4 = 9
 			expect(getStringWidth("a中b")).toBe(1 + 2 + 1); // 4
+		});
+
+		it("should return correct width for emoji string", () => {
+			expect(getStringWidth("😀")).toBe(2);
+			expect(getStringWidth("hi😀")).toBe(4); // 2 + 2
+		});
+
+		it("should treat ZWJ emoji as single width-2 character", () => {
+			// 👨‍👩‍👧 should be treated as one grapheme cluster with width 2
+			expect(getStringWidth("👨‍👩‍👧")).toBe(2);
+			expect(getStringWidth("hello👨‍👩‍👧world")).toBe(5 + 2 + 5); // 12
 		});
 	});
 

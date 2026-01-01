@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import type { ColorRange } from "../../../models/richInput.js";
 import { THEME_PINK } from "../../../constants/colors.js";
 import { getStringWidth, getCharWidth } from "../utils/lineProcessor.js";
+import { splitGraphemes } from "../utils/grapheme.js";
 
 type InputLineProps = {
 	/** 当前行文本 */
@@ -175,24 +176,25 @@ function ColoredContent({
 }
 
 /**
- * 根据显示宽度找到字符串中的字符索引
+ * 根据显示宽度找到字符串中的字符索引（基于 grapheme cluster）
  * @param str 字符串
  * @param displayWidth 目标显示宽度
- * @returns 字符索引，如果宽度超出字符串则返回字符串长度
+ * @returns 字符串索引（code unit），如果宽度超出字符串则返回字符串长度
  */
 function findCharIndexByWidth(str: string, displayWidth: number): number {
 	let currentWidth = 0;
-	let charIndex = 0;
+	let stringIndex = 0;
 
-	for (const char of str) {
+	// 使用 grapheme segmenter 遍历，确保不会在 emoji 中间断开
+	for (const grapheme of splitGraphemes(str)) {
 		if (currentWidth >= displayWidth) {
 			break;
 		}
-		currentWidth += getCharWidth(char);
-		charIndex++;
+		currentWidth += getCharWidth(grapheme);
+		stringIndex += grapheme.length; // 累加实际的字符串长度（code units）
 	}
 
-	return charIndex;
+	return stringIndex;
 }
 
 /**
@@ -228,11 +230,14 @@ function CursorLineContent({
 
 	// 光标在用户输入部分
 	if (cursorCol < userPartWidth) {
-		// 根据显示宽度找到对应的字符索引
+		// 根据显示宽度找到对应的字符索引（基于 grapheme boundary）
 		const cursorCharIndex = findCharIndexByWidth(userPart, cursorCol);
 		const beforeCursor = userPart.slice(0, cursorCharIndex);
-		const atCursor = userPart[cursorCharIndex];
-		const afterCursor = userPart.slice(cursorCharIndex + 1);
+
+		// 获取光标处的完整 grapheme cluster
+		const remainingGraphemes = splitGraphemes(userPart.slice(cursorCharIndex));
+		const atCursor = remainingGraphemes[0] || "";
+		const afterCursor = userPart.slice(cursorCharIndex + atCursor.length);
 
 		const cursorGlobalPos = lineOffset + cursorCharIndex;
 		const cursorColor = getColorAt(cursorGlobalPos);
@@ -246,7 +251,7 @@ function CursorLineContent({
 				{renderWithColorRanges(
 					afterCursor,
 					colorRanges,
-					lineOffset + cursorCharIndex + 1,
+					lineOffset + cursorCharIndex + atCursor.length,
 				)}
 				<Text color="gray">{suggestPart}</Text>
 			</>
@@ -255,13 +260,18 @@ function CursorLineContent({
 
 	// 光标在用户输入末尾，有 suggestion
 	if (suggestPart.length > 0) {
+		// 获取 suggestion 的第一个 grapheme cluster
+		const suggestGraphemes = splitGraphemes(suggestPart);
+		const firstSuggest = suggestGraphemes[0] || "";
+		const restSuggest = suggestPart.slice(firstSuggest.length);
+
 		return (
 			<>
 				{renderWithColorRanges(userPart, colorRanges, lineOffset)}
 				<Text inverse>
-					<Text color="gray">{suggestPart[0]}</Text>
+					<Text color="gray">{firstSuggest}</Text>
 				</Text>
-				<Text color="gray">{suggestPart.slice(1)}</Text>
+				<Text color="gray">{restSuggest}</Text>
 			</>
 		);
 	}

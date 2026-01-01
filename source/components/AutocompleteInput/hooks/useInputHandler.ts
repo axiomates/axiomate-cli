@@ -23,6 +23,11 @@ import {
 	findSelectedFileStartingAt,
 } from "../types.js";
 import type { FileItem } from "./useFileSelect.js";
+import {
+	getPrevGraphemeBoundary,
+	getNextGraphemeBoundary,
+	splitGraphemes,
+} from "../utils/grapheme.js";
 
 type UseInputHandlerOptions = {
 	state: EditorState;
@@ -170,12 +175,13 @@ export function useInputHandler({
 					const hasFilterText = cursor > fullPrefixLength;
 
 					if (hasFilterText) {
-						// 有过滤文本，删除一个字符，保持文件选择模式
-						const newInput = input.slice(0, cursor - 1) + input.slice(cursor);
+						// 有过滤文本，删除一个字形簇（grapheme cluster），保持文件选择模式
+						const prevBoundary = getPrevGraphemeBoundary(input, cursor);
+						const newInput = input.slice(0, prevBoundary) + input.slice(cursor);
 						dispatch({
 							type: "SET_TEXT",
 							text: newInput,
-							cursor: cursor - 1,
+							cursor: prevBoundary,
 						});
 						return;
 					}
@@ -284,9 +290,10 @@ export function useInputHandler({
 						dispatch({ type: "REMOVE_SELECTED_FILE", file: fileAtCursor });
 						return;
 					}
-					// 普通退格
-					const newInput = input.slice(0, cursor - 1) + input.slice(cursor);
-					dispatch({ type: "SET_TEXT", text: newInput, cursor: cursor - 1 });
+					// 普通退格 - 删除一个字形簇（grapheme cluster）
+					const prevBoundary = getPrevGraphemeBoundary(input, cursor);
+					const newInput = input.slice(0, prevBoundary) + input.slice(cursor);
+					dispatch({ type: "SET_TEXT", text: newInput, cursor: prevBoundary });
 					return;
 				}
 
@@ -303,8 +310,9 @@ export function useInputHandler({
 						return;
 					}
 					// 检查光标后一位是否在文件内部
+					const nextBoundary = getNextGraphemeBoundary(input, cursor);
 					const fileAtNext = findSelectedFileAtCursor(
-						cursor + 1,
+						nextBoundary,
 						selectedFiles,
 						input,
 					);
@@ -313,8 +321,8 @@ export function useInputHandler({
 						dispatch({ type: "REMOVE_SELECTED_FILE", file: fileAtNext });
 						return;
 					}
-					// 普通删除
-					const newInput = input.slice(0, cursor) + input.slice(cursor + 1);
+					// 普通删除 - 删除一个字形簇（grapheme cluster）
+					const newInput = input.slice(0, cursor) + input.slice(nextBoundary);
 					dispatch({ type: "SET_TEXT", text: newInput, cursor });
 					return;
 				}
@@ -324,7 +332,8 @@ export function useInputHandler({
 			if (key.leftArrow) {
 				if (cursor > 0) {
 					const { selectedFiles } = instance;
-					let newCursor = cursor - 1;
+					// 按字形簇（grapheme cluster）移动光标
+					let newCursor = getPrevGraphemeBoundary(input, cursor);
 					// 检查新光标位置是否在某个文件区域内，如果是则跳到文件开头
 					const fileAtNewCursor = findSelectedFileAtCursor(
 						newCursor,
@@ -341,9 +350,11 @@ export function useInputHandler({
 
 			if (key.rightArrow) {
 				if (effectiveSuggestion && cursor === input.length) {
-					// 如果光标在末尾且有建议，向右移动接受一个字符
-					const newInput = input + effectiveSuggestion[0];
-					const remaining = effectiveSuggestion.slice(1) || null;
+					// 如果光标在末尾且有建议，向右移动接受一个字形簇
+					const firstGrapheme = splitGraphemes(effectiveSuggestion)[0] || "";
+					const newInput = input + firstGrapheme;
+					const remaining =
+						effectiveSuggestion.slice(firstGrapheme.length) || null;
 					dispatch({
 						type: "SET_TEXT",
 						text: newInput,
@@ -354,7 +365,8 @@ export function useInputHandler({
 					}
 				} else if (cursor < input.length) {
 					const { selectedFiles } = instance;
-					let newCursor = cursor + 1;
+					// 按字形簇（grapheme cluster）移动光标
+					let newCursor = getNextGraphemeBoundary(input, cursor);
 					// 检查新光标位置是否在某个文件区域内，如果是则跳到文件末尾
 					const fileAtNewCursor = findSelectedFileAtCursor(
 						newCursor,
