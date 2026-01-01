@@ -36,7 +36,6 @@ import {
 import type { InitResult } from "./utils/init.js";
 import { resumeInput } from "./utils/stdin.js";
 import { t } from "./i18n/index.js";
-import { logger } from "./utils/logger.js";
 import {
 	isThinkingEnabled,
 	currentModelSupportsThinking,
@@ -240,14 +239,6 @@ export default function App({ initResult }: Props) {
 						} | null = null;
 
 						for (const msg of history) {
-							logger.warn("[loadSession] Processing message", {
-								role: msg.role,
-								hasContent: !!msg.content,
-								contentLen: msg.content?.length ?? 0,
-								hasReasoning: !!msg.reasoning_content,
-								reasoningLen: msg.reasoning_content?.length ?? 0,
-								hasToolCalls: !!msg.tool_calls,
-							});
 							if (msg.role === "user") {
 								uiMessages.push({ content: msg.content, type: "user" });
 							} else if (msg.role === "assistant") {
@@ -279,21 +270,11 @@ export default function App({ initResult }: Props) {
 									}
 								}
 								// 添加 assistant 的文本内容，或者如果有 askuser 调用/reasoning 也添加
-								logger.warn("[loadSession] Assistant message check", {
-									hasContent: !!msg.content,
-									hasReasoning: !!msg.reasoning_content,
-									hasAskUserToolCall,
-									willAdd: !!(msg.content || msg.reasoning_content || hasAskUserToolCall),
-								});
 								if (msg.content || msg.reasoning_content || hasAskUserToolCall) {
 									uiMessages.push({
 										content: msg.content || "",
 										reasoning: msg.reasoning_content || "",
 										reasoningCollapsed: true, // 恢复时默认折叠
-									});
-									logger.warn("[loadSession] Added assistant message", {
-										contentLen: (msg.content || "").length,
-										reasoningLen: (msg.reasoning_content || "").length,
 									});
 								}
 							} else if (msg.role === "tool" && msg.content) {
