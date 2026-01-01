@@ -665,6 +665,32 @@ export default function App({ initResult }: Props) {
 						// 有思考内容时自动折叠
 						reasoningCollapsed: displayReasoning.length > 0,
 					};
+					// 流式结束时，自动折叠之前消息的 reasoning 和 askUserQA（如果有）
+					// 这样当对话完成时，所有折叠组会一起折叠
+					for (let i = streamingIndex - 1; i >= 0; i--) {
+						const msg = newMessages[i];
+						if (!msg) continue;
+						// 检查是否需要折叠（有未折叠的 reasoning 或 askUserQA）
+						const needsFoldReasoning =
+							(msg.reasoning?.length ?? 0) > 0 && !msg.reasoningCollapsed;
+						const needsFoldAskUser =
+							msg.askUserQA && msg.askUserCollapsed === false;
+						if (needsFoldReasoning || needsFoldAskUser) {
+							newMessages[i] = {
+								...msg,
+								reasoningCollapsed: needsFoldReasoning
+									? true
+									: msg.reasoningCollapsed,
+								askUserCollapsed: needsFoldAskUser
+									? true
+									: msg.askUserCollapsed,
+							};
+						}
+						// 遇到 user 类型消息时停止（不跨越对话组）
+						if (msg.type === "user") {
+							break;
+						}
+					}
 					return newMessages;
 				});
 				// 重置 askuser 偏移量
