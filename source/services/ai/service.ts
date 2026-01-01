@@ -445,10 +445,11 @@ export class AIService implements IAIService {
 						currentContent: fullContent.substring(0, 100),
 					});
 
-					// 添加 assistant 消息到 Session（只保存正式内容，思考内容不入 session）
+					// 添加 assistant 消息到 Session（包含思考内容以支持 askuser 持久化）
 					const assistantMessage: ChatMessage = {
 						role: "assistant",
 						content: fullContent,
+						reasoning_content: reasoningContent || undefined,
 						tool_calls: chunk.delta.tool_calls,
 					};
 					this.session.addAssistantMessage(assistantMessage);
@@ -524,6 +525,7 @@ export class AIService implements IAIService {
 					this.session.addAssistantMessage({
 						role: "assistant",
 						content: fullContent,
+						reasoning_content: reasoningContent || undefined,
 					});
 					callbacks?.onEnd?.({
 						reasoning: reasoningContent,
@@ -553,6 +555,7 @@ export class AIService implements IAIService {
 				this.session.addAssistantMessage({
 					role: "assistant",
 					content: fullContent,
+					reasoning_content: reasoningContent || undefined,
 				});
 				callbacks?.onEnd?.({
 					reasoning: reasoningContent,

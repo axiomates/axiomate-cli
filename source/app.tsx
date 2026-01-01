@@ -36,6 +36,7 @@ import {
 import type { InitResult } from "./utils/init.js";
 import { resumeInput } from "./utils/stdin.js";
 import { t } from "./i18n/index.js";
+import { logger } from "./utils/logger.js";
 import {
 	isThinkingEnabled,
 	currentModelSupportsThinking,
@@ -75,6 +76,10 @@ export default function App({ initResult }: Props) {
 		options: string[];
 		onResolve: (answer: string) => void;
 	} | null>(null);
+
+	// askuser 回答后，需要跳过的内容长度（用于 onStreamChunk 正确显示后续内容）
+	const askUserContentOffsetRef = useRef<number>(0);
+	const askUserReasoningOffsetRef = useRef<number>(0);
 
 	// AI 加载状态（将来用于显示加载指示器）
 	const [, setIsLoading] = useState(false);
@@ -235,17 +240,23 @@ export default function App({ initResult }: Props) {
 						} | null = null;
 
 						for (const msg of history) {
+							logger.warn("[loadSession] Processing message", {
+								role: msg.role,
+								hasContent: !!msg.content,
+								contentLen: msg.content?.length ?? 0,
+								hasReasoning: !!msg.reasoning_content,
+								reasoningLen: msg.reasoning_content?.length ?? 0,
+								hasToolCalls: !!msg.tool_calls,
+							});
 							if (msg.role === "user") {
 								uiMessages.push({ content: msg.content, type: "user" });
 							} else if (msg.role === "assistant") {
-								// 添加 assistant 的文本内容
-								if (msg.content) {
-									uiMessages.push({ content: msg.content });
-								}
-								// 检查是否有 ask_user 工具调用，暂存问题等待匹配回答
+								// 检查是否有 ask_user 工具调用
+								let hasAskUserToolCall = false;
 								if (msg.tool_calls) {
 									for (const toolCall of msg.tool_calls) {
 										if (toolCall.function.name === "askuser_ask") {
+											hasAskUserToolCall = true;
 											try {
 												const args = JSON.parse(toolCall.function.arguments);
 												const question = args.question || "";
@@ -266,6 +277,24 @@ export default function App({ initResult }: Props) {
 											}
 										}
 									}
+								}
+								// 添加 assistant 的文本内容，或者如果有 askuser 调用/reasoning 也添加
+								logger.warn("[loadSession] Assistant message check", {
+									hasContent: !!msg.content,
+									hasReasoning: !!msg.reasoning_content,
+									hasAskUserToolCall,
+									willAdd: !!(msg.content || msg.reasoning_content || hasAskUserToolCall),
+								});
+								if (msg.content || msg.reasoning_content || hasAskUserToolCall) {
+									uiMessages.push({
+										content: msg.content || "",
+										reasoning: msg.reasoning_content || "",
+										reasoningCollapsed: true, // 恢复时默认折叠
+									});
+									logger.warn("[loadSession] Added assistant message", {
+										contentLen: (msg.content || "").length,
+										reasoningLen: (msg.reasoning_content || "").length,
+									});
 								}
 							} else if (msg.role === "tool" && msg.content) {
 								// 解析 tool 消息，提取 ask_user 回答
@@ -421,7 +450,11 @@ export default function App({ initResult }: Props) {
 						question,
 						options: askOptions,
 						onResolve: (answer: string) => {
-							// 用户回答后，将问答组附加到最后一条非 user 消息上
+							// 用户回答后：
+							// 1. 将问答组附加到当前 AI 消息上（streaming 保持 false）
+							// 2. 创建一条新的 streaming 消息，用于显示 AI 后续回复
+							// 3. 记录当前内容长度作为偏移量，后续 onChunk 只显示新增内容
+							// 这样问答组会显示在"问问题时的内容"和"后续回复"之间
 							setMessages((prev) => {
 								const newMessages = [...prev];
 								// 找到最后一条非 user 类型的消息（应该是 AI 的回复）
@@ -432,7 +465,12 @@ export default function App({ initResult }: Props) {
 										msg.type !== "user" &&
 										msg.type !== "user-answer"
 									) {
-										// 附加问答组到这条消息上
+										// 记录当前内容长度作为偏移量（+1 for newline added in service.ts）
+										const currentContentLen = msg.content?.length ?? 0;
+										const currentReasoningLen = msg.reasoning?.length ?? 0;
+										askUserContentOffsetRef.current = currentContentLen > 0 ? currentContentLen + 1 : 0;
+										askUserReasoningOffsetRef.current = currentReasoningLen;
+										// 附加问答组到这条消息上（不恢复 streaming）
 										newMessages[i] = {
 											...msg,
 											askUserQA: {
@@ -445,6 +483,12 @@ export default function App({ initResult }: Props) {
 										break;
 									}
 								}
+								// 添加一条新的 streaming 消息，用于 AI 后续回复
+								newMessages.push({
+									content: "",
+									reasoning: "",
+									streaming: true,
+								});
 								return newMessages;
 							});
 							resolve(answer);
@@ -572,6 +616,9 @@ export default function App({ initResult }: Props) {
 				if (currentStreamingIdRef.current !== id) {
 					return;
 				}
+				// 重置 askuser 偏移量
+				askUserContentOffsetRef.current = 0;
+				askUserReasoningOffsetRef.current = 0;
 				// 添加一条空的流式消息
 				setMessages((prev) => [
 					...prev,
@@ -589,11 +636,20 @@ export default function App({ initResult }: Props) {
 					if (streamingIndex === -1) {
 						return prev;
 					}
+					// 如果有 askuser 偏移量，只显示偏移量之后的内容
+					const contentOffset = askUserContentOffsetRef.current;
+					const reasoningOffset = askUserReasoningOffsetRef.current;
+					const displayContent = contentOffset > 0
+						? streamContent.content.substring(contentOffset)
+						: streamContent.content;
+					const displayReasoning = reasoningOffset > 0
+						? streamContent.reasoning.substring(reasoningOffset)
+						: streamContent.reasoning;
 					const newMessages = [...prev];
 					newMessages[streamingIndex] = {
 						...newMessages[streamingIndex],
-						content: streamContent.content,
-						reasoning: streamContent.reasoning,
+						content: displayContent,
+						reasoning: displayReasoning,
 						reasoningCollapsed: false, // 流式中不折叠
 					};
 					return newMessages;
@@ -610,17 +666,29 @@ export default function App({ initResult }: Props) {
 					if (streamingIndex === -1) {
 						return prev;
 					}
+					// 如果有 askuser 偏移量，只显示偏移量之后的内容
+					const contentOffset = askUserContentOffsetRef.current;
+					const reasoningOffset = askUserReasoningOffsetRef.current;
+					const displayContent = contentOffset > 0
+						? finalContent.content.substring(contentOffset)
+						: finalContent.content;
+					const displayReasoning = reasoningOffset > 0
+						? finalContent.reasoning.substring(reasoningOffset)
+						: finalContent.reasoning;
 					const newMessages = [...prev];
 					newMessages[streamingIndex] = {
 						...newMessages[streamingIndex],
-						content: finalContent.content,
-						reasoning: finalContent.reasoning,
+						content: displayContent,
+						reasoning: displayReasoning,
 						streaming: false,
 						// 有思考内容时自动折叠
-						reasoningCollapsed: finalContent.reasoning.length > 0,
+						reasoningCollapsed: displayReasoning.length > 0,
 					};
 					return newMessages;
 				});
+				// 重置 askuser 偏移量
+				askUserContentOffsetRef.current = 0;
+				askUserReasoningOffsetRef.current = 0;
 				// 流式结束后更新 usage 状态
 				updateUsageStatus();
 			},
@@ -1032,14 +1100,12 @@ export default function App({ initResult }: Props) {
 				if (msg.role === "user") {
 					uiMessages.push({ content: msg.content, type: "user" });
 				} else if (msg.role === "assistant") {
-					// 添加 assistant 的文本内容
-					if (msg.content) {
-						uiMessages.push({ content: msg.content });
-					}
-					// 检查是否有 ask_user 工具调用，暂存问题等待匹配回答
+					// 检查是否有 ask_user 工具调用
+					let hasAskUserToolCall = false;
 					if (msg.tool_calls) {
 						for (const toolCall of msg.tool_calls) {
 							if (toolCall.function.name === "askuser_ask") {
+								hasAskUserToolCall = true;
 								try {
 									const args = JSON.parse(toolCall.function.arguments);
 									const question = args.question || "";
@@ -1060,6 +1126,14 @@ export default function App({ initResult }: Props) {
 								}
 							}
 						}
+					}
+					// 添加 assistant 的文本内容，或者如果有 askuser 调用/reasoning 也添加
+					if (msg.content || msg.reasoning_content || hasAskUserToolCall) {
+						uiMessages.push({
+							content: msg.content || "",
+							reasoning: msg.reasoning_content || "",
+							reasoningCollapsed: true, // 恢复时默认折叠
+						});
 					}
 				} else if (msg.role === "tool" && msg.content) {
 					// 解析 tool 消息，提取 ask_user 回答
