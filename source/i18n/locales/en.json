@@ -168,13 +168,7 @@
 		"streamError": "Error during streaming: {{error}}",
 		"toolExecuting": "Executing tool: {{tool}}",
 		"toolSuccess": "Tool executed successfully",
-		"toolError": "Tool execution failed: {{error}}",
-		"filesOmitted": "⚠️ Insufficient context space, {{count}} file(s) content completely omitted",
-		"contentOmitted": "[Content omitted due to context limit]",
-		"filesTruncated": "⚠️ {{count}} file(s) content truncated to fit context limit",
-		"fileSummary": "Contains {{count}} file(s): {{files}}",
-		"directory": "directory {{path}}",
-		"file": "file {{path}}"
+		"toolError": "Tool execution failed: {{error}}"
 	},
 	"session": {
 		"created": "Created new session: {{name}}",
@@ -212,13 +206,6 @@
 		"networkError": "Network error: {{message}}",
 		"apiError": "API error: {{message}}",
 		"mcpServerStartFailed": "MCP Server failed to start:",
-		"toolNotFound": "Tool \"{{toolId}}\" not found",
-		"toolNotInstalled": "Tool \"{{toolName}}\" is not installed. {{hint}}",
-		"toolActionNotFound": "Tool \"{{toolName}}\" has no action \"{{actionName}}\"",
-		"paramParseFailed": "Parameter parsing failed: {{message}}",
-		"executionFailed": "Execution failed",
-		"unknownError": "Unknown error",
-		"maxToolCallsReached": "Maximum tool call rounds limit reached.",
 		"commandExecutionFailed": "Command execution failed"
 	},
 	"toolCategories": {
@@ -262,12 +249,10 @@
 		"notInstalled": "Not Installed",
 		"version": "Version",
 		"waiting": "waiting...",
-		"noOutput": "(no output)",
-		"executionSuccess": "(execution succeeded, no output)"
+		"noOutput": "(no output)"
 	},
 	"tools": {
 		"webKeywords": ["webpage", "website", "link", "url"],
-		"contentTruncated": "\n[... content truncated, {{total}} lines total, showing first {{kept}} lines ...]",
 		"listToolsDesc": "List all available/not installed local development tools",
 		"toolStatsDesc": "Get tool statistics",
 		"toolNotFoundMcp": "Tool not found: {{name}}",

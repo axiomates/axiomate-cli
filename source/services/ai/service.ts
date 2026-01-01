@@ -27,7 +27,6 @@ import {
 	type CompactCheckResult,
 } from "./session.js";
 import { buildSystemPrompt } from "../../constants/prompts.js";
-import { t } from "../../i18n/index.js";
 import { isPlanModeEnabled } from "../../utils/config.js";
 
 /**
@@ -521,7 +520,7 @@ export class AIService implements IAIService {
 		}
 
 		// 达到最大轮数
-		const maxToolCallsMsg = t("errors.maxToolCallsReached");
+		const maxToolCallsMsg = "Maximum tool call rounds limit reached.";
 		const finalContent = totalContent + fullContent;
 		callbacks?.onEnd?.({
 			reasoning: reasoningContent,
@@ -651,7 +650,7 @@ export class AIService implements IAIService {
 
 		// 达到最大轮数
 		return {
-			content: t("errors.maxToolCallsReached"),
+			content: "Maximum tool call rounds limit reached.",
 			sessionStatus: this.session.getStatus(),
 		};
 	}

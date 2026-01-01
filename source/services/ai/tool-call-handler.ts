@@ -16,7 +16,6 @@ import type {
 	ToolAction,
 } from "../tools/types.js";
 import { executeToolAction, getToolAction } from "../tools/executor.js";
-import { t } from "../../i18n/index.js";
 
 /**
  * 工具调用处理器实现
@@ -61,20 +60,18 @@ export class ToolCallHandler implements IToolCallHandler {
 				result: {
 					success: false,
 					output: "",
-					error: t("errors.toolNotFound", { toolId }),
+					error: `Tool "${toolId}" not found`,
 				},
 			};
 		}
 
 		if (!tool.installed) {
+			const hint = tool.installHint ? ` ${tool.installHint}` : "";
 			return {
 				result: {
 					success: false,
 					output: "",
-					error: t("errors.toolNotInstalled", {
-						toolName: tool.name,
-						hint: tool.installHint || "",
-					}),
+					error: `Tool "${tool.name}" is not installed.${hint}`,
 				},
 				tool,
 			};
@@ -86,10 +83,7 @@ export class ToolCallHandler implements IToolCallHandler {
 				result: {
 					success: false,
 					output: "",
-					error: t("errors.toolActionNotFound", {
-						toolName: tool.name,
-						actionName,
-					}),
+					error: `Tool "${tool.name}" has no action "${actionName}"`,
 				},
 				tool,
 			};
@@ -100,13 +94,12 @@ export class ToolCallHandler implements IToolCallHandler {
 		try {
 			args = JSON.parse(call.function.arguments);
 		} catch (e) {
+			const message = e instanceof Error ? e.message : String(e);
 			return {
 				result: {
 					success: false,
 					output: "",
-					error: t("errors.paramParseFailed", {
-						message: e instanceof Error ? e.message : String(e),
-					}),
+					error: `Parameter parsing failed: ${message}`,
 				},
 				tool,
 				action,
@@ -126,9 +119,7 @@ export class ToolCallHandler implements IToolCallHandler {
 				success: execResult.success,
 				output: execResult.success
 					? execResult.stdout
-					: execResult.error ||
-						execResult.stderr ||
-						t("errors.executionFailed"),
+					: execResult.error || execResult.stderr || "Execution failed",
 				error: execResult.success
 					? undefined
 					: execResult.error || execResult.stderr,
@@ -165,9 +156,9 @@ export class ToolCallHandler implements IToolCallHandler {
 			// 构建工具结果消息
 			let content: string;
 			if (result.success) {
-				content = result.output || t("common.executionSuccess");
+				content = result.output || "(execution succeeded, no output)";
 			} else {
-				content = `Error: ${result.error || t("errors.unknownError")}`;
+				content = `Error: ${result.error || "Unknown error"}`;
 			}
 
 			// 添加执行信息

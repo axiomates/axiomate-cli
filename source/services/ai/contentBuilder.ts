@@ -9,7 +9,6 @@ import {
 	estimateTokens,
 	truncateFilesProportionally,
 } from "./tokenEstimator.js";
-import { t } from "../../i18n/index.js";
 
 /**
  * 内容构建结果
@@ -114,10 +113,10 @@ export async function buildMessageContent(
 	if (availableForFiles <= 0) {
 		// 没有空间放置文件内容
 		wasTruncated = true;
-		truncationNotice = t("ai.filesOmitted", { count: fileRefs.length });
+		truncationNotice = `${fileRefs.length} file(s) content completely omitted due to insufficient context space`;
 		processedFiles = readResult.files.map((f) => ({
 			...f,
-			content: t("ai.contentOmitted"),
+			content: "[Content omitted due to context limit]",
 		}));
 	} else if (totalFileTokens > availableForFiles) {
 		// 需要截断
@@ -132,7 +131,7 @@ export async function buildMessageContent(
 			const truncatedCount = truncatedFiles.filter(
 				(f) => f.wasTruncated,
 			).length;
-			truncationNotice = t("ai.filesTruncated", { count: truncatedCount });
+			truncationNotice = `${truncatedCount} file(s) content truncated to fit context limit`;
 		}
 
 		// 合并截断后的文件和有错误的文件
@@ -163,10 +162,7 @@ export async function buildMessageContent(
 
 	// 6. 生成文件摘要
 	const fileNames = fileRefs.map((f) => f.path.split(/[/\\]/).pop()).join(", ");
-	const fileSummary = t("ai.fileSummary", {
-		count: fileRefs.length,
-		files: fileNames,
-	});
+	const fileSummary = `Contains ${fileRefs.length} file(s): ${fileNames}`;
 
 	// 7. 组装最终内容
 	const finalContent = `${xmlContent}\n\n${transformedMessage}`;
@@ -209,8 +205,8 @@ export function transformUserMessage(
 	for (const file of sortedFiles) {
 		const pattern = `@${file.path}`;
 		const replacement = file.isDirectory
-			? t("ai.directory", { path: file.path })
-			: t("ai.file", { path: file.path });
+			? `directory ${file.path}`
+			: `file ${file.path}`;
 		result = result.replace(pattern, replacement);
 	}
 
