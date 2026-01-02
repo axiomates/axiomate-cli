@@ -2,7 +2,12 @@
  * 使用 Bun 将应用打包为独立可执行文件
  *
  * 依赖: 需要安装 Bun (https://bun.sh)
- * 用法: npm run package
+ * 用法:
+ *   npm run package              # 打包当前平台
+ *   npm run package -- --all     # 打包所有平台 (交叉编译)
+ *   npm run package -- --mac     # 只打包 macOS (Intel + Apple Silicon)
+ *   npm run package -- --windows # 只打包 Windows
+ *   npm run package -- --linux   # 只打包 Linux
  *
  * 打包流程:
  * 1. 先使用 esbuild 构建单文件 bundle (复用现有 bundle 逻辑)
@@ -14,6 +19,54 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { platform } from "os";
 import { join } from "path";
 
+// 支持的目标平台
+type Target =
+	| "bun-darwin-arm64"
+	| "bun-darwin-x64"
+	| "bun-linux-x64"
+	| "bun-linux-arm64"
+	| "bun-windows-x64";
+
+interface TargetInfo {
+	target: Target;
+	filename: string;
+	description: string;
+}
+
+const TARGETS: Record<string, TargetInfo[]> = {
+	mac: [
+		{
+			target: "bun-darwin-arm64",
+			filename: "axiomate-mac-arm64",
+			description: "macOS Apple Silicon (M1/M2/M3)",
+		},
+		{
+			target: "bun-darwin-x64",
+			filename: "axiomate-mac-x64",
+			description: "macOS Intel",
+		},
+	],
+	windows: [
+		{
+			target: "bun-windows-x64",
+			filename: "axiomate.exe",
+			description: "Windows x64",
+		},
+	],
+	linux: [
+		{
+			target: "bun-linux-x64",
+			filename: "axiomate-linux-x64",
+			description: "Linux x64",
+		},
+		{
+			target: "bun-linux-arm64",
+			filename: "axiomate-linux-arm64",
+			description: "Linux ARM64",
+		},
+	],
+};
+
 // 检查 Bun 是否已安装
 function checkBunInstalled(): boolean {
 	try {
@@ -24,21 +77,69 @@ function checkBunInstalled(): boolean {
 	}
 }
 
-// 获取输出文件名
-function getOutputFilename(): string {
+// 获取当前平台的目标
+function getCurrentPlatformTargets(): TargetInfo[] {
 	const os = platform();
-	const baseName = "axiomate";
+	if (os === "darwin") return TARGETS.mac;
+	if (os === "win32") return TARGETS.windows;
+	return TARGETS.linux;
+}
 
-	if (os === "win32") {
-		return `${baseName}.exe`;
+// 解析命令行参数
+function parseArgs(): TargetInfo[] {
+	const args = process.argv.slice(2);
+
+	if (args.includes("--all")) {
+		return [...TARGETS.mac, ...TARGETS.windows, ...TARGETS.linux];
+	}
+	if (args.includes("--mac")) {
+		return TARGETS.mac;
+	}
+	if (args.includes("--windows")) {
+		return TARGETS.windows;
+	}
+	if (args.includes("--linux")) {
+		return TARGETS.linux;
 	}
 
-	return baseName;
+	// 默认：当前平台
+	return getCurrentPlatformTargets();
+}
+
+// 编译单个目标
+function compileTarget(
+	bunEntryPath: string,
+	targetInfo: TargetInfo,
+): boolean {
+	const outputPath = join("bundle", targetInfo.filename);
+	console.log(`  → ${targetInfo.description} (${targetInfo.filename})...`);
+
+	const args = [
+		"build",
+		bunEntryPath,
+		"--compile",
+		"--minify",
+		"--target",
+		targetInfo.target,
+		"--outfile",
+		outputPath,
+	];
+
+	// Windows 专用: 设置图标
+	if (targetInfo.target === "bun-windows-x64") {
+		args.push("--windows-icon=assets/icon.ico");
+	}
+
+	const result = spawnSync("bun", args, { stdio: "inherit" });
+	return result.status === 0;
 }
 
 // 主流程
 async function main() {
+	const targets = parseArgs();
+
 	console.log("📦 开始打包 axiomate...\n");
+	console.log(`   目标平台: ${targets.map((t) => t.description).join(", ")}\n`);
 
 	// 1. 检查 Bun
 	if (!checkBunInstalled()) {
@@ -78,36 +179,40 @@ async function main() {
 	);
 	writeFileSync(bunEntryPath, bundleContent);
 
-	// 5. 使用 Bun 编译为可执行文件
-	const outputFilename = getOutputFilename();
-	const outputPath = join("bundle", outputFilename);
+	// 5. 编译所有目标平台
+	console.log("✓ 正在编译可执行文件...\n");
 
-	console.log(`✓ 正在编译为可执行文件: ${outputFilename}...`);
+	const results: { target: TargetInfo; success: boolean }[] = [];
 
-	const args = [
-		"build",
-		bunEntryPath,
-		"--compile",
-		"--minify",
-		"--outfile",
-		outputPath,
-	];
-
-	// Windows 专用: 设置图标
-	if (platform() === "win32") {
-		args.push("--windows-icon=assets/icon.ico");
+	for (const target of targets) {
+		const success = compileTarget(bunEntryPath, target);
+		results.push({ target, success });
 	}
 
-	const result = spawnSync("bun", args, { stdio: "inherit" });
+	// 6. 输出结果
+	console.log("\n" + "=".repeat(50));
+	console.log("📋 打包结果:\n");
 
-	if (result.status !== 0) {
-		console.error("❌ Bun 编译失败");
+	const successful = results.filter((r) => r.success);
+	const failed = results.filter((r) => !r.success);
+
+	for (const { target } of successful) {
+		console.log(`   ✅ ${target.description}`);
+		console.log(`      → bundle/${target.filename}`);
+	}
+
+	for (const { target } of failed) {
+		console.log(`   ❌ ${target.description} - 编译失败`);
+	}
+
+	console.log("\n" + "=".repeat(50));
+
+	if (failed.length > 0) {
+		console.error(`\n⚠️  ${failed.length}/${results.length} 个目标编译失败`);
 		process.exit(1);
 	}
 
-	console.log(`\n✅ 打包完成!`);
-	console.log(`   输出文件: ${outputPath}`);
-	console.log(`\n   运行方式: ./${outputPath}`);
+	console.log(`\n✅ 全部 ${successful.length} 个目标打包成功!`);
 }
 
 main().catch((err) => {

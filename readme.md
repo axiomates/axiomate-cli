@@ -16,8 +16,14 @@ npm start
 ### 打包可执行文件
 
 ```bash
-npm run package  # 需要 Bun
+npm run package              # 当前平台 (需要 Bun)
+npm run package -- --all     # 所有平台 (交叉编译)
+npm run package -- --mac     # macOS (Intel + Apple Silicon)
+npm run package -- --windows # Windows x64
+npm run package -- --linux   # Linux (x64 + ARM64)
 ```
+
+输出文件在 `bundle/` 目录。
 
 ## 主要功能
 
