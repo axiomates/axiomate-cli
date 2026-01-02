@@ -12,6 +12,7 @@ import {
 	type ModelConfig,
 } from "../services/ai/index.js";
 import { t } from "../i18n/index.js";
+import { cleanupScriptsDir } from "../services/tools/scriptWriter.js";
 
 export type InitResult = {
 	aiService: IAIService | null;
@@ -32,6 +33,9 @@ export type InitProgress = {
 export async function initApp(
 	onProgress?: (progress: InitProgress) => void,
 ): Promise<InitResult> {
+	// 阶段 0: 清理上次运行的临时脚本文件
+	cleanupScriptsDir(process.cwd());
+
 	// 阶段 1: 发现本地工具
 	onProgress?.({ stage: "tools", message: t("splash.discoveringTools") });
 	const registry = getToolRegistry();

@@ -6,6 +6,7 @@
  */
 
 import { writeFileSync } from "node:fs";
+import { readdir, unlink, access } from "node:fs/promises";
 import { join } from "node:path";
 import { platform } from "node:os";
 import { ensureDir } from "./fileOperations.js";
@@ -25,6 +26,36 @@ const SCRIPT_EXTENSIONS: Record<ScriptType, string> = {
  */
 export function getScriptsDir(cwd: string): string {
 	return join(cwd, ".axiomate", "scripts");
+}
+
+/**
+ * Clean up all temporary script files in the scripts directory
+ * Called on application startup to remove stale scripts from previous sessions
+ * Non-blocking - runs in the background without awaiting
+ */
+export function cleanupScriptsDir(cwd: string): void {
+	const scriptsDir = getScriptsDir(cwd);
+
+	// Run cleanup asynchronously without blocking startup
+	(async () => {
+		try {
+			await access(scriptsDir);
+		} catch {
+			// Directory doesn't exist, nothing to clean
+			return;
+		}
+
+		try {
+			const files = await readdir(scriptsDir);
+			await Promise.all(
+				files
+					.filter((file) => !file.startsWith(".")) // Skip hidden files like .gitkeep
+					.map((file) => unlink(join(scriptsDir, file)).catch(() => {})),
+			);
+		} catch {
+			// Ignore errors reading directory
+		}
+	})();
 }
 
 /**
