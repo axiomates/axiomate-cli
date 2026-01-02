@@ -222,9 +222,10 @@ export class OpenAIClient implements IAIClient {
 
 		// 创建内部 AbortController 用于超时
 		const timeoutController = new AbortController();
-		const timeoutId = setTimeout(
+		// 连接超时：等待服务器响应（使用配置的 timeout）
+		const connectionTimeoutId = setTimeout(
 			() => timeoutController.abort(),
-			this.config.timeout || 600000, // 流式响应使用10分钟超时
+			this.config.timeout || 180000,
 		);
 
 		// 如果有外部 signal，监听它并联动中止
@@ -234,7 +235,7 @@ export class OpenAIClient implements IAIClient {
 		if (externalSignal) {
 			// 如果外部 signal 已经 aborted，立即中止
 			if (externalSignal.aborted) {
-				clearTimeout(timeoutId);
+				clearTimeout(connectionTimeoutId);
 				throw new DOMException("Request was aborted", "AbortError");
 			}
 			// 监听外部 signal 的 abort 事件
@@ -242,7 +243,7 @@ export class OpenAIClient implements IAIClient {
 			externalSignal.addEventListener("abort", externalAbortHandler);
 		}
 
-		// 活动超时：每次收到数据时重置（默认10分钟）
+		// 活动超时：流式传输期间，每次收到数据重置
 		const streamTimeout = this.config.timeout || 600000;
 		let activityTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -273,7 +274,7 @@ export class OpenAIClient implements IAIClient {
 				signal: timeoutController.signal,
 			});
 
-			clearTimeout(timeoutId);
+			clearTimeout(connectionTimeoutId);
 
 			if (!response.ok) {
 				const errorText = await response.text();
@@ -428,7 +429,7 @@ export class OpenAIClient implements IAIClient {
 				yield { delta: { content: "" }, finish_reason: "stop" };
 			}
 		} finally {
-			clearTimeout(timeoutId);
+			clearTimeout(connectionTimeoutId);
 			clearActivityTimeout();
 			// 清理外部 signal 监听器
 			if (externalSignal && externalAbortHandler) {
