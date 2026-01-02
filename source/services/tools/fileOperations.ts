@@ -8,7 +8,12 @@ import {
 	readFileSync,
 	writeFileSync,
 	appendFileSync,
+	statSync,
 } from "node:fs";
+
+// Maximum file size for reading (100MB)
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
 import { dirname } from "node:path";
 // iconv-lite uses CommonJS export, need workaround for ESM + Bun bundling
 import iconvModule from "iconv-lite";
@@ -101,6 +106,17 @@ export function readFileContent(
 	try {
 		if (!existsSync(filePath)) {
 			return { success: false, content: null, error: "File not found" };
+		}
+
+		// Check file size before reading
+		const stats = statSync(filePath);
+		if (stats.size > MAX_FILE_SIZE) {
+			const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
+			return {
+				success: false,
+				content: null,
+				error: `File too large (${sizeMB}MB). Maximum allowed: 100MB`,
+			};
 		}
 
 		const buffer = readFileSync(filePath);

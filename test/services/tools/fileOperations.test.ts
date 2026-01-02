@@ -13,6 +13,7 @@ import {
 	readFileSync,
 	writeFileSync,
 	appendFileSync,
+	statSync,
 } from "node:fs";
 
 // Mock node:fs
@@ -22,6 +23,7 @@ vi.mock("node:fs", () => ({
 	readFileSync: vi.fn(),
 	writeFileSync: vi.fn(),
 	appendFileSync: vi.fn(),
+	statSync: vi.fn(),
 }));
 
 // Mock encodingDetector
@@ -105,8 +107,45 @@ describe("fileOperations", () => {
 			});
 		});
 
+		it("should return error when file is too large", () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 150 * 1024 * 1024, // 150MB
+			} as ReturnType<typeof statSync>);
+
+			const result = readFileContent("/path/to/large-file.txt");
+
+			expect(result.success).toBe(false);
+			expect(result.content).toBeNull();
+			expect(result.error).toContain("File too large");
+			expect(result.error).toContain("150.0MB");
+			expect(result.error).toContain("Maximum allowed: 100MB");
+		});
+
+		it("should read file when size is within limit", () => {
+			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 50 * 1024 * 1024, // 50MB
+			} as ReturnType<typeof statSync>);
+			vi.mocked(readFileSync).mockReturnValue(Buffer.from("Hello World"));
+			vi.mocked(detectEncoding).mockReturnValue({
+				encoding: "utf-8",
+				confidence: 0.85,
+				hasBOM: false,
+				bomBytes: 0,
+			});
+
+			const result = readFileContent("/path/to/file.txt");
+
+			expect(result.success).toBe(true);
+			expect(result.content).toBe("Hello World");
+		});
+
 		it("should read UTF-8 file without BOM", () => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			vi.mocked(readFileSync).mockReturnValue(Buffer.from("Hello World"));
 			vi.mocked(detectEncoding).mockReturnValue({
 				encoding: "utf-8",
@@ -124,6 +163,9 @@ describe("fileOperations", () => {
 
 		it("should read file with UTF-8 BOM and strip it", () => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			const contentWithBOM = Buffer.concat([
 				Buffer.from([0xef, 0xbb, 0xbf]),
 				Buffer.from("Hello"),
@@ -145,6 +187,9 @@ describe("fileOperations", () => {
 
 		it("should use forced encoding when provided", () => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			vi.mocked(readFileSync).mockReturnValue(Buffer.from("Hello"));
 
 			const result = readFileContent("/path/to/file.txt", "gbk");
@@ -157,6 +202,9 @@ describe("fileOperations", () => {
 
 		it("should handle read error gracefully", () => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			vi.mocked(readFileSync).mockImplementation(() => {
 				throw new Error("Permission denied");
 			});
@@ -170,6 +218,9 @@ describe("fileOperations", () => {
 
 		it("should handle non-Error thrown", () => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			vi.mocked(readFileSync).mockImplementation(() => {
 				throw "String error";
 			});
@@ -299,6 +350,9 @@ describe("fileOperations", () => {
 	describe("editFileContent", () => {
 		beforeEach(() => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			vi.mocked(readFileSync).mockReturnValue(Buffer.from("Hello World"));
 			vi.mocked(detectEncoding).mockReturnValue({
 				encoding: "utf-8",
@@ -415,6 +469,9 @@ describe("fileOperations", () => {
 	describe("readFileLines", () => {
 		beforeEach(() => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			vi.mocked(detectEncoding).mockReturnValue({
 				encoding: "utf-8",
 				confidence: 0.85,
@@ -531,6 +588,9 @@ describe("fileOperations", () => {
 	describe("searchInFile", () => {
 		beforeEach(() => {
 			vi.mocked(existsSync).mockReturnValue(true);
+			vi.mocked(statSync).mockReturnValue({
+				size: 1024,
+			} as ReturnType<typeof statSync>);
 			vi.mocked(detectEncoding).mockReturnValue({
 				encoding: "utf-8",
 				confidence: 0.85,
