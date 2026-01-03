@@ -152,7 +152,10 @@ export type Translations = {
 		diff: string;
 		container: string;
 		build: string;
+		package: string;
 		database: string;
+		web: string;
+		utility: string;
 		other: string;
 	};
 

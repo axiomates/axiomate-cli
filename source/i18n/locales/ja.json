@@ -219,6 +219,7 @@
 		"package": "パッケージ管理",
 		"database": "データベース",
 		"web": "Webツール",
+		"utility": "ユーティリティ",
 		"other": "その他"
 	},
 	"toolList": {

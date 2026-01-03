@@ -219,6 +219,7 @@
 		"package": "Package Manager",
 		"database": "Database",
 		"web": "Web Tools",
+		"utility": "Utility",
 		"other": "Other"
 	},
 	"toolList": {

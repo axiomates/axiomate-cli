@@ -219,6 +219,7 @@
 		"package": "包管理",
 		"database": "数据库",
 		"web": "网络工具",
+		"utility": "实用工具",
 		"other": "其他"
 	},
 	"toolList": {
