@@ -215,11 +215,7 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		protocol: "openai",
 		description: "MiniMax M2 230B",
 		supportsTools: true,
-		supportsThinking: true,
-		thinkingParams: {
-			enabled: { enable_thinking: true },
-			disabled: { enable_thinking: false },
-		},
+		supportsThinking: false,
 		contextWindow: 196608,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
