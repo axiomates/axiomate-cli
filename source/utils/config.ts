@@ -271,7 +271,7 @@ export function getModelApiConfig(modelId: string): {
 	protocol: ApiProtocol;
 } | null {
 	const modelConfig = getModelById(modelId);
-	if (!modelConfig?.baseUrl || !modelConfig?.apiKey) {
+	if (!modelConfig?.baseUrl) {
 		return null;
 	}
 
