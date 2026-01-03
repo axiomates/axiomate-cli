@@ -92,7 +92,9 @@ export class OpenAIClient implements IAIClient {
 		// 如果启用思考模式且当前模型支持，添加 enable_thinking 参数
 		if (isThinkingEnabled() && currentModelSupportsThinking()) {
 			body.enable_thinking = true;
-		}
+		} else {
+            body.enable_thinking = false;
+        }
 
 		let lastError: Error | null = null;
 		const maxRetries = this.config.maxRetries || 3;
@@ -218,7 +220,9 @@ export class OpenAIClient implements IAIClient {
 		// 如果启用思考模式且当前模型支持，添加 enable_thinking 参数
 		if (isThinkingEnabled() && currentModelSupportsThinking()) {
 			body.enable_thinking = true;
-		}
+		} else {
+            body.enable_thinking = false;
+        }
 
 		// 创建内部 AbortController 用于超时
 		const timeoutController = new AbortController();
