@@ -29,7 +29,7 @@ export const DEFAULT_MODEL_ID = "Qwen/Qwen3-8B";
 /**
  * 默认建议模型 ID
  */
-export const DEFAULT_SUGGESTION_MODEL_ID = "THUDM/glm-4-9b-chat";
+export const DEFAULT_SUGGESTION_MODEL_ID = "Qwen/Qwen2-7B-Instruct";
 
 // ============================================================================
 // 辅助函数（从配置读取）
