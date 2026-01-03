@@ -496,7 +496,8 @@ export function useInputHandler({
 				dispatch({
 					type: "SET_TEXT",
 					text: newInput,
-					cursor: cursor + inputChar.length,
+					// 使用 getNextGraphemeBoundary 确保正确处理多字节字符（emoji等）
+					cursor: getNextGraphemeBoundary(newInput, cursor),
 				});
 			}
 		},
