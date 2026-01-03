@@ -42,13 +42,6 @@ const localEnv = loadEnvFile(".env.local");
 const siliconflowKey = localEnv["SILICONFLOW_API_KEY"] || "";
 const dashscopeKey = localEnv["DASHSCOPE_API_KEY"] || "";
 
-// 检查是否有 API keys
-if (!siliconflowKey && !dashscopeKey) {
-	console.log(
-		"Warning: No API keys found in .env.local, modelPresets.ts will have empty keys",
-	);
-}
-
 const presetsContent = `// 此文件由 scripts/gen-meta.ts 自动生成，请勿手动修改
 // API keys 从 .env.local 读取，该文件不会提交到 git
 
@@ -62,7 +55,7 @@ import type { ModelConfig } from "../utils/config.js";
  * 正式版本会根据用户账号派发可用的模型配置
  */
 export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
-	// GLM 系列（智谱）- 使用 SiliconFlow
+	// GLM 系列（智谱）
 	{
 		model: "THUDM/glm-4-9b-chat",
 		name: "GLM-4 9B",
@@ -85,8 +78,19 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
 	},
+	{
+		model: "zai-org/GLM-4.6",
+		name: "GLM 4.6 335B",
+		protocol: "openai",
+		description: "GLM 4.6 335B",
+		supportsTools: true,
+		supportsThinking: true,
+		contextWindow: 202752,
+		baseUrl: "https://api.siliconflow.cn/v1",
+		apiKey: "${siliconflowKey}",
+	},
 
-	// Qwen 系列 - 使用 SiliconFlow
+	// Qwen 系列
 	{
 		model: "Qwen/Qwen3-8B",
 		name: "Qwen3 8B",
@@ -143,7 +147,7 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		apiKey: "${dashscopeKey}",
 	},
 
-	// DeepSeek 系列 - 使用 SiliconFlow
+	// DeepSeek 系列
 	{
 		model: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
 		name: "DeepSeek R1 Qwen 7B",
@@ -163,6 +167,32 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		supportsTools: true,
 		supportsThinking: true,
 		contextWindow: 163840,
+		baseUrl: "https://api.siliconflow.cn/v1",
+		apiKey: "${siliconflowKey}",
+	},
+
+	// Minimax 系列
+	{
+		model: "MiniMaxAI/MiniMax-M2",
+		name: "MiniMax M2 230B",
+		protocol: "openai",
+		description: "MiniMax M2 230B",
+		supportsTools: true,
+		supportsThinking: true,
+		contextWindow: 196608,
+		baseUrl: "https://api.siliconflow.cn/v1",
+		apiKey: "${siliconflowKey}",
+	},
+
+	// Moonshot 系列
+	{
+		model: "Pro/moonshotai/Kimi-K2-Thinking",
+		name: "Kimi K2 Thinking 1T",
+		protocol: "openai",
+		description: "Kimi K2 Thinking 1T",
+		supportsTools: true,
+		supportsThinking: true,
+		contextWindow: 262144,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
 	},
