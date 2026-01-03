@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock config module
 vi.mock("../../../../source/utils/config.js", () => ({
-	isThinkingEnabled: vi.fn(() => false),
-	currentModelSupportsThinking: vi.fn(() => false),
+	getThinkingParams: vi.fn(() => null),
 }));
 
 // Mock adapters
@@ -19,10 +18,7 @@ vi.mock("../../../../source/services/ai/adapters/openai.js", () => ({
 }));
 
 import { OpenAIClient } from "../../../../source/services/ai/clients/openai.js";
-import {
-	isThinkingEnabled,
-	currentModelSupportsThinking,
-} from "../../../../source/utils/config.js";
+import { getThinkingParams } from "../../../../source/utils/config.js";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -256,9 +252,8 @@ describe("OpenAIClient", () => {
 			).rejects.toThrow("No response from OpenAI API");
 		});
 
-		it("should add enable_thinking when thinking is enabled", async () => {
-			vi.mocked(isThinkingEnabled).mockReturnValue(true);
-			vi.mocked(currentModelSupportsThinking).mockReturnValue(true);
+		it("should add thinking params when getThinkingParams returns params", async () => {
+			vi.mocked(getThinkingParams).mockReturnValue({ enable_thinking: true });
 
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
@@ -284,7 +279,68 @@ describe("OpenAIClient", () => {
 			expect(mockFetch).toHaveBeenCalledWith(
 				expect.any(String),
 				expect.objectContaining({
-					body: expect.stringContaining("enable_thinking"),
+					body: expect.stringContaining('"enable_thinking":true'),
+				}),
+			);
+		});
+
+		it("should not add thinking params when getThinkingParams returns null", async () => {
+			vi.mocked(getThinkingParams).mockReturnValue(null);
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					id: "chatcmpl-123",
+					choices: [
+						{
+							message: { role: "assistant", content: "Response" },
+							finish_reason: "stop",
+						},
+					],
+				}),
+			});
+
+			const client = new OpenAIClient({
+				apiKey: "test-key",
+				model: "gpt-4",
+				baseUrl: "https://api.openai.com/v1",
+			});
+
+			await client.chat([{ role: "user", content: "Hi" }]);
+
+			const callBody = mockFetch.mock.calls[0][1].body;
+			expect(callBody).not.toContain("enable_thinking");
+		});
+
+		it("should support custom thinking params format", async () => {
+			// 测试 Ollama 风格的 think 参数
+			vi.mocked(getThinkingParams).mockReturnValue({ think: true });
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					id: "chatcmpl-123",
+					choices: [
+						{
+							message: { role: "assistant", content: "Response" },
+							finish_reason: "stop",
+						},
+					],
+				}),
+			});
+
+			const client = new OpenAIClient({
+				apiKey: "test-key",
+				model: "llama",
+				baseUrl: "http://localhost:11434/v1",
+			});
+
+			await client.chat([{ role: "user", content: "Hi" }]);
+
+			expect(mockFetch).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({
+					body: expect.stringContaining('"think":true'),
 				}),
 			);
 		});

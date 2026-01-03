@@ -515,4 +515,98 @@ describe("config", () => {
 			expect(currentModelSupportsThinking()).toBe(false);
 		});
 	});
+
+	describe("getThinkingParams", () => {
+		it("should return null when no current model", async () => {
+			vi.mocked(fs.existsSync).mockReturnValue(false);
+			vi.mocked(fs.writeFileSync).mockReturnValue(undefined);
+
+			const { getThinkingParams } = await resetConfigModule();
+			expect(getThinkingParams()).toBeNull();
+		});
+
+		it("should return null when model has no thinkingParams", async () => {
+			const config = {
+				models: {
+					"no-params-model": {
+						model: "no-params-model",
+						supportsThinking: true,
+						// 没有 thinkingParams 表示 API 不支持 thinking 参数
+					},
+				},
+				currentModel: "no-params-model",
+			};
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(config));
+
+			const { getThinkingParams } = await resetConfigModule();
+			expect(getThinkingParams()).toBeNull();
+		});
+
+		it("should return enabled params when thinking is enabled and model supports it", async () => {
+			const config = {
+				models: {
+					"thinking-model": {
+						model: "thinking-model",
+						supportsThinking: true,
+						thinkingParams: {
+							enabled: { enable_thinking: true },
+							disabled: { enable_thinking: false },
+						},
+					},
+				},
+				currentModel: "thinking-model",
+				thinkingEnabled: true,
+			};
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(config));
+
+			const { getThinkingParams } = await resetConfigModule();
+			expect(getThinkingParams()).toEqual({ enable_thinking: true });
+		});
+
+		it("should return disabled params when thinking is enabled but model does not support it", async () => {
+			const config = {
+				models: {
+					"no-thinking-model": {
+						model: "no-thinking-model",
+						supportsThinking: false,
+						thinkingParams: {
+							// enabled 可选，supportsThinking: false 的模型不需要配置
+							disabled: { enable_thinking: false },
+						},
+					},
+				},
+				currentModel: "no-thinking-model",
+				thinkingEnabled: true,
+			};
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(config));
+
+			const { getThinkingParams } = await resetConfigModule();
+			expect(getThinkingParams()).toEqual({ enable_thinking: false });
+		});
+
+		it("should return disabled params when thinking is disabled", async () => {
+			const config = {
+				models: {
+					"thinking-model": {
+						model: "thinking-model",
+						supportsThinking: true,
+						thinkingParams: {
+							enabled: { enable_thinking: true },
+							disabled: { enable_thinking: false },
+						},
+					},
+				},
+				currentModel: "thinking-model",
+				thinkingEnabled: false,
+			};
+			vi.mocked(fs.existsSync).mockReturnValue(true);
+			vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(config));
+
+			const { getThinkingParams } = await resetConfigModule();
+			expect(getThinkingParams()).toEqual({ enable_thinking: false });
+		});
+	});
 });

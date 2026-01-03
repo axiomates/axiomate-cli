@@ -23,8 +23,19 @@ export type ModelConfig = {
 	description?: string;
 	/** 是否支持 function calling / tools */
 	supportsTools: boolean;
-	/** 是否支持思考模式（reasoning_content） */
-	supportsThinking: boolean;
+	/** 模型是否具有 thinking/reasoning 能力（默认 false） */
+	supportsThinking?: boolean;
+	/**
+	 * API 的 thinking 参数格式配置
+	 * - undefined: API 不支持 thinking 参数，不发送任何参数
+	 * - object: 定义 API 的参数格式
+	 */
+	thinkingParams?: {
+		/** 启用 thinking 时附加到请求 body 的参数（仅 supportsThinking: true 时需要） */
+		enabled?: Record<string, unknown>;
+		/** 禁用 thinking 时附加到请求 body 的参数 */
+		disabled: Record<string, unknown>;
+	};
 	/** 上下文窗口大小（token 数） */
 	contextWindow: number;
 	/** API Base URL */
@@ -334,13 +345,37 @@ export function isThinkingEnabled(): boolean {
 }
 
 /**
- * 检查当前模型是否支持思考模式
+ * 检查当前模型是否支持思考模式（用于 UI 显示）
  */
 export function currentModelSupportsThinking(): boolean {
 	const modelId = getCurrentModelId();
 	if (!modelId) return false;
 	const model = getModelById(modelId);
 	return model?.supportsThinking === true;
+}
+
+/**
+ * 获取当前模型的 thinking 参数配置
+ * 根据用户开关状态和模型能力返回相应的参数，用于附加到请求 body
+ * @returns 参数对象，或 null（不需要附加任何参数）
+ */
+export function getThinkingParams(): Record<string, unknown> | null {
+	const modelId = getCurrentModelId();
+	if (!modelId) return null;
+	const model = getModelById(modelId);
+
+	// API 不支持 thinking 参数
+	if (!model?.thinkingParams) return null;
+
+	// 决定是否启用 thinking：用户开关 AND 模型支持
+	const shouldEnable = isThinkingEnabled() && model.supportsThinking;
+
+	if (shouldEnable) {
+		// enabled 可选，如果未配置则返回 null（不发送参数）
+		return model.thinkingParams.enabled ?? null;
+	} else {
+		return model.thinkingParams.disabled;
+	}
 }
 
 /**

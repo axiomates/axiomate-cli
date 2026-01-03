@@ -27,8 +27,8 @@ describe("models", () => {
 	});
 
 	describe("DEFAULT_SUGGESTION_MODEL_ID", () => {
-		it("should be THUDM/glm-4-9b-chat", () => {
-			expect(DEFAULT_SUGGESTION_MODEL_ID).toBe("THUDM/glm-4-9b-chat");
+		it("should be Qwen/Qwen2-7B-Instruct", () => {
+			expect(DEFAULT_SUGGESTION_MODEL_ID).toBe("Qwen/Qwen2-7B-Instruct");
 		});
 	});
 
@@ -39,7 +39,11 @@ describe("models", () => {
 				name: "Qwen3",
 				protocol: "openai" as const,
 				supportsTools: true,
-				supportsThinking: false,
+				supportsThinking: true,
+				thinkingParams: {
+					enabled: { enable_thinking: true },
+					disabled: { enable_thinking: false },
+				},
 				contextWindow: 32768,
 				baseUrl: "https://api.example.com",
 				apiKey: "test-key",

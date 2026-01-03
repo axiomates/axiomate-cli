@@ -15,10 +15,7 @@ import type {
 	StreamOptions,
 } from "../types.js";
 import { toOpenAIMessages, parseOpenAIToolCalls } from "../adapters/openai.js";
-import {
-	isThinkingEnabled,
-	currentModelSupportsThinking,
-} from "../../../utils/config.js";
+import { getThinkingParams } from "../../../utils/config.js";
 
 /**
  * OpenAI API 响应类型
@@ -89,12 +86,11 @@ export class OpenAIClient implements IAIClient {
 			body.tool_choice = "auto";
 		}
 
-		// 如果启用思考模式且当前模型支持，添加 enable_thinking 参数
-		if (isThinkingEnabled() && currentModelSupportsThinking()) {
-			body.enable_thinking = true;
-		} else {
-            body.enable_thinking = false;
-        }
+		// 根据模型配置动态附加 thinking 参数
+		const thinkingParams = getThinkingParams();
+		if (thinkingParams) {
+			Object.assign(body, thinkingParams);
+		}
 
 		let lastError: Error | null = null;
 		const maxRetries = this.config.maxRetries || 3;
@@ -217,12 +213,11 @@ export class OpenAIClient implements IAIClient {
 			body.tool_choice = "auto";
 		}
 
-		// 如果启用思考模式且当前模型支持，添加 enable_thinking 参数
-		if (isThinkingEnabled() && currentModelSupportsThinking()) {
-			body.enable_thinking = true;
-		} else {
-            body.enable_thinking = false;
-        }
+		// 根据模型配置动态附加 thinking 参数
+		const thinkingParams = getThinkingParams();
+		if (thinkingParams) {
+			Object.assign(body, thinkingParams);
+		}
 
 		// 创建内部 AbortController 用于超时
 		const timeoutController = new AbortController();

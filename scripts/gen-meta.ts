@@ -56,7 +56,7 @@ import type { ModelConfig } from "../utils/config.js";
  * 正式版本会根据用户账号派发可用的模型配置
  */
 export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
-	// GLM 系列（智谱）
+	// GLM 系列（智谱）- SiliconFlow API
 	{
 		model: "THUDM/glm-4-9b-chat",
 		name: "GLM-4 9B",
@@ -64,6 +64,9 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Chat model",
 		supportsTools: false,
 		supportsThinking: false,
+		thinkingParams: {
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 131072,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
@@ -75,6 +78,9 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Latest GLM",
 		supportsTools: true,
 		supportsThinking: false,
+		thinkingParams: {
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 32768,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
@@ -86,12 +92,16 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "GLM 4.6 335B",
 		supportsTools: true,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 202752,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
 	},
 
-	// Qwen 系列
+	// Qwen 系列 - SiliconFlow API
 	{
 		model: "Qwen/Qwen3-8B",
 		name: "Qwen3 8B",
@@ -99,6 +109,10 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Latest Qwen3",
 		supportsTools: true,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 131072,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
@@ -110,6 +124,10 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Instruct model",
 		supportsTools: false,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 32768,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
@@ -121,6 +139,9 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Instruct model",
 		supportsTools: true,
 		supportsThinking: false,
+		thinkingParams: {
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 32768,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
@@ -132,6 +153,9 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Instruct model",
 		supportsTools: true,
 		supportsThinking: false,
+		thinkingParams: {
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 262144,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
@@ -143,12 +167,16 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Super coder model",
 		supportsTools: true,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 1048576,
 		baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
 		apiKey: "${dashscopeKey}",
 	},
 
-	// DeepSeek 系列
+	// DeepSeek 系列 - SiliconFlow API
 	{
 		model: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
 		name: "DeepSeek R1 Qwen 7B",
@@ -156,6 +184,10 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Reasoning distill",
 		supportsTools: true,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 131072,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
@@ -167,12 +199,16 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Reasoning model",
 		supportsTools: true,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 163840,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
 	},
 
-	// Minimax 系列
+	// Minimax 系列 - SiliconFlow API
 	{
 		model: "MiniMaxAI/MiniMax-M2",
 		name: "MiniMax M2 230B",
@@ -180,12 +216,16 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "MiniMax M2 230B",
 		supportsTools: true,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 196608,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
 	},
 
-	// Moonshot 系列
+	// Moonshot 系列 - SiliconFlow API
 	{
 		model: "Pro/moonshotai/Kimi-K2-Thinking",
 		name: "Kimi K2 Thinking 1T",
@@ -193,12 +233,16 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 		description: "Kimi K2 Thinking 1T",
 		supportsTools: true,
 		supportsThinking: true,
+		thinkingParams: {
+			enabled: { enable_thinking: true },
+			disabled: { enable_thinking: false },
+		},
 		contextWindow: 262144,
 		baseUrl: "https://api.siliconflow.cn/v1",
 		apiKey: "${siliconflowKey}",
 	},
 
-	// Claude Code 系列
+	// Claude Code 系列（Anthropic 使用独立逻辑，不配置 thinkingParams）
 	{
 		model: "claude-opus-4-5-20251101",
 		name: "Claude Opus 4.5",
