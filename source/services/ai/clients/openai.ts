@@ -16,7 +16,6 @@ import type {
 } from "../types.js";
 import { toOpenAIMessages, parseOpenAIToolCalls } from "../adapters/openai.js";
 import { getThinkingParams } from "../../../utils/config.js";
-import { logger } from "../../../utils/logger.js";
 
 /**
  * OpenAI API 响应类型
@@ -103,12 +102,6 @@ export class OpenAIClient implements IAIClient {
 					() => controller.abort(),
 					this.config.timeout || 60000,
 				);
-
-				// DEBUG: 打印完整请求体用于调试 Qwen API 错误
-				logger.warn("[OpenAI] chat request body", {
-					url,
-					body: JSON.stringify(body, null, 2),
-				});
 
 				const response = await fetch(url, {
 					method: "POST",
@@ -270,12 +263,6 @@ export class OpenAIClient implements IAIClient {
 		};
 
 		try {
-			// DEBUG: 打印完整请求体用于调试 Qwen API 错误
-			logger.warn("[OpenAI] streamChat request body", {
-				url,
-				body: JSON.stringify(body, null, 2),
-			});
-
 			const response = await fetch(url, {
 				method: "POST",
 				headers: {
