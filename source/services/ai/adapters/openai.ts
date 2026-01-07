@@ -175,7 +175,9 @@ export function toOpenAIMessages(messages: ChatMessage[]): Array<{
 				type: tc.type,
 				function: {
 					name: tc.function.name,
-					arguments: tc.function.arguments,
+					// 确保 arguments 是有效的 JSON 字符串，空字符串替换为 "{}"
+					// 某些 API（如 Qwen）要求 arguments 必须是有效 JSON
+					arguments: tc.function.arguments || "{}",
 				},
 			}));
 		}
