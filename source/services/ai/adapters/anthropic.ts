@@ -184,7 +184,8 @@ export function toAnthropicMessages(messages: ChatMessage[]): Array<{
 						type: "tool_use",
 						id: tc.id,
 						name: tc.function.name,
-						input: JSON.parse(tc.function.arguments),
+						// 确保 arguments 是有效的 JSON 字符串，空字符串替换为 "{}"
+						input: JSON.parse(tc.function.arguments || "{}"),
 					});
 				}
 
