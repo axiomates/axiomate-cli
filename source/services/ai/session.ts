@@ -9,7 +9,6 @@ import type {
 	CompactCheckResult,
 } from "./types.js";
 import { estimateTokens } from "./tokenEstimator.js";
-import { logger } from "../../utils/logger.js";
 
 // 重新导出类型以便其他模块使用
 export type { SessionStatus, CompactCheckResult } from "./types.js";
@@ -196,11 +195,6 @@ export class Session {
 		if (deviation > 0.2) {
 			// 计算不含工具的消息估算（用于更精细的调试）
 			const estimatedMessages = estimatedTotal - this.toolsTokenEstimate;
-			logger.warn(
-				`[Session] Token estimation deviation: ${(deviation * 100).toFixed(1)}% ` +
-					`(estimated=${estimatedTotal}, actual=${actualTotal}, ` +
-					`tools=${this.toolsTokenEstimate}, messages=${estimatedMessages})`,
-			);
 		}
 	}
 
