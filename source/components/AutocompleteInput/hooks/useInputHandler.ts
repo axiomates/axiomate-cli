@@ -4,6 +4,7 @@
 
 import { useCallback } from "react";
 import { useInput, useApp } from "ink";
+import { logger } from "../../../utils/logger.js";
 import type {
 	EditorState,
 	EditorAction,
@@ -84,6 +85,12 @@ export function useInputHandler({
 
 	useInput(
 		(inputChar, key) => {
+			// DEBUG: 调试粘贴问题
+			if (inputChar.length > 1 || inputChar.includes("\n") || inputChar.includes("\r")) {
+				logger.warn(`[PASTE] len=${inputChar.length}, \\n=${inputChar.includes("\n")}, \\r=${inputChar.includes("\r")}, key.return=${key.return}`);
+				logger.warn(`[PASTE] escaped: ${JSON.stringify(inputChar)}`);
+			}
+
 			// Help 模式优先处理
 			if (inHelpMode) {
 				// 先退出 help 模式
@@ -490,15 +497,21 @@ export function useInputHandler({
 					return;
 				}
 
+				// 处理粘贴的文本：将 \r\n 和 \r 统一转换为 \n
+				// 终端粘贴时可能使用 \r（Windows 风格）作为换行符
+				let normalizedInput = inputChar;
+				if (inputChar.includes("\r")) {
+					normalizedInput = inputChar.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+				}
+
 				// 插入字符
 				const newInput =
-					input.slice(0, cursor) + inputChar + input.slice(cursor);
+					input.slice(0, cursor) + normalizedInput + input.slice(cursor);
 				dispatch({
 					type: "SET_TEXT",
 					text: newInput,
-					// inputChar 来自 Ink 的 useInput，已经是完整的 grapheme cluster
-					// 直接使用 inputChar.length 计算新光标位置
-					cursor: cursor + inputChar.length,
+					// 使用 normalizedInput 计算新光标位置
+					cursor: cursor + normalizedInput.length,
 				});
 			}
 		},
