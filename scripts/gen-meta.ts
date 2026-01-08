@@ -68,7 +68,7 @@ export const DEFAULT_MODEL_PRESETS: ModelConfig[] = [
 			enabled: { think: true },
 			disabled: { think: false },
 		},
-		contextWindow: 32768,
+		contextWindow: 131072,
 		baseUrl: "http://192.168.110.110:11434/v1",
 	},
 ];
