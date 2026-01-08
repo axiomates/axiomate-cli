@@ -86,6 +86,9 @@ export class Session {
 	private actualPromptTokens: number = 0;
 	private actualCompletionTokens: number = 0;
 
+	// 工具定义的 token 估算
+	private toolsTokenEstimate: number = 0;
+
 	constructor(config: SessionConfig) {
 		this.config = {
 			contextWindow: config.contextWindow,
@@ -112,6 +115,21 @@ export class Session {
 			isActual: false,
 			timestamp: Date.now(),
 		};
+	}
+
+	/**
+	 * 设置工具定义的 token 估算
+	 * 在每次 API 调用前调用此方法
+	 */
+	setToolsTokenEstimate(tokens: number): void {
+		this.toolsTokenEstimate = tokens;
+	}
+
+	/**
+	 * 获取工具定义的 token 估算
+	 */
+	getToolsTokenEstimate(): number {
+		return this.toolsTokenEstimate;
 	}
 
 	/**
@@ -163,25 +181,35 @@ export class Session {
 
 	/**
 	 * 根据 API 返回的 usage 校正估算值
+	 * 比较估算值和实际值，记录偏差以供调试
 	 */
 	private calibrateEstimates(usage: TokenUsage): void {
 		const estimatedTotal = this.getEstimatedTotalTokens();
 		const actualTotal = usage.prompt_tokens;
 
+		// 避免除零
+		if (actualTotal === 0) {
+			return;
+		}
+
 		const deviation = Math.abs(estimatedTotal - actualTotal) / actualTotal;
 		if (deviation > 0.2) {
+			// 计算不含工具的消息估算（用于更精细的调试）
+			const estimatedMessages = estimatedTotal - this.toolsTokenEstimate;
 			logger.warn(
 				`[Session] Token estimation deviation: ${(deviation * 100).toFixed(1)}% ` +
-					`(estimated=${estimatedTotal}, actual=${actualTotal})`,
+					`(estimated=${estimatedTotal}, actual=${actualTotal}, ` +
+					`tools=${this.toolsTokenEstimate}, messages=${estimatedMessages})`,
 			);
 		}
 	}
 
 	/**
-	 * 获取估算的总 token 数
+	 * 获取估算的总 token 数（包含工具定义）
 	 */
 	private getEstimatedTotalTokens(): number {
-		let total = 0;
+		// 包含工具定义的 token
+		let total = this.toolsTokenEstimate;
 
 		if (this.systemPrompt) {
 			total += this.systemPrompt.tokens;

@@ -28,6 +28,7 @@ import {
 } from "./session.js";
 import { buildSystemPrompt } from "../../constants/prompts.js";
 import { isPlanModeEnabled } from "../../utils/config.js";
+import { estimateTokens } from "./tokenEstimator.js";
 
 /**
  * 默认上下文窗口大小
@@ -392,6 +393,17 @@ export class AIService implements IAIService {
 			  }
 			| undefined;
 
+		// 设置工具定义的 token 估算（用于更准确的 token 统计）
+		const updateToolsTokenEstimate = (toolList: OpenAITool[]) => {
+			if (toolList.length > 0) {
+				const toolsJson = JSON.stringify(toolList);
+				this.session.setToolsTokenEstimate(estimateTokens(toolsJson));
+			} else {
+				this.session.setToolsTokenEstimate(0);
+			}
+		};
+		updateToolsTokenEstimate(tools);
+
 		while (rounds < this.maxToolCallRounds) {
 			// 检查是否已被中止
 			if (options?.signal?.aborted) {
@@ -472,6 +484,8 @@ export class AIService implements IAIService {
 						currentPlanMode = newPlanMode;
 						// 动态刷新工具列表
 						tools = this.getContextTools(context, currentPlanMode);
+						// 更新工具 token 估算
+						updateToolsTokenEstimate(tools);
 						// 动态更新 system prompt（让 AI 看到新模式的指导）
 						const newPrompt = buildSystemPrompt(
 							context.cwd,
