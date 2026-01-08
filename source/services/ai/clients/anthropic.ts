@@ -385,6 +385,9 @@ export class AnthropicClient implements IAIClient {
 			const contentBlocks: Map<number, ContentBlock> = new Map();
 			let currentStopReason: string | null = null;
 			let hasYieldedFinish = false;
+			// 跟踪 usage 信息
+			let inputTokens = 0;
+			let outputTokens = 0;
 
 			// 开始流式读取，启动活动超时
 			resetActivityTimeout();
@@ -421,7 +424,11 @@ export class AnthropicClient implements IAIClient {
 
 						switch (event.type) {
 							case "message_start":
-								// 消息开始，可以获取初始信息
+								// 消息开始，获取初始 usage 信息
+								if (event.message?.usage) {
+									inputTokens = event.message.usage.input_tokens || 0;
+									outputTokens = event.message.usage.output_tokens || 0;
+								}
 								break;
 
 							case "content_block_start": {
@@ -482,9 +489,13 @@ export class AnthropicClient implements IAIClient {
 								break;
 
 							case "message_delta": {
-								// 消息增量，包含 stop_reason
+								// 消息增量，包含 stop_reason 和 usage
 								if (event.delta?.stop_reason) {
 									currentStopReason = event.delta.stop_reason;
+								}
+								// 更新 output_tokens（Anthropic 在 message_delta 中返回累积的 output_tokens）
+								if (event.usage?.output_tokens) {
+									outputTokens = event.usage.output_tokens;
 								}
 								break;
 							}
@@ -510,6 +521,16 @@ export class AnthropicClient implements IAIClient {
 
 								const finishReason = this.parseStopReason(currentStopReason);
 
+								// 构建 usage 信息
+								const usageInfo =
+									inputTokens > 0 || outputTokens > 0
+										? {
+												prompt_tokens: inputTokens,
+												completion_tokens: outputTokens,
+												total_tokens: inputTokens + outputTokens,
+											}
+										: undefined;
+
 								if (toolCalls.length > 0) {
 									yield {
 										delta: {
@@ -517,11 +538,13 @@ export class AnthropicClient implements IAIClient {
 											tool_calls: toolCalls,
 										},
 										finish_reason: "tool_calls",
+										usage: usageInfo,
 									};
 								} else {
 									yield {
 										delta: { content: "" },
 										finish_reason: finishReason,
+										usage: usageInfo,
 									};
 								}
 								return;
