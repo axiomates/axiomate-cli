@@ -24,12 +24,12 @@ export type { ApiProtocol, ModelConfig } from "../utils/config.js";
 /**
  * 默认模型 ID（开箱即用）
  */
-export const DEFAULT_MODEL_ID = "Qwen/Qwen3-8B";
+export const DEFAULT_MODEL_ID = "qwen3-coder:30b";
 
 /**
  * 默认建议模型 ID
  */
-export const DEFAULT_SUGGESTION_MODEL_ID = "Qwen/Qwen2-7B-Instruct";
+export const DEFAULT_SUGGESTION_MODEL_ID = "qwen3-coder:30b";
 
 // ============================================================================
 // 辅助函数（从配置读取）
