@@ -84,6 +84,12 @@ export type StreamDelta = Partial<ChatMessage> & {
 export type AIStreamChunk = {
 	delta: StreamDelta;
 	finish_reason?: FinishReason;
+	/** 使用统计（在流结束时返回） */
+	usage?: {
+		prompt_tokens: number;
+		completion_tokens: number;
+		total_tokens: number;
+	};
 };
 
 /**

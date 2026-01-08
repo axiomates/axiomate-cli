@@ -28,6 +28,7 @@ import {
 } from "./session.js";
 import { buildSystemPrompt } from "../../constants/prompts.js";
 import { isPlanModeEnabled } from "../../utils/config.js";
+import { estimateTokens } from "./tokenEstimator.js";
 
 /**
  * 默认上下文窗口大小
@@ -383,6 +384,25 @@ export class AIService implements IAIService {
 		let fullContent = "";
 		// 跟踪总内容（跨工具调用轮次）
 		let totalContent = "";
+		// 跟踪当前轮的 usage 信息（在流结束时从 chunk 中获取）
+		let lastChunkUsage:
+			| {
+					prompt_tokens: number;
+					completion_tokens: number;
+					total_tokens: number;
+			  }
+			| undefined;
+
+		// 设置工具定义的 token 估算（用于更准确的 token 统计）
+		const updateToolsTokenEstimate = (toolList: OpenAITool[]) => {
+			if (toolList.length > 0) {
+				const toolsJson = JSON.stringify(toolList);
+				this.session.setToolsTokenEstimate(estimateTokens(toolsJson));
+			} else {
+				this.session.setToolsTokenEstimate(0);
+			}
+		};
+		updateToolsTokenEstimate(tools);
 
 		while (rounds < this.maxToolCallRounds) {
 			// 检查是否已被中止
@@ -400,6 +420,11 @@ export class AIService implements IAIService {
 				tools.length > 0 ? tools : undefined,
 				options,
 			)) {
+				// 捕获 usage 信息（在流结束时的 chunk 中返回）
+				if (chunk.usage) {
+					lastChunkUsage = chunk.usage;
+				}
+
 				// 累积思考内容
 				if (chunk.delta.reasoning_content) {
 					reasoningContent += chunk.delta.reasoning_content;
@@ -430,13 +455,16 @@ export class AIService implements IAIService {
 						reasoning_content: reasoningContent || undefined,
 						tool_calls: chunk.delta.tool_calls,
 					};
-					this.session.addAssistantMessage(assistantMessage);
+					this.session.addAssistantMessage(assistantMessage, lastChunkUsage);
 					messages.push(assistantMessage);
 
 					// 累积本轮内容到总内容
 					if (fullContent) {
 						totalContent += fullContent + "\n";
 					}
+
+					// 重置 usage，为下一轮工具调用准备
+					lastChunkUsage = undefined;
 
 					// 执行工具调用（传递 onAskUser 回调）
 					const toolResults = await this.toolCallHandler.handleToolCalls(
@@ -456,6 +484,8 @@ export class AIService implements IAIService {
 						currentPlanMode = newPlanMode;
 						// 动态刷新工具列表
 						tools = this.getContextTools(context, currentPlanMode);
+						// 更新工具 token 估算
+						updateToolsTokenEstimate(tools);
 						// 动态更新 system prompt（让 AI 看到新模式的指导）
 						const newPrompt = buildSystemPrompt(
 							context.cwd,
@@ -482,11 +512,14 @@ export class AIService implements IAIService {
 					chunk.finish_reason === "length"
 				) {
 					const finalContent = totalContent + fullContent;
-					this.session.addAssistantMessage({
-						role: "assistant",
-						content: fullContent,
-						reasoning_content: reasoningContent || undefined,
-					});
+					this.session.addAssistantMessage(
+						{
+							role: "assistant",
+							content: fullContent,
+							reasoning_content: reasoningContent || undefined,
+						},
+						lastChunkUsage,
+					);
 					callbacks?.onEnd?.({
 						reasoning: reasoningContent,
 						content: finalContent,
@@ -504,11 +537,14 @@ export class AIService implements IAIService {
 			// 如果 for 循环正常结束（不是因为工具调用），说明流已经结束
 			if (fullContent || reasoningContent || totalContent) {
 				const finalContent = totalContent + fullContent;
-				this.session.addAssistantMessage({
-					role: "assistant",
-					content: fullContent,
-					reasoning_content: reasoningContent || undefined,
-				});
+				this.session.addAssistantMessage(
+					{
+						role: "assistant",
+						content: fullContent,
+						reasoning_content: reasoningContent || undefined,
+					},
+					lastChunkUsage,
+				);
 				callbacks?.onEnd?.({
 					reasoning: reasoningContent,
 					content: finalContent,

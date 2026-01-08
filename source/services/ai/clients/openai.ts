@@ -206,6 +206,7 @@ export class OpenAIClient implements IAIClient {
 			model: this.config.model,
 			messages: toOpenAIMessages(messages),
 			stream: true, // 启用流式响应
+			stream_options: { include_usage: true }, // 请求在流结束时返回 usage
 		};
 
 		if (tools && tools.length > 0) {
@@ -302,6 +303,14 @@ export class OpenAIClient implements IAIClient {
 
 			// 跟踪是否已经 yield 过带 finish_reason 的 chunk
 			let hasYieldedFinish = false;
+			// 跟踪 usage 信息（OpenAI 在启用 stream_options 时会在流结束时返回）
+			let streamUsage:
+				| {
+						prompt_tokens: number;
+						completion_tokens: number;
+						total_tokens: number;
+				  }
+				| undefined;
 
 			// 开始流式读取，启动活动超时
 			resetActivityTimeout();
@@ -327,13 +336,25 @@ export class OpenAIClient implements IAIClient {
 					if (data === "[DONE]") {
 						// 如果还没有 yield 过 finish_reason，补充一个 stop
 						if (!hasYieldedFinish) {
-							yield { delta: { content: "" }, finish_reason: "stop" };
+							yield {
+								delta: { content: "" },
+								finish_reason: "stop",
+								usage: streamUsage,
+							};
 						}
 						return;
 					}
 
 					try {
 						const chunk = JSON.parse(data);
+
+						// OpenAI/SiliconFlow 可能发送包含 usage 的 chunk
+						// 情况1: 最终 chunk 只有 usage，没有 choices
+						// 情况2: 最后一个有 choices 的 chunk 同时包含 usage
+						if (chunk.usage) {
+							streamUsage = chunk.usage;
+						}
+
 						if (!chunk.choices?.length) continue;
 
 						const choice = chunk.choices[0];
@@ -412,6 +433,11 @@ export class OpenAIClient implements IAIClient {
 									choice.finish_reason,
 								);
 							}
+
+							// 附加 usage 信息（如果有）
+							if (streamUsage) {
+								streamChunk.usage = streamUsage;
+							}
 						}
 
 						yield streamChunk;
@@ -425,7 +451,11 @@ export class OpenAIClient implements IAIClient {
 			// 流正常结束（reader.read() 返回 done: true）
 			// 如果还没有 yield 过 finish_reason，补充一个 stop
 			if (!hasYieldedFinish) {
-				yield { delta: { content: "" }, finish_reason: "stop" };
+				yield {
+					delta: { content: "" },
+					finish_reason: "stop",
+					usage: streamUsage,
+				};
 			}
 		} finally {
 			clearTimeout(connectionTimeoutId);
