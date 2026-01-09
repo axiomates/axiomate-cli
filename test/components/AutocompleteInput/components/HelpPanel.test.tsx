@@ -43,17 +43,6 @@ describe("HelpPanel", () => {
 		expect(frame).toContain("Ctrl+K");
 	});
 
-	it("should render browse mode shortcuts", () => {
-		const { lastFrame } = render(<HelpPanel columns={80} />);
-
-		const frame = lastFrame()!;
-
-		expect(frame).toContain("Shift+↑↓");
-		expect(frame).toContain("PageUp/PageDown");
-		expect(frame).toContain("e/c");
-		expect(frame).toContain("s/w");
-	});
-
 	it("should render exit shortcuts", () => {
 		const { lastFrame } = render(<HelpPanel columns={80} />);
 

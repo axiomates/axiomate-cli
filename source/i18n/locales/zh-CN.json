@@ -1,8 +1,5 @@
 {
 	"app": {
-		"inputMode": "输入",
-		"browseMode": "浏览",
-		"modeSwitchHint": "Shift+↑↓",
 		"headerHintType": "输入",
 		"headerHintForCommands": "打开命令，",
 		"headerHintForShortcuts": "显示快捷键",
@@ -34,19 +31,13 @@
 		"actions": "操作",
 		"modes": "特殊模式",
 		"enterSubmit": "Enter - 发送消息",
-		"upDownHistory": "↑/↓ - 浏览历史（输入模式）",
+		"upDownHistory": "↑/↓ - 浏览历史",
 		"leftRightCursor": "←/→ - 移动光标",
 		"tabComplete": "Tab - 接受建议",
 		"ctrlCExit": "Ctrl+C - 退出",
 		"slashCommands": "打开命令",
 		"atFiles": "选择文件",
 		"questionHelp": "? - 显示帮助",
-		"shiftUpDownMode": "Shift+↑/↓ - 切换焦点模式",
-		"browseUpDown": "↑/↓ - 滚动（浏览模式）",
-		"pageUpDown": "PageUp/PageDown - 翻页",
-		"enterToggle": "Enter - 展开/折叠分组",
-		"eExpand": "e - 展开全部",
-		"cCollapse": "c - 折叠全部",
 		"ctrlEnter": "换行",
 		"ctrlA": "跳转到行首",
 		"ctrlE": "跳转到行尾",
@@ -54,11 +45,7 @@
 		"ctrlK": "清除光标后内容",
 		"upDownBrowse": "浏览历史",
 		"enterConfirm": "确认",
-		"pageUpDownScroll": "滚动输出",
-		"escapeBack": "返回 / 取消",
-		"shiftUpDownSwitch": "切换输入/浏览模式",
-		"ecExpandCollapse": "展开/折叠分组（浏览模式）",
-		"swSelectGroups": "在分组间切换（浏览模式）"
+		"escapeBack": "返回 / 取消"
 	},
 	"commands": {
 		"model": {
@@ -185,18 +172,6 @@
 		"noOtherSessions": "没有其他会话可切换。使用 /session new 创建新会话。",
 		"noSessionsToDelete": "没有可删除的会话。活跃会话无法删除。",
 		"allCleared": "已清除所有会话。已创建新会话：{{name}}"
-	},
-	"messageOutput": {
-		"scrollUp": "↑ 上方有更多内容",
-		"scrollDown": "↓ 下方有更多内容",
-		"moreAbove": "... 上方还有 {{count}} 行 ...",
-		"moreBelow": "... 下方还有 {{count}} 行 ...",
-		"collapsed": "（{{count}} 行）",
-		"linesCount": "{{count}} 行",
-		"scrollUpHint": "↑ 还有 {{count}} 行 (PageUp 翻页)",
-		"scrollDownHint": "↓ 还有 {{count}} 行 (PageDown 翻页)",
-		"groupLineCount": "({{count}} 行)",
-		"systemMessage": "(系统)"
 	},
 	"errors": {
 		"fileNotFound": "文件未找到：{{path}}",

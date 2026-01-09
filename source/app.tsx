@@ -59,6 +59,10 @@ export default function App({ initResult }: Props) {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const terminalWidth = useTerminalWidth();
 
+	// 用于强制 Static 组件重新渲染的 key
+	// 当需要清屏时，增加这个值会使 Static 组件重新挂载
+	const [staticKey, setStaticKey] = useState(0);
+
 	// Use extracted hooks for better separation of concerns
 	const {
 		pendingAskUser,
@@ -110,9 +114,11 @@ export default function App({ initResult }: Props) {
 		}
 	}, []);
 
-	// 简化的 resetCollapseState - 不再需要折叠功能
-	const resetCollapseState = useCallback(() => {
-		// No-op: 折叠功能已移除
+	// 清屏并重置 Static 组件的回调
+	const clearScreenAndReset = useCallback(() => {
+		clearScreen();
+		setMessages([]);
+		setStaticKey((k) => k + 1);
 	}, []);
 
 	// Session manager hook (handles session init, CRUD, and persistence)
@@ -126,9 +132,9 @@ export default function App({ initResult }: Props) {
 	} = useSessionManager({
 		aiServiceRef,
 		setMessages,
-		resetCollapseState,
 		updateUsageStatus,
 		hasShownWelcomeRef,
+		clearScreenAndReset,
 	});
 
 	// Message queue hook (handles message processing and streaming)
@@ -449,9 +455,8 @@ export default function App({ initResult }: Props) {
 	);
 
 	const handleClear = useCallback(() => {
-		clearScreen();
-		setMessages([]);
-	}, []);
+		clearScreenAndReset();
+	}, [clearScreenAndReset]);
 
 	const clearAndExit = useCallback(() => {
 		exit();
@@ -491,7 +496,7 @@ export default function App({ initResult }: Props) {
 	return (
 		<>
 			{/* 已完成消息 - 进入终端原生滚动区 */}
-			<Static items={completedMessages}>
+			<Static key={staticKey} items={completedMessages}>
 				{(msg: MessageWithId) => (
 					<StaticMessage
 						key={msg._staticId}

@@ -1,8 +1,5 @@
 {
 	"app": {
-		"inputMode": "Input",
-		"browseMode": "Browse",
-		"modeSwitchHint": "Shift+↑↓",
 		"headerHintType": "Type",
 		"headerHintForCommands": "for commands,",
 		"headerHintForShortcuts": "for shortcuts",
@@ -34,19 +31,13 @@
 		"actions": "Actions",
 		"modes": "Special Modes",
 		"enterSubmit": "Enter - Submit message",
-		"upDownHistory": "↑/↓ - Navigate history (input mode)",
+		"upDownHistory": "↑/↓ - Navigate history",
 		"leftRightCursor": "←/→ - Move cursor",
 		"tabComplete": "Tab - Accept suggestion",
 		"ctrlCExit": "Ctrl+C - Exit",
 		"slashCommands": "for commands",
 		"atFiles": "to select files",
 		"questionHelp": "? - Show help",
-		"shiftUpDownMode": "Shift+↑/↓ - Switch focus mode",
-		"browseUpDown": "↑/↓ - Scroll (browse mode)",
-		"pageUpDown": "PageUp/PageDown - Scroll page",
-		"enterToggle": "Enter - Expand/collapse group",
-		"eExpand": "e - Expand all",
-		"cCollapse": "c - Collapse all",
 		"ctrlEnter": "new line",
 		"ctrlA": "move to start",
 		"ctrlE": "move to end",
@@ -54,11 +45,7 @@
 		"ctrlK": "clear after cursor",
 		"upDownBrowse": "browse history",
 		"enterConfirm": "Confirm",
-		"pageUpDownScroll": "scroll output",
-		"escapeBack": "go back / cancel",
-		"shiftUpDownSwitch": "switch Input/View mode",
-		"ecExpandCollapse": "expand/collapse groups (View mode)",
-		"swSelectGroups": "select between groups (View mode)"
+		"escapeBack": "go back / cancel"
 	},
 	"commands": {
 		"model": {
@@ -185,18 +172,6 @@
 		"noOtherSessions": "No other sessions to switch to. Use /session new to create one.",
 		"noSessionsToDelete": "No sessions available to delete. The active session cannot be deleted.",
 		"allCleared": "All sessions cleared. Started fresh with a new session: {{name}}"
-	},
-	"messageOutput": {
-		"scrollUp": "↑ More above",
-		"scrollDown": "↓ More below",
-		"moreAbove": "... {{count}} more lines above ...",
-		"moreBelow": "... {{count}} more lines below ...",
-		"collapsed": "({{count}} lines)",
-		"linesCount": "{{count}} lines",
-		"scrollUpHint": "↑ {{count}} more lines (PageUp to scroll)",
-		"scrollDownHint": "↓ {{count}} more lines (PageDown to scroll)",
-		"groupLineCount": "({{count}} lines)",
-		"systemMessage": "(System)"
 	},
 	"errors": {
 		"fileNotFound": "File not found: {{path}}",

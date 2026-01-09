@@ -219,19 +219,19 @@ describe("i18n", () => {
 
 		it("should support nested keys", () => {
 			initI18n("en");
-			const result = t("app.inputMode");
+			const result = t("app.welcomeMessage");
 			expect(typeof result).toBe("string");
 		});
 
 		it("should replace template variables", () => {
 			initI18n("zh-CN");
-			const result = t("messageOutput.groupLineCount", { count: 5 });
-			expect(result).toContain("5");
+			const result = t("commandHandler.modelSwitched", { model: "gpt-4" });
+			expect(result).toContain("gpt-4");
 		});
 
 		it("should handle missing template variable", () => {
 			initI18n("zh-CN");
-			const result = t("messageOutput.groupLineCount", {});
+			const result = t("commandHandler.modelSwitched", {});
 			// 缺少的变量会被替换为空字符串
 			expect(result).not.toContain("{{");
 		});
@@ -239,7 +239,7 @@ describe("i18n", () => {
 		it("should fallback to English for missing keys in other locales", () => {
 			initI18n("ja");
 			// 尝试获取一个可能在日语中缺失但在英语中存在的键
-			const result = t("app.name");
+			const result = t("app.welcomeMessage");
 			expect(typeof result).toBe("string");
 		});
 
@@ -250,9 +250,9 @@ describe("i18n", () => {
 
 			// We need a key that exists in English but not in zh-CN
 			// First let's try with a valid nested path
-			const result = t("app.inputMode");
+			const result = t("app.welcomeMessage");
 			expect(typeof result).toBe("string");
-			expect(result).not.toBe("app.inputMode"); // Should find it
+			expect(result).not.toBe("app.welcomeMessage"); // Should find it
 		});
 
 		it("should return key when nested key not found in fallback", () => {

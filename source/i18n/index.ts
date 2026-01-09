@@ -1,13 +1,16 @@
 // i18n core implementation
 
-import { type Locale, type Translations } from "./types.js";
+import { type Locale } from "./types.js";
 import enTranslations from "./locales/en.json" with { type: "json" };
 import zhCNTranslations from "./locales/zh-CN.json" with { type: "json" };
 import jaTranslations from "./locales/ja.json" with { type: "json" };
 
+// Infer Translations type from the English JSON
+type Translations = typeof enTranslations;
+
 // Available translations
 const translations: Record<Locale, Translations> = {
-	en: enTranslations as Translations,
+	en: enTranslations,
 	"zh-CN": zhCNTranslations as Translations,
 	ja: jaTranslations as Translations,
 };
@@ -180,4 +183,5 @@ export function isSupportedLocale(locale: string): locale is Locale {
 }
 
 // Re-export types
-export type { Locale, Translations } from "./types.js";
+export type { Locale } from "./types.js";
+export type { Translations };

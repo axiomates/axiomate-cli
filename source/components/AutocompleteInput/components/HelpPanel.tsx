@@ -69,26 +69,6 @@ export function HelpPanel({ columns }: HelpPanelProps) {
 			</Box>
 			<Box flexDirection="row" flexWrap="wrap">
 				<Box width="50%">
-					<Text color={THEME_LIGHT_YELLOW}>Shift+↑↓ </Text>
-					<Text color="gray">{t("help.shiftUpDownSwitch")}</Text>
-				</Box>
-				<Box width="50%">
-					<Text color={THEME_LIGHT_YELLOW}>PageUp/PageDown </Text>
-					<Text color="gray">{t("help.pageUpDownScroll")}</Text>
-				</Box>
-			</Box>
-			<Box flexDirection="row" flexWrap="wrap">
-				<Box width="50%">
-					<Text color={THEME_LIGHT_YELLOW}>e/c </Text>
-					<Text color="gray">{t("help.ecExpandCollapse")}</Text>
-				</Box>
-				<Box width="50%">
-					<Text color={THEME_LIGHT_YELLOW}>s/w </Text>
-					<Text color="gray">{t("help.swSelectGroups")}</Text>
-				</Box>
-			</Box>
-			<Box flexDirection="row" flexWrap="wrap">
-				<Box width="50%">
 					<Text color={THEME_LIGHT_YELLOW}>Escape </Text>
 					<Text color="gray">{t("help.escapeBack")}</Text>
 				</Box>
