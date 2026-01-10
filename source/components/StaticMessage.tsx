@@ -2,7 +2,6 @@ import { Box, Text } from "ink";
 import { useCallback, useEffect } from "react";
 import { THEME_PINK, THEME_LIGHT_YELLOW } from "../constants/colors.js";
 import { useTranslation } from "../hooks/useTranslation.js";
-import { logger } from "../utils/logger.js";
 
 /**
  * ask_user 问答对
@@ -74,19 +73,6 @@ function renderMarkdownSync(content: string, width: number): string {
 export default function StaticMessage({ message, width }: Props) {
 	const { t } = useTranslation();
 	const effectiveWidth = width - 2;
-
-	// Log when StaticMessage renders (only for non-user, non-system messages)
-	useEffect(() => {
-		if (message.type !== "user" && message.type !== "system" && message.type !== "welcome") {
-			logger.warn("[StaticMessage] Rendering AI message", {
-				type: message.type,
-				hasAskUserQA: !!message.askUserQA,
-				askUserCollapsed: message.askUserCollapsed,
-				contentLen: message.content?.length ?? 0,
-				content: message.content?.substring(0, 50),
-			});
-		}
-	}, []); // Empty deps - only log on first render (Static never re-renders)
 
 	// 预加载 marked
 	useEffect(() => {
