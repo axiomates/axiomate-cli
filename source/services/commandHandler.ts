@@ -241,10 +241,14 @@ const internalHandlers: Record<string, InternalHandler> = {
 		type: "async",
 		handler: async () => {
 			const registry = getToolRegistry();
-			if (!registry.isDiscovered) {
-				await registry.discover();
+			const status = registry.discoveryStatus;
+			let result = registry.formatToolList(true);
+
+			// 如果外部工具还在发现中，显示提示
+			if (status === "discovering") {
+				result += `\n\n*${t("commandHandler.toolsDiscovering")}*`;
 			}
-			return registry.formatToolList(true);
+			return result;
 		},
 	}),
 

@@ -1,6 +1,10 @@
 /**
  * 工具注册表实现
  * 管理发现的本地开发工具
+ *
+ * 支持两阶段初始化：
+ * 1. 同步注册内置工具（瞬间完成）
+ * 2. 后台发现外部工具（不阻塞启动）
  */
 
 import type {
@@ -9,30 +13,108 @@ import type {
 	ToolCapability,
 	IToolRegistry,
 } from "./types.js";
-import { discoverAllTools } from "./discoverers/index.js";
+import {
+	getBuiltinTools,
+	discoverExternalTools,
+} from "./discoverers/index.js";
 import { t } from "../../i18n/index.js";
+
+// 工具发现状态
+export type DiscoveryStatus = "pending" | "discovering" | "completed";
+
+// 工具发现完成回调
+export type DiscoveryCallback = (tools: DiscoveredTool[]) => void;
 
 export class ToolRegistry implements IToolRegistry {
 	tools: Map<string, DiscoveredTool> = new Map();
-	private _discovered = false;
+	private _builtinLoaded = false;
+	private _externalDiscovered = false;
+	private _discoveryStatus: DiscoveryStatus = "pending";
+	private _discoveryCallbacks: DiscoveryCallback[] = [];
 
 	/**
-	 * 执行工具发现
+	 * 同步注册内置工具（瞬间完成）
+	 * 这些工具不依赖外部命令检测
 	 */
-	async discover(): Promise<void> {
-		const tools = await discoverAllTools();
-		this.tools.clear();
-		for (const tool of tools) {
+	async loadBuiltinTools(): Promise<void> {
+		if (this._builtinLoaded) return;
+
+		const builtinTools = await getBuiltinTools();
+		for (const tool of builtinTools) {
 			this.tools.set(tool.id, tool);
 		}
-		this._discovered = true;
+		this._builtinLoaded = true;
+	}
+
+	/**
+	 * 后台发现外部工具（不阻塞）
+	 * 发现完成后通过回调通知
+	 */
+	discoverExternalAsync(): void {
+		if (this._discoveryStatus !== "pending") return;
+
+		this._discoveryStatus = "discovering";
+
+		discoverExternalTools()
+			.then((tools) => {
+				for (const tool of tools) {
+					this.tools.set(tool.id, tool);
+				}
+				this._externalDiscovered = true;
+				this._discoveryStatus = "completed";
+
+				// 通知所有等待的回调
+				for (const callback of this._discoveryCallbacks) {
+					callback(tools);
+				}
+				this._discoveryCallbacks = [];
+			})
+			.catch(() => {
+				// 发现失败也标记为完成，使用已有的内置工具
+				this._discoveryStatus = "completed";
+			});
+	}
+
+	/**
+	 * 注册发现完成回调
+	 */
+	onDiscoveryComplete(callback: DiscoveryCallback): void {
+		if (this._discoveryStatus === "completed") {
+			// 已完成，立即调用
+			callback(this.getAll());
+		} else {
+			this._discoveryCallbacks.push(callback);
+		}
+	}
+
+	/**
+	 * 获取发现状态
+	 */
+	get discoveryStatus(): DiscoveryStatus {
+		return this._discoveryStatus;
+	}
+
+	/**
+	 * 执行完整工具发现（兼容旧接口）
+	 * @deprecated 使用 loadBuiltinTools() + discoverExternalAsync() 代替
+	 */
+	async discover(): Promise<void> {
+		await this.loadBuiltinTools();
+
+		const externalTools = await discoverExternalTools();
+		for (const tool of externalTools) {
+			this.tools.set(tool.id, tool);
+		}
+		this._externalDiscovered = true;
+		this._discoveryStatus = "completed";
 	}
 
 	/**
 	 * 检查是否已执行过发现
+	 * @deprecated 使用 discoveryStatus 代替
 	 */
 	get isDiscovered(): boolean {
-		return this._discovered;
+		return this._builtinLoaded;
 	}
 
 	/**

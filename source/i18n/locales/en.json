@@ -137,6 +137,7 @@
 		"compactFailed": "Failed to compact conversation: {{error}}",
 		"toolsRefreshing": "🔄 Re-discovering tools...",
 		"toolsRefreshed": "✅ Tools refreshed. Found {{count}} tools.",
+		"toolsDiscovering": "External tools are being discovered in background...",
 		"suggestionEnabled": "AI suggestion enabled",
 		"suggestionDisabled": "AI suggestion disabled",
 		"suggestionModelSwitched": "Suggestion model switched to: {{model}}",

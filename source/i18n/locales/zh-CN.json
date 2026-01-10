@@ -137,6 +137,7 @@
 		"compactFailed": "对话压缩失败：{{error}}",
 		"toolsRefreshing": "🔄 重新发现工具中...",
 		"toolsRefreshed": "✅ 工具已刷新。发现 {{count}} 个工具。",
+		"toolsDiscovering": "外部工具正在后台发现中...",
 		"suggestionEnabled": "AI 建议已启用",
 		"suggestionDisabled": "AI 建议已禁用",
 		"suggestionModelSwitched": "建议模型已切换至：{{model}}",

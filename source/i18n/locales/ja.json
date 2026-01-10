@@ -137,6 +137,7 @@
 		"compactFailed": "会話の圧縮に失敗しました: {{error}}",
 		"toolsRefreshing": "🔄 ツールを再検出中...",
 		"toolsRefreshed": "✅ ツールを更新しました。{{count}}個のツールが見つかりました。",
+		"toolsDiscovering": "外部ツールをバックグラウンドで検出中...",
 		"suggestionEnabled": "AI提案が有効になりました",
 		"suggestionDisabled": "AI提案が無効になりました",
 		"suggestionModelSwitched": "提案モデルを切り替えました: {{model}}",
