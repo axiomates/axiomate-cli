@@ -9,11 +9,6 @@ type Props = {
 	width: number;
 };
 
-// Braille 点阵旋转动画帧
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-// Spinner 动画间隔（ms）- 较高的值可减少滚动时的条纹问题
-const SPINNER_INTERVAL = 120;
 
 // 延迟加载 marked 和 marked-terminal
 let markedInstance: {
@@ -43,43 +38,9 @@ function renderMarkdownSync(content: string, width: number): string {
 	return content;
 }
 
-/**
- * Spinner 组件 - 独立的动画组件，避免触发父组件重渲染
- */
-const Spinner = memo(function Spinner({
-	active,
-	color = "yellowBright",
-	prefix = " ",
-}: {
-	active: boolean;
-	color?: string;
-	prefix?: string;
-}) {
-	const [index, setIndex] = useState(0);
-
-	useEffect(() => {
-		if (!active) return;
-
-		const timer = setInterval(() => {
-			setIndex((prev) => (prev + 1) % SPINNER_FRAMES.length);
-		}, SPINNER_INTERVAL);
-
-		return () => clearInterval(timer);
-	}, [active]);
-
-	if (!active) return null;
-
-	return (
-		<Text color={color}>
-			{prefix}
-			{SPINNER_FRAMES[index]}
-		</Text>
-	);
-});
 
 /**
  * StreamingMessage - 渲染当前流式消息
- * 包含 Spinner 动画
  */
 export default function StreamingMessage({ message, width }: Props) {
 	const { t } = useTranslation();
@@ -116,10 +77,6 @@ export default function StreamingMessage({ message, width }: Props) {
 			rows.push(
 				<Box key={`reasoning-${idx}`}>
 					<Text dimColor>{"  " + line}</Text>
-					{/* 如果是思考内容的最后一行且正在流式输出，显示 spinner */}
-					{isLastLine && message.streaming && !message.content && (
-						<Spinner active={true} />
-					)}
 				</Box>,
 			);
 		});
@@ -140,14 +97,12 @@ export default function StreamingMessage({ message, width }: Props) {
 							{">"}{" "}
 						</Text>
 						<Text>{line}</Text>
-						{isLastLine && message.streaming && <Spinner active={true} />}
 					</Box>,
 				);
 			} else {
 				rows.push(
 					<Box key={`content-${idx}`}>
 						<Text>{line || " "}</Text>
-						{isLastLine && message.streaming && <Spinner active={true} />}
 					</Box>,
 				);
 			}
@@ -161,7 +116,6 @@ export default function StreamingMessage({ message, width }: Props) {
 						{">"}{" "}
 					</Text>
 					<Text dimColor>
-						<Spinner active={true} color="gray" prefix="" />
 						{" " + t("common.waiting")}
 					</Text>
 				</Box>,
@@ -173,7 +127,6 @@ export default function StreamingMessage({ message, width }: Props) {
 					<Text color={prefixColor} bold>
 						{">"}{" "}
 					</Text>
-					<Spinner active={true} prefix="" />
 				</Box>,
 			);
 		}
