@@ -60,6 +60,11 @@ export function useMessageQueue(
 
 	const messageQueueRef = useRef<MessageQueue | null>(null);
 	const currentStreamingIdRef = useRef<string | null>(null);
+	// Track last streamed content to avoid unnecessary re-renders
+	const lastStreamContentRef = useRef<{ content: string; reasoning: string }>({
+		content: "",
+		reasoning: "",
+	});
 
 	// Message processor function
 	const processMessage = useCallback(
@@ -250,6 +255,8 @@ export function useMessageQueue(
 				// Reset askuser offsets
 				askUserContentOffsetRef.current = 0;
 				askUserReasoningOffsetRef.current = 0;
+				// Reset last stream content tracker
+				lastStreamContentRef.current = { content: "", reasoning: "" };
 				// Add empty streaming message
 				setMessages((prev) => [
 					...prev,
@@ -260,22 +267,36 @@ export function useMessageQueue(
 				if (currentStreamingIdRef.current !== id) {
 					return;
 				}
+				// Apply askuser offset if any
+				const contentOffset = askUserContentOffsetRef.current;
+				const reasoningOffset = askUserReasoningOffsetRef.current;
+				const displayContent =
+					contentOffset > 0
+						? streamContent.content.substring(contentOffset)
+						: streamContent.content;
+				const displayReasoning =
+					reasoningOffset > 0
+						? streamContent.reasoning.substring(reasoningOffset)
+						: streamContent.reasoning;
+
+				// Skip update if content hasn't changed (avoid unnecessary re-renders)
+				const last = lastStreamContentRef.current;
+				if (
+					displayContent === last.content &&
+					displayReasoning === last.reasoning
+				) {
+					return;
+				}
+				lastStreamContentRef.current = {
+					content: displayContent,
+					reasoning: displayReasoning,
+				};
+
 				setMessages((prev) => {
 					const streamingIndex = prev.findIndex((msg) => msg.streaming);
 					if (streamingIndex === -1) {
 						return prev;
 					}
-					// Apply askuser offset if any
-					const contentOffset = askUserContentOffsetRef.current;
-					const reasoningOffset = askUserReasoningOffsetRef.current;
-					const displayContent =
-						contentOffset > 0
-							? streamContent.content.substring(contentOffset)
-							: streamContent.content;
-					const displayReasoning =
-						reasoningOffset > 0
-							? streamContent.reasoning.substring(reasoningOffset)
-							: streamContent.reasoning;
 					const newMessages = [...prev];
 					newMessages[streamingIndex] = {
 						...newMessages[streamingIndex],
