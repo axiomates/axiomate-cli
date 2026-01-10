@@ -1,8 +1,5 @@
 {
 	"app": {
-		"inputMode": "入力",
-		"browseMode": "閲覧",
-		"modeSwitchHint": "Shift+↑↓",
 		"headerHintType": "入力",
 		"headerHintForCommands": "でコマンド、",
 		"headerHintForShortcuts": "でショートカット",
@@ -34,19 +31,13 @@
 		"actions": "アクション",
 		"modes": "特殊モード",
 		"enterSubmit": "Enter - メッセージ送信",
-		"upDownHistory": "↑/↓ - 履歴を移動（入力モード）",
+		"upDownHistory": "↑/↓ - 履歴を移動",
 		"leftRightCursor": "←/→ - カーソル移動",
 		"tabComplete": "Tab - 提案を適用",
 		"ctrlCExit": "Ctrl+C - 終了",
 		"slashCommands": "でコマンド",
 		"atFiles": "でファイル選択",
 		"questionHelp": "? - ヘルプ表示",
-		"shiftUpDownMode": "Shift+↑/↓ - フォーカスモード切替",
-		"browseUpDown": "↑/↓ - スクロール（閲覧モード）",
-		"pageUpDown": "PageUp/PageDown - ページスクロール",
-		"enterToggle": "Enter - グループ展開/折りたたみ",
-		"eExpand": "e - すべて展開",
-		"cCollapse": "c - すべて折りたたみ",
 		"ctrlEnter": "改行",
 		"ctrlA": "行頭に移動",
 		"ctrlE": "行末に移動",
@@ -54,11 +45,7 @@
 		"ctrlK": "カーソル後を削除",
 		"upDownBrowse": "履歴を閲覧",
 		"enterConfirm": "確定",
-		"pageUpDownScroll": "出力をスクロール",
-		"escapeBack": "戻る / キャンセル",
-		"shiftUpDownSwitch": "入力/閲覧モード切替",
-		"ecExpandCollapse": "グループ展開/折りたたみ（閲覧モード）",
-		"swSelectGroups": "グループ間を選択（閲覧モード）"
+		"escapeBack": "戻る / キャンセル"
 	},
 	"commands": {
 		"model": {
@@ -150,6 +137,7 @@
 		"compactFailed": "会話の圧縮に失敗しました: {{error}}",
 		"toolsRefreshing": "🔄 ツールを再検出中...",
 		"toolsRefreshed": "✅ ツールを更新しました。{{count}}個のツールが見つかりました。",
+		"toolsDiscovering": "外部ツールをバックグラウンドで検出中...",
 		"suggestionEnabled": "AI提案が有効になりました",
 		"suggestionDisabled": "AI提案が無効になりました",
 		"suggestionModelSwitched": "提案モデルを切り替えました: {{model}}",
@@ -185,18 +173,6 @@
 		"noOtherSessions": "切り替え可能な他のセッションがありません。/session new で新しいセッションを作成してください。",
 		"noSessionsToDelete": "削除可能なセッションがありません。アクティブなセッションは削除できません。",
 		"allCleared": "すべてのセッションをクリアしました。新しいセッションを作成しました: {{name}}"
-	},
-	"messageOutput": {
-		"scrollUp": "↑ 上にもっとあります",
-		"scrollDown": "↓ 下にもっとあります",
-		"moreAbove": "... 上に{{count}}行 ...",
-		"moreBelow": "... 下に{{count}}行 ...",
-		"collapsed": "({{count}}行)",
-		"linesCount": "{{count}}行",
-		"scrollUpHint": "↑ 上に{{count}}行（PageUpでスクロール）",
-		"scrollDownHint": "↓ 下に{{count}}行（PageDownでスクロール）",
-		"groupLineCount": "({{count}}行)",
-		"systemMessage": "(システム)"
 	},
 	"errors": {
 		"fileNotFound": "ファイルが見つかりません: {{path}}",

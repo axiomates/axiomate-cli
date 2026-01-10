@@ -490,15 +490,23 @@ export function useInputHandler({
 					return;
 				}
 
+				// 处理粘贴的文本：将 \r\n 和 \r 统一转换为 \n
+				// 终端粘贴时可能使用 \r（Windows 风格）作为换行符
+				let normalizedInput = inputChar;
+				if (inputChar.includes("\r")) {
+					normalizedInput = inputChar
+						.replace(/\r\n/g, "\n")
+						.replace(/\r/g, "\n");
+				}
+
 				// 插入字符
 				const newInput =
-					input.slice(0, cursor) + inputChar + input.slice(cursor);
+					input.slice(0, cursor) + normalizedInput + input.slice(cursor);
 				dispatch({
 					type: "SET_TEXT",
 					text: newInput,
-					// inputChar 来自 Ink 的 useInput，已经是完整的 grapheme cluster
-					// 直接使用 inputChar.length 计算新光标位置
-					cursor: cursor + inputChar.length,
+					// 使用 normalizedInput 计算新光标位置
+					cursor: cursor + normalizedInput.length,
 				});
 			}
 		},

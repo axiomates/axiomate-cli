@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from "react";
-import type { Message } from "../components/MessageOutput.js";
+import type { Message } from "../components/StaticMessage.js";
 import type { IAIService } from "../services/ai/index.js";
 import { createAIServiceFromConfig } from "../services/ai/index.js";
 import { getToolRegistry } from "../services/tools/registry.js";
@@ -25,9 +25,10 @@ export type SessionManagerState = {
 type SessionManagerOptions = {
 	aiServiceRef: React.RefObject<IAIService | null>;
 	setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-	resetCollapseState: () => void;
 	updateUsageStatus: () => void;
 	hasShownWelcomeRef: React.RefObject<boolean>;
+	/** 清屏并重置 Static 组件的回调 */
+	clearScreenAndReset: () => void;
 };
 
 /**
@@ -130,9 +131,9 @@ export function useSessionManager(
 	const {
 		aiServiceRef,
 		setMessages,
-		resetCollapseState,
 		updateUsageStatus,
 		hasShownWelcomeRef,
+		clearScreenAndReset,
 	} = options;
 
 	const sessionStoreRef = useRef<SessionStore | null>(null);
@@ -213,9 +214,8 @@ export function useSessionManager(
 		(aiServiceRef as React.MutableRefObject<IAIService | null>).current =
 			createAIServiceFromConfig(registry);
 
-		// Clear UI
-		setMessages([]);
-		resetCollapseState();
+		// Clear screen and reset Static component
+		clearScreenAndReset();
 
 		// Show success message
 		setMessages([
@@ -234,7 +234,7 @@ export function useSessionManager(
 		aiServiceRef,
 		saveCurrentSession,
 		setMessages,
-		resetCollapseState,
+		clearScreenAndReset,
 		updateUsageStatus,
 	]);
 
@@ -270,9 +270,8 @@ export function useSessionManager(
 				aiServiceRef.current.restoreSession(session);
 			}
 
-			// Clear UI and load history
-			setMessages([]);
-			resetCollapseState();
+			// Clear screen and reset Static component
+			clearScreenAndReset();
 
 			// Convert session history to UI messages
 			const history = session.getHistory();
@@ -298,7 +297,7 @@ export function useSessionManager(
 			aiServiceRef,
 			saveCurrentSession,
 			setMessages,
-			resetCollapseState,
+			clearScreenAndReset,
 			updateUsageStatus,
 		],
 	);
@@ -366,9 +365,8 @@ export function useSessionManager(
 		(aiServiceRef as React.MutableRefObject<IAIService | null>).current =
 			createAIServiceFromConfig(registry);
 
-		// Clear UI
-		setMessages([]);
-		resetCollapseState();
+		// Clear screen and reset Static component
+		clearScreenAndReset();
 
 		// Show success message
 		setMessages([
@@ -383,7 +381,7 @@ export function useSessionManager(
 
 		// Update usage status
 		updateUsageStatus();
-	}, [aiServiceRef, setMessages, resetCollapseState, updateUsageStatus]);
+	}, [aiServiceRef, setMessages, clearScreenAndReset, updateUsageStatus]);
 
 	return {
 		sessionStoreRef,

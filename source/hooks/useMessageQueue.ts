@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
-import type { Message } from "../components/MessageOutput.js";
+import type { Message } from "../components/StaticMessage.js";
 import type { IAIService, MatchContext } from "../services/ai/index.js";
 import type { FileReference } from "../models/input.js";
 import { buildMessageContent } from "../services/ai/contentBuilder.js";
@@ -60,6 +60,11 @@ export function useMessageQueue(
 
 	const messageQueueRef = useRef<MessageQueue | null>(null);
 	const currentStreamingIdRef = useRef<string | null>(null);
+	// Track last streamed content to avoid unnecessary re-renders
+	const lastStreamContentRef = useRef<{ content: string; reasoning: string }>({
+		content: "",
+		reasoning: "",
+	});
 
 	// Message processor function
 	const processMessage = useCallback(
@@ -250,6 +255,8 @@ export function useMessageQueue(
 				// Reset askuser offsets
 				askUserContentOffsetRef.current = 0;
 				askUserReasoningOffsetRef.current = 0;
+				// Reset last stream content tracker
+				lastStreamContentRef.current = { content: "", reasoning: "" };
 				// Add empty streaming message
 				setMessages((prev) => [
 					...prev,
@@ -260,22 +267,36 @@ export function useMessageQueue(
 				if (currentStreamingIdRef.current !== id) {
 					return;
 				}
+				// Apply askuser offset if any
+				const contentOffset = askUserContentOffsetRef.current;
+				const reasoningOffset = askUserReasoningOffsetRef.current;
+				const displayContent =
+					contentOffset > 0
+						? streamContent.content.substring(contentOffset)
+						: streamContent.content;
+				const displayReasoning =
+					reasoningOffset > 0
+						? streamContent.reasoning.substring(reasoningOffset)
+						: streamContent.reasoning;
+
+				// Skip update if content hasn't changed (avoid unnecessary re-renders)
+				const last = lastStreamContentRef.current;
+				if (
+					displayContent === last.content &&
+					displayReasoning === last.reasoning
+				) {
+					return;
+				}
+				lastStreamContentRef.current = {
+					content: displayContent,
+					reasoning: displayReasoning,
+				};
+
 				setMessages((prev) => {
 					const streamingIndex = prev.findIndex((msg) => msg.streaming);
 					if (streamingIndex === -1) {
 						return prev;
 					}
-					// Apply askuser offset if any
-					const contentOffset = askUserContentOffsetRef.current;
-					const reasoningOffset = askUserReasoningOffsetRef.current;
-					const displayContent =
-						contentOffset > 0
-							? streamContent.content.substring(contentOffset)
-							: streamContent.content;
-					const displayReasoning =
-						reasoningOffset > 0
-							? streamContent.reasoning.substring(reasoningOffset)
-							: streamContent.reasoning;
 					const newMessages = [...prev];
 					newMessages[streamingIndex] = {
 						...newMessages[streamingIndex],
@@ -307,15 +328,28 @@ export function useMessageQueue(
 							? finalContent.reasoning.substring(reasoningOffset)
 							: finalContent.reasoning;
 					const newMessages = [...prev];
-					newMessages[streamingIndex] = {
-						...newMessages[streamingIndex],
-						content: displayContent,
-						reasoning: displayReasoning,
-						streaming: false,
-						reasoningCollapsed: displayReasoning.length > 0,
-					};
+
+					// If this streaming message is empty (no content, no reasoning, no askUserQA),
+					// remove it instead of keeping an empty message (happens after askuser with no follow-up)
+					const streamingMsg = newMessages[streamingIndex];
+					const hasContent = displayContent.trim().length > 0;
+					const hasReasoning = displayReasoning.trim().length > 0;
+					const hasAskUserQA = !!streamingMsg?.askUserQA;
+					if (!hasContent && !hasReasoning && !hasAskUserQA) {
+						// Remove empty message
+						newMessages.splice(streamingIndex, 1);
+					} else {
+						newMessages[streamingIndex] = {
+							...newMessages[streamingIndex],
+							content: displayContent,
+							reasoning: displayReasoning,
+							streaming: false,
+							reasoningCollapsed: displayReasoning.length > 0,
+						};
+					}
+
 					// Auto-fold previous messages' reasoning and askUserQA
-					for (let i = streamingIndex - 1; i >= 0; i--) {
+					for (let i = (hasContent || hasReasoning || hasAskUserQA ? streamingIndex : newMessages.length) - 1; i >= 0; i--) {
 						const msg = newMessages[i];
 						if (!msg) continue;
 						const needsFoldReasoning =

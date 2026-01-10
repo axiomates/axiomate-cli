@@ -241,9 +241,6 @@ const internalHandlers: Record<string, InternalHandler> = {
 		type: "async",
 		handler: async () => {
 			const registry = getToolRegistry();
-			if (!registry.isDiscovered) {
-				await registry.discover();
-			}
 			return registry.formatToolList(true);
 		},
 	}),

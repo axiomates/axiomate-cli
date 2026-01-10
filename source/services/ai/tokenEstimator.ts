@@ -26,7 +26,7 @@ export function estimateTokens(text: string): number {
 			(code >= 0x3040 && code <= 0x30ff) || // Hiragana + Katakana
 			(code >= 0xac00 && code <= 0xd7af) // Hangul Syllables
 		) {
-			tokens += 0.67; // ~1.5 chars per token
+			tokens += 0.5; // ~2.0 chars per token (adjusted for modern LLM tokenizers)
 		}
 		// ASCII
 		else if (code < 128) {
