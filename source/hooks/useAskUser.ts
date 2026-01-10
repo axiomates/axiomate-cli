@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import type { Message } from "../components/StaticMessage.js";
+import { logger } from "../utils/logger.js";
 
 export type AskUserState = {
 	/** Current pending ask_user request, or null if none */
@@ -62,45 +63,55 @@ export function useAskUser(): AskUserState {
 				question: string,
 				askOptions: string[],
 			): Promise<string> => {
-				// When AI calls ask_user, temporarily end the streaming message
-				setMessages((prev) => {
-					return prev.map((msg) => {
-						if (msg.streaming) {
-							// Temporarily end streaming (waiting for user input)
-							return { ...msg, streaming: false };
-						}
-						return msg;
-					});
-				});
+				logger.warn("[useAskUser] onAskUser called", { question, askOptions });
+				// NOTE: We do NOT mark the streaming message as non-streaming here.
+				// If we did, <Static> would render it immediately without askUserQA,
+				// and since <Static> never re-renders existing items, the askUserQA
+				// attached later would never be displayed.
+				// Instead, we keep it streaming and do all modifications in onResolve.
 
 				return new Promise((resolve) => {
 					setPendingAskUser({
 						question,
 						options: askOptions,
 						onResolve: (answer: string) => {
+							logger.warn("[useAskUser] onResolve called", { answer });
 							// After user answers:
-							// 1. Attach Q&A to current AI message (streaming stays false)
-							// 2. Create a new streaming message for AI's follow-up
-							// 3. Record current content length as offset for onChunk
+							// 1. Find the streaming message and mark it as non-streaming
+							// 2. Attach Q&A to this message (in the same update!)
+							// 3. Create a new streaming message for AI's follow-up
+							// 4. Record current content length as offset for onChunk
+							//
+							// IMPORTANT: We must do steps 1 and 2 in a single setMessages call
+							// so that when <Static> renders the message, it already has askUserQA.
 							setMessages((prev) => {
+								logger.warn("[useAskUser] setMessages - attaching askUserQA", {
+									messagesCount: prev.length,
+									messages: prev.map((m, i) => ({
+										idx: i,
+										type: m.type,
+										streaming: m.streaming,
+										hasAskUserQA: !!m.askUserQA,
+										contentLen: m.content?.length ?? 0,
+									})),
+								});
 								const newMessages = [...prev];
-								// Find the last non-user message (should be AI's reply)
+								// Find the streaming message (should be the AI's current reply)
+								let foundIdx = -1;
 								for (let i = newMessages.length - 1; i >= 0; i--) {
 									const msg = newMessages[i];
-									if (
-										msg &&
-										msg.type !== "user" &&
-										msg.type !== "user-answer"
-									) {
+									if (msg && msg.streaming) {
+										foundIdx = i;
 										// Record current content length as offset
 										const currentContentLen = msg.content?.length ?? 0;
 										const currentReasoningLen = msg.reasoning?.length ?? 0;
 										askUserContentOffsetRef.current =
 											currentContentLen > 0 ? currentContentLen + 1 : 0;
 										askUserReasoningOffsetRef.current = currentReasoningLen;
-										// Attach Q&A to this message
+										// Mark as non-streaming AND attach Q&A in one operation
 										newMessages[i] = {
 											...msg,
+											streaming: false, // Now mark as non-streaming
 											askUserQA: {
 												question,
 												options: askOptions,
@@ -108,14 +119,31 @@ export function useAskUser(): AskUserState {
 											},
 											askUserCollapsed: false, // Expanded by default
 										};
+										logger.warn("[useAskUser] Attached askUserQA to message", {
+											idx: i,
+											msgType: msg.type,
+											contentLen: currentContentLen,
+										});
 										break;
 									}
+								}
+								if (foundIdx === -1) {
+									logger.warn("[useAskUser] WARNING: No streaming message found to attach askUserQA!");
 								}
 								// Add a new streaming message for AI's follow-up
 								newMessages.push({
 									content: "",
 									reasoning: "",
 									streaming: true,
+								});
+								logger.warn("[useAskUser] After modifications", {
+									messagesCount: newMessages.length,
+									messages: newMessages.map((m, i) => ({
+										idx: i,
+										type: m.type,
+										streaming: m.streaming,
+										hasAskUserQA: !!m.askUserQA,
+									})),
 								});
 								return newMessages;
 							});

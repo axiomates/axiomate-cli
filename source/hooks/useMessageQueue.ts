@@ -328,15 +328,28 @@ export function useMessageQueue(
 							? finalContent.reasoning.substring(reasoningOffset)
 							: finalContent.reasoning;
 					const newMessages = [...prev];
-					newMessages[streamingIndex] = {
-						...newMessages[streamingIndex],
-						content: displayContent,
-						reasoning: displayReasoning,
-						streaming: false,
-						reasoningCollapsed: displayReasoning.length > 0,
-					};
+
+					// If this streaming message is empty (no content, no reasoning, no askUserQA),
+					// remove it instead of keeping an empty message (happens after askuser with no follow-up)
+					const streamingMsg = newMessages[streamingIndex];
+					const hasContent = displayContent.trim().length > 0;
+					const hasReasoning = displayReasoning.trim().length > 0;
+					const hasAskUserQA = !!streamingMsg?.askUserQA;
+					if (!hasContent && !hasReasoning && !hasAskUserQA) {
+						// Remove empty message
+						newMessages.splice(streamingIndex, 1);
+					} else {
+						newMessages[streamingIndex] = {
+							...newMessages[streamingIndex],
+							content: displayContent,
+							reasoning: displayReasoning,
+							streaming: false,
+							reasoningCollapsed: displayReasoning.length > 0,
+						};
+					}
+
 					// Auto-fold previous messages' reasoning and askUserQA
-					for (let i = streamingIndex - 1; i >= 0; i--) {
+					for (let i = (hasContent || hasReasoning || hasAskUserQA ? streamingIndex : newMessages.length) - 1; i >= 0; i--) {
 						const msg = newMessages[i];
 						if (!msg) continue;
 						const needsFoldReasoning =
